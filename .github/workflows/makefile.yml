@@ -19,3 +19,6 @@ jobs:
     
     - name: Make server
       run: cd server && make
+
+    - name: Make client
+      run: cd client && make
