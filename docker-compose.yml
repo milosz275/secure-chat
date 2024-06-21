@@ -1,0 +1,18 @@
+version: '3'
+services:
+  cassandra:
+    image: cassandra:latest
+    container_name: cassandra
+    ports:
+      - "9042:9042"
+
+  chat-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - cassandra
+    ports:
+      - "12345:12345"
+    environment:
+      CASSANDRA_CONTACT_POINTS: cassandra
