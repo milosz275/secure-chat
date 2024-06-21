@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -std=c11 -Wall -Wextra
 INCLUDES = -Iinclude
-CLIBS = 
+CLIBS = -lpthread -lcommon -L../common/build/lib
 CSRCS = $(wildcard src/*.c)
 COBJS = $(CSRCS:.c=.o)
 COBJS := $(addprefix build/, $(COBJS))
