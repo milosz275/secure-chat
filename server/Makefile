@@ -1,11 +1,11 @@
 CC = gcc
 CFLAGS = -std=c11 -Wall -Wextra
 INCLUDES = -Iinclude
-CLIBS = -lpthread -L../common/build/lib
+CLIBS = -lpthread -L../common/build/lib -lcassandra
 CSRCS = $(wildcard src/*.c)
 COBJS = $(CSRCS:.c=.o)
 COBJS := $(addprefix build/, $(COBJS))
-MAIN = main
+MAIN = server
 
 .PHONY: default all debug clean depend
 

@@ -5,7 +5,7 @@ CLIBS =
 CSRCS = $(wildcard src/*.c)
 COBJS = $(CSRCS:.c=.o)
 COBJS := $(addprefix build/, $(COBJS))
-MAIN = main
+MAIN = common
 LIBNAME = libcommon.a
 
 .PHONY: default all debug clean depend lib

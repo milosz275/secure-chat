@@ -5,7 +5,7 @@ CLIBS = -lpthread -L../common/build/lib
 CSRCS = $(wildcard src/*.c)
 COBJS = $(CSRCS:.c=.o)
 COBJS := $(addprefix build/, $(COBJS))
-MAIN = main
+MAIN = client
 
 .PHONY: default all debug clean depend
 

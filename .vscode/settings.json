@@ -5,5 +5,8 @@
         "Maculewicz",
         "Miłosz",
         "mldxo"
-    ]
+    ],
+    "files.associations": {
+        "cassandra.h": "c"
+    }
 }

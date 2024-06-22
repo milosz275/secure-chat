@@ -43,4 +43,4 @@ RUN make
 EXPOSE 12345
 
 # Run the server
-CMD ["./server"]
+CMD ["./build/bin/server"]
