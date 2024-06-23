@@ -38,14 +38,11 @@ jobs:
         build-mode: ${{ matrix.build-mode }}
 
     - if: matrix.build-mode == 'manual'
-      shell: bash
+      name: Build Docker Image
       run: |
-        echo 'If you are using a "manual" build mode for one or more of the' \
-          'languages you are analyzing, replace this with the commands to build' \
-          'your code, for example:'
-        echo '  make bootstrap'
-        echo '  make release'
-        exit 1
+        echo 'Using Docker to build the code as manual build mode is specified.'
+        docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+        exit 0
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
