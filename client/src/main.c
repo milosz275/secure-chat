@@ -1,6 +1,6 @@
-#include <stdio.h>
+#include "client.h"
 
 int main()
 {
-    printf("Hello, World!\n");
+    run_client();
 }
