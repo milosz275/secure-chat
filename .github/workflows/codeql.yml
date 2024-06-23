@@ -16,7 +16,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:latest
+      run: docker build . --file Dockerfile --tag docker.io/mlsh/secure-chat:latest
 
   analyze:
     name: Analyze (${{ matrix.language }})
@@ -37,7 +37,7 @@ jobs:
           build-mode: autobuild
 
     container:
-      image: my-image-name:latest
+      image: docker.io/mlsh/secure-chat:latest
 
     steps:
     - name: Checkout repository
