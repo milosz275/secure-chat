@@ -9,24 +9,36 @@ on:
     - cron: '33 10 * * 5'
 
 jobs:
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag my-image-name:latest
+
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
     timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
     permissions:
       security-events: write
-
       packages: read
-
       actions: read
       contents: read
 
+    needs: build
     strategy:
       fail-fast: false
       matrix:
         include:
         - language: c-cpp
           build-mode: autobuild
+
+    container:
+      image: my-image-name:latest
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -36,13 +48,6 @@ jobs:
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
-
-    - if: matrix.build-mode == 'manual'
-      name: Build Docker Image
-      run: |
-        echo 'Using Docker to build the code as manual build mode is specified.'
-        docker build . --file Dockerfile --tag my-image-name:$(date +%s)
-        exit 0
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
