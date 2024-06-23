@@ -14,11 +14,5 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Make common
-      run: cd common && make
-    
-    - name: Make server
-      run: cd server && make
-
-    - name: Make client
-      run: cd client && make
+    - name: Make all
+      run: make all
