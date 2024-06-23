@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -std=c11 -Wall -Wextra
-INCLUDES = -Iinclude
+INCLUDES = -Iinclude -I../common/include
 CLIBS = -lpthread -L../common/build/lib -lcassandra
 CSRCS = $(wildcard src/*.c)
 COBJS = $(CSRCS:.c=.o)
