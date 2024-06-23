@@ -7,6 +7,7 @@
         "mldxo"
     ],
     "files.associations": {
-        "cassandra.h": "c"
+        "cassandra.h": "c",
+        "stdlib.h": "c"
     }
 }
