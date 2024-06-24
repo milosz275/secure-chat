@@ -33,8 +33,8 @@ const char *generate_unique_user_id(const char *username)
     static char user_id[65];
     for(int i = 0; i < 32; ++i)
     {
-        user_id[i] = hash[i];
+        snprintf(user_id + (i * 2), 3, "%02x", hash[i]);
     }
-    user_id[32] = '\0';
+    user_id[64] = '\0';
     return user_id;
 }
