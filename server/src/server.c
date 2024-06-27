@@ -12,7 +12,7 @@
 
 static struct clients_t clients = {PTHREAD_MUTEX_INITIALIZER, {NULL}};
 
-void *handle_client(void *arg)
+void *handle_client(void *arg) // [ ] Change to client argument with while in outer function
 {
     char buffer[BUFFER_SIZE];
     int nbytes;
