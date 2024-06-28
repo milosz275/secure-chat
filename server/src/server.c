@@ -12,7 +12,7 @@
 
 static struct clients_t clients = {PTHREAD_MUTEX_INITIALIZER, {NULL}};
 
-void *handle_client(void *arg) // [ ] Change to client argument with while in outer function
+void *handle_client(void *arg)
 {
     char buffer[BUFFER_SIZE];
     int nbytes;
@@ -21,14 +21,12 @@ void *handle_client(void *arg) // [ ] Change to client argument with while in ou
     while ((nbytes = recv(cl->socket, buffer, sizeof(buffer), 0)) > 0)
     {
         buffer[nbytes] = '\0';
-        printf("Received from client %d: %s\n", cl->uid, buffer);
+        printf("Received from client %d: %s\n", cl->id, buffer);
         pthread_mutex_lock(&clients.mutex);
         for (int i = 0; i < MAX_CLIENTS; ++i)
         {
             if (clients.array[i] && clients.array[i]->socket != cl->socket)
-            {
                 send(clients.array[i]->socket, buffer, nbytes, 0);
-            }
         }
         pthread_mutex_unlock(&clients.mutex);
     }
@@ -38,7 +36,7 @@ void *handle_client(void *arg) // [ ] Change to client argument with while in ou
     {
         if (clients.array[i] == cl)
         {
-            printf("Client %d disconnected\n", cl->uid);
+            printf("Client %d disconnected\n", cl->id);
             clients.array[i] = NULL;
             break;
         }
@@ -100,8 +98,8 @@ void run_server()
         {
             if (!clients.array[i])
             {
-                cl->uid = i; // Use the index as the UID for easier
-                printf("Client %d connected\n", cl->uid);
+                cl->id = i;
+                printf("Client %d connected\n", cl->id);
                 clients.array[i] = cl;
                 break;
             }
@@ -118,11 +116,11 @@ void run_server()
         }
 
         char welcome_message[BUFFER_SIZE];
-        sprintf(welcome_message, "Welcome to the chat server, your ID is %d\n", cl->uid);
+        sprintf(welcome_message, "Welcome to the chat server, your ID is %d\n", cl->id);
         send(cl->socket, welcome_message, strlen(welcome_message), 0);
 
         char join_message[BUFFER_SIZE];
-        sprintf(join_message, "Client %d has joined the chat\n", cl->uid);
+        sprintf(join_message, "Client %d has joined the chat\n", cl->id);
         pthread_mutex_lock(&clients.mutex);
 
         for (int i = 0; i < MAX_CLIENTS; ++i)
