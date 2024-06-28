@@ -3,9 +3,11 @@
         "codespace",
         "Diffie",
         "Doxygen",
+        "hankey",
         "Maculewicz",
         "Miłosz",
-        "mldxo"
+        "mldxo",
+        "Styleguides"
     ],
     "files.associations": {
         "cassandra.h": "c",
