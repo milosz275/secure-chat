@@ -16,8 +16,8 @@ Secure Chat is a C program that allows you to chat securely with your friends. I
 
 # Table of Contents
 
-<!-- - [Getting Started](#getting-started)
-- [Prerequisites](#prerequisites)
+- [Getting Started](#getting-started)
+<!-- - [Prerequisites](#prerequisites)
 - [Installation](#installation) -->
 - [Components](#components)
 - [Usage](#usage)
@@ -33,15 +33,38 @@ Secure Chat is a C program that allows you to chat securely with your friends. I
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
+```bash
+git clone https://github.com/mldxo/secure-chat
+make
+```
+
+Run the server and client executables in separate terminals.
+
+```bash
+server/build/bin/server
+```
+
+```bash
+client/build/bin/client
+```
+
 # Components
 
 ## Server
 
+Server is responsible for handling client connections, retrieving messages from the database and sending messages to the recipients.
+
 ## Client
+
+Client connects to the server, sends messages and receives messages from the server.
 
 ## Common
 
+Common generates static library that is used by both server and client, i.e. communication protocol, encryption and decryption functions.
+
 ## Database
+
+Database is a [Cassandra](https://cassandra.apache.org/) database that stores messages.
 
 # License
 
@@ -53,4 +76,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 # Contributing
 
-Please refer to [CONTRIBUTING.md](CONTRIBUTING.md).
+Please refer to [CONTRIBUTING.md](CONTRIBUTING.md). We appreciate your help!
