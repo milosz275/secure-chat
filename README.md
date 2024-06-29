@@ -35,6 +35,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ```bash
 git clone https://github.com/mldxo/secure-chat
+cd secure-chat
 make
 ```
 
