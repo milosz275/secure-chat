@@ -40,10 +40,16 @@ GENERATE_XML           = NO
 GENERATE_DOCSET        = NO
 GENERATE_HTMLHELP      = NO
 GENERATE_CHI           = NO
-GENERATE_TREEVIEW      = YES
 USE_MATHJAX            = NO
 SEARCHENGINE           = YES
 SERVER_BASED_SEARCH    = NO
+
+# Doxygen Awesome
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX = NO
+FULL_SIDEBAR = NO
+HTML_EXTRA_STYLESHEET  = doxygen-awesome-css/doxygen-awesome.css
+HTML_COLORSTYLE        = LIGHT
 
 INPUT                  = ./common ./server ./client
 FILE_PATTERNS          = *.c *.h
