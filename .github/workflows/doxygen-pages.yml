@@ -37,11 +37,6 @@ jobs:
       - name: Run Doxygen
         run: doxygen
 
-      - name: Append favicon link to index.html
-        run: |
-          echo '<link rel="icon" type="image/png" href="/assets/favicon.ico">' >> docs/index.html
-          sed -i '/<head>/a <link rel="icon" type="image/png" href="/assets/favicon.ico">' docs/index.html
-
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

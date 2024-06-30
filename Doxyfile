@@ -50,6 +50,7 @@ DISABLE_INDEX = NO
 FULL_SIDEBAR = NO
 HTML_EXTRA_STYLESHEET  = doxygen-awesome-css/doxygen-awesome.css
 HTML_COLORSTYLE        = LIGHT
+HTML_HEADER            = header.html
 
 INPUT                  = ./common ./server ./client
 FILE_PATTERNS          = *.c *.h
