@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -std=c11 -Wall -Wextra -Werror -pedantic -fsanitize=address -g
+CFLAGS = -std=c11 -Wall -Wextra -Werror -pedantic -fsanitize=address -g -O2
 INCLUDES = -Iinclude
 CLIBS = 
 CSRCS = $(wildcard src/*.c)
