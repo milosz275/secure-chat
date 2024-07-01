@@ -1,6 +1,8 @@
 #ifndef __CLIENT_H
 #define __CLIENT_H
 
+#include "nuklear.h"
+
 /**
  * Receive messages from the server. This function is meant to be run in a separate thread and handle the reception of messages from the server.
  * 
