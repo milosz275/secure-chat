@@ -11,14 +11,16 @@
 
 Secure Chat is a C program that allows you to chat securely with your friends. It uses the RSA algorithm to encrypt and decrypt messages and the Diffie-Hellman algorithm to exchange keys. Messages are stored in Cassandra database and can be read by the recipient only. Sending messages in optimized for maximum performance and resource usage.
 
+- [GitHub repository](https://github.com/mldxo/secure-chat)
+- [Docker repository](https://hub.docker.com/repository/docker/mlsh/secure-chat)
+- [Doxygen documentation](https://mldxo.github.io/secure-chat/)
+
 > [!IMPORTANT]
 > This project is still in development and is not ready for production use.
 
 # Table of Contents
 
 - [Getting Started](#getting-started)
-<!-- - [Prerequisites](#prerequisites)
-- [Installation](#installation) -->
 - [Components](#components)
 - [Usage](#usage)
 - [Server](#server)
@@ -47,6 +49,15 @@ server/build/bin/server
 
 ```bash
 client/build/bin/client
+```
+
+## Docker
+
+You can also run the server instances in Docker container.
+
+```bash
+docker build . -t secure-chat:latest
+docker-compose up
 ```
 
 # Components
