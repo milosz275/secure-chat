@@ -18,18 +18,10 @@ RUN apt-get update && apt-get install -y \
     libuv1-dev \
     libcurl4-openssl-dev
 
-# Download and build cassandra driver
-RUN git clone https://github.com/datastax/cpp-driver.git && \
-    cd cpp-driver && \
-    mkdir build && \
-    cd build && \
-    cmake .. && \
-    make && \
-    make install
-
 # Copy server and common directories into the container
 COPY server /usr/src/app/server
 COPY common /usr/src/app/common
+COPY database /usr/src/app/database
 
 # Build the common library
 WORKDIR /usr/src/app/common
@@ -41,6 +33,7 @@ RUN make
 
 # Make port 12345 available to the world outside this container
 EXPOSE 12345
+RUN chmod +x /usr/src/app/server/build/bin/server
 
-# Run the server
-CMD ["./build/bin/server"]
+# Run server when the container launches
+CMD ["/usr/src/app/server/build/bin/server"]
