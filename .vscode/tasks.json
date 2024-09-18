@@ -6,9 +6,9 @@
             "type": "shell",
             "command": "git pull",
             "problemMatcher": [],
-            "runOptions": {
-                "runOn": "folderOpen"
-            }
+            // "runOptions": {
+            //     "runOn": "folderOpen"
+            // }
         },
         {
             "label": "build client",
