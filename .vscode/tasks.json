@@ -43,11 +43,11 @@
             "problemMatcher": []
         },
         {
-            "label": "build protocol",
+            "label": "build common",
             "type": "shell",
             "command": "make",
             "options": {
-                "cwd": "${workspaceFolder}/protocol"
+                "cwd": "${workspaceFolder}/common"
             },
             "group": {
                 "kind": "build",
