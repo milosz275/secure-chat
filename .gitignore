@@ -15,6 +15,7 @@
 *.so
 *.dylib
 *.dll
+!libcassandra.so
 
 # Fortran module files
 *.mod

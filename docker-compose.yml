@@ -15,3 +15,6 @@ services:
       - "12345:12345"
     environment:
       CASSANDRA_CONTACT_POINTS: cassandra
+      CASSANDRA_PORT: 9042
+    # command: tail -f /dev/null  # keep the container running
+    # restart: always

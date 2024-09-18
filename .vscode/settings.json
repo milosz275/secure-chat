@@ -1,4 +1,5 @@
 {
+    "cSpell.language": "en,pl",
     "cSpell.words": [
         "codespace",
         "Diffie",
@@ -7,10 +8,25 @@
         "Maculewicz",
         "Miłosz",
         "mldxo",
+        "Nuklear",
         "Styleguides"
     ],
     "files.associations": {
         "cassandra.h": "c",
         "stdlib.h": "c"
-    }
+    },
+    "task.allowAutomaticTasks": "on",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "always"
+    },
+    "editor.formatOnSaveMode": "file",
+    "editor.formatOnType": true,
+    "editor.formatOnPaste": true,
+    "editor.rulers": [
+        200
+    ],
+    "editor.tabSize": 4,
+    "editor.wordWrap": "on",
+    "editor.wordWrapColumn": 200,
 }

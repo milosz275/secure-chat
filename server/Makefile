@@ -1,7 +1,7 @@
 CC = gcc
-CFLAGS = -std=c11 -Wall -Wextra -Werror -pedantic -fsanitize=address -g
+CFLAGS = -std=c11 -Wall -Wextra -Werror -pedantic -fsanitize=address -g -O2
 INCLUDES = -Iinclude -I../common/include
-CLIBS = -lpthread -L../common/build/lib -lcassandra
+CLIBS = -lpthread -L../common/build/lib -lcommon -L../database
 CSRCS = $(wildcard src/*.c)
 COBJS = $(CSRCS:.c=.o)
 COBJS := $(addprefix build/, $(COBJS))
