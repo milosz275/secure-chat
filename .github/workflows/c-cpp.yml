@@ -46,7 +46,7 @@ jobs:
     - name: Set up Nuklear folder symlink
       run: |
         ln -s $(pwd)/Nuklear $(pwd)/client/include/Nuklear
-        ls -l $(pwd)/client/include
+        ls -l $(pwd)/client/include # Verify the symlink is created
 
     - name: Set up nuklear.h symlink
       run: |
@@ -54,7 +54,18 @@ jobs:
           rm -f $(pwd)/client/include/nuklear.h; \
         fi
         ln -s $(pwd)/client/include/Nuklear/nuklear.h $(pwd)/client/include/nuklear.h
-        ls -l $(pwd)/client/include
+        ls -l $(pwd)/client/include # Verify the nuklear.h symlink is created
+        realpath $(pwd)/client/include/nuklear.h # Check where the symlink resolves to
+        realpath $(pwd)/client/include/Nuklear/nuklear.h # Check where the original file is
+
+    - name: Verify nuklear.h existence
+      run: |
+        if [ ! -f "$(pwd)/client/include/nuklear.h" ]; then \
+          echo "nuklear.h is missing"; \
+          exit 1; \
+        else \
+          echo "nuklear.h is present"; \
+        fi
 
     - name: make
       run: make
