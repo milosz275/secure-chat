@@ -50,6 +50,9 @@ jobs:
 
     - name: Set up nuklear.h symlink
       run: |
+        if [ -L "$(pwd)/client/include/nuklear.h" ] || [ -e "$(pwd)/client/include/nuklear.h" ]; then \
+          rm -f $(pwd)/client/include/nuklear.h; \
+        fi
         ln -s $(pwd)/client/include/Nuklear/nuklear.h $(pwd)/client/include/nuklear.h
 
     - name: make
