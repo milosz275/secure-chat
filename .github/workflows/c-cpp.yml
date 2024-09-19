@@ -45,6 +45,18 @@ jobs:
 
     - name: Set up Nuklear folder symlink
       run: |
+        # Debugging paths
+        echo "Working Directory: $(pwd)"
+        echo "Cloned Nuklear repository contents:"
+        ls -l $(pwd)/Nuklear
+
+        if [ -d "$(pwd)/Nuklear" ]; then
+          echo "Nuklear folder exists"
+        else
+          echo "Nuklear folder is missing"
+          exit 1
+        fi
+
         ln -s $(pwd)/Nuklear $(pwd)/client/include/Nuklear
         ls -l $(pwd)/client/include # Verify the symlink is created
 
@@ -55,8 +67,8 @@ jobs:
         fi
         ln -s $(pwd)/client/include/Nuklear/nuklear.h $(pwd)/client/include/nuklear.h
         ls -l $(pwd)/client/include # Verify the nuklear.h symlink is created
-        realpath $(pwd)/client/include/nuklear.h # Check where the symlink resolves to
-        realpath $(pwd)/client/include/Nuklear/nuklear.h # Check where the original file is
+        realpath $(pwd)/client/include/nuklear.h
+        realpath $(pwd)/client/include/Nuklear/nuklear.h
 
     - name: Verify nuklear.h existence
       run: |
