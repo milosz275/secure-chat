@@ -40,5 +40,13 @@ jobs:
         make && \
         sudo make install
 
+    - name: Clone Nuklear
+      run: |
+        git clone https://github.com/Immediate-Mode-UI/Nuklear.git
+
+    - name: Set up Nuklear symlink
+      run: |
+        ln -s $(pwd)/Nuklear $(pwd)/client/include/Nuklear
+
     - name: make
       run: make
