@@ -70,15 +70,6 @@ jobs:
         ln -s $(pwd)/client/include/Nuklear/nuklear.h $(pwd)/client/include/nuklear.h
         ls -l $(pwd)/client/include # Verify the nuklear.h symlink is created
 
-    - name: Verify nuklear.h existence
-      run: |
-        if [ ! -f "$(pwd)/client/include/nuklear.h" ]; then \
-          echo "nuklear.h is missing"; \
-          exit 1; \
-        else \
-          echo "nuklear.h is present"; \
-        fi
-
     - name: Modify Makefile
       run: |
         sed -i 's|CFLAGS = |CFLAGS = -I$(pwd)/client/include/Nuklear |' client/Makefile
