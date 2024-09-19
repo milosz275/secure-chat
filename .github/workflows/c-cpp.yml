@@ -27,8 +27,7 @@ jobs:
         libz-dev \
         libc6-dev \
         libssl-dev \
-        libuv1-dev \
-        libcurl4-openssl-dev
+        libuv1-dev
 
     - name: Build Cassandra C++ Driver
       run: |
@@ -47,6 +46,7 @@ jobs:
     - name: Set up Nuklear folder symlink
       run: |
         ln -s $(pwd)/Nuklear $(pwd)/client/include/Nuklear
+        ls -l $(pwd)/client/include
 
     - name: Set up nuklear.h symlink
       run: |
@@ -54,6 +54,7 @@ jobs:
           rm -f $(pwd)/client/include/nuklear.h; \
         fi
         ln -s $(pwd)/client/include/Nuklear/nuklear.h $(pwd)/client/include/nuklear.h
+        ls -l $(pwd)/client/include
 
     - name: make
       run: make
