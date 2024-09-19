@@ -9,9 +9,9 @@
 #include <time.h>
 #include <openssl/evp.h>
 
-const unsigned char* get_hash(const char* password)
+const unsigned char *get_hash(const char *password)
 {
-    unsigned char* hash = (unsigned char*)malloc(EVP_MAX_MD_SIZE);
+    unsigned char *hash = (unsigned char*)malloc(EVP_MAX_MD_SIZE);
     EVP_Digest(password, sizeof(password), hash, NULL, EVP_sha256(), NULL);
     return hash;
 }
