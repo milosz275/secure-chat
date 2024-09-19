@@ -50,6 +50,7 @@ jobs:
         echo "Cloned Nuklear repository contents:"
         ls -l $(pwd)/Nuklear
 
+        # Check if the folder exists
         if [ -d "$(pwd)/Nuklear" ]; then
           echo "Nuklear folder exists"
         else
@@ -57,6 +58,7 @@ jobs:
           exit 1
         fi
 
+        # Create the symlink
         ln -s $(pwd)/Nuklear $(pwd)/client/include/Nuklear
         ls -l $(pwd)/client/include # Verify the symlink is created
 
@@ -67,8 +69,6 @@ jobs:
         fi
         ln -s $(pwd)/client/include/Nuklear/nuklear.h $(pwd)/client/include/nuklear.h
         ls -l $(pwd)/client/include # Verify the nuklear.h symlink is created
-        realpath $(pwd)/client/include/nuklear.h
-        realpath $(pwd)/client/include/Nuklear/nuklear.h
 
     - name: Verify nuklear.h existence
       run: |
@@ -78,6 +78,10 @@ jobs:
         else \
           echo "nuklear.h is present"; \
         fi
+
+    - name: Modify Makefile
+      run: |
+        sed -i 's|CFLAGS = |CFLAGS = -I$(pwd)/client/include/Nuklear |' client/Makefile
 
     - name: make
       run: make
