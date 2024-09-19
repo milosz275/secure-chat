@@ -1,6 +1,5 @@
 # Secure Chat
 
-[![C/C++ CI](https://github.com/mldxo/secure-chat/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/mldxo/secure-chat/actions/workflows/c-cpp.yml)
 [![Docker image](https://github.com/mldxo/secure-chat/actions/workflows/docker-image.yml/badge.svg)](https://github.com/mldxo/secure-chat/actions/workflows/docker-image.yml)
 [![CodeQL scan](https://github.com/mldxo/secure-chat/actions/workflows/codeql.yml/badge.svg)](https://github.com/mldxo/secure-chat/actions/workflows/codeql.yml)
 [![Doxygen Pages](https://github.com/mldxo/secure-chat/actions/workflows/doxygen-pages.yml/badge.svg)](https://github.com/mldxo/secure-chat/actions/workflows/doxygen-pages.yml)
