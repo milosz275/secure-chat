@@ -29,4 +29,5 @@
     "editor.tabSize": 4,
     "editor.wordWrap": "on",
     "editor.wordWrapColumn": 200,
+    "makefile.configureOnOpen": true,
 }
