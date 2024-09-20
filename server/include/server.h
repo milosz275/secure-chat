@@ -42,8 +42,10 @@ struct clients_t
 void *handle_client(void *arg);
 
 /**
- * Run the server. This function is meant to be called by the main function of the server program.
+ * Runs the server. This function is meant to be called by the main function of the server program.
+ * 
+ * @return The exit code of the server.
  */
-void run_server();
+int run_server();
 
 #endif
