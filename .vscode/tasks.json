@@ -81,9 +81,6 @@
             },
             "problemMatcher": [],
             "isBackground": true,
-            "args": [
-                "${file}"
-            ],
             "group": {
                 "kind": "none",
                 "isDefault": false
