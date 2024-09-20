@@ -2,7 +2,7 @@
 
 PROJECT_NAME           = "Secure Chat"
 PROJECT_NUMBER         = "0.1.0"
-PROJECT_BRIEF          = "Secure Chat is an application allowing distributed communication between users."
+PROJECT_BRIEF          = "Communication Application system secured with end-to-end encryption and distributed on server and database level."
 PROJECT_LOGO           = ./assets/logo.png
 
 OUTPUT_DIRECTORY       = ./docs
