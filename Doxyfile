@@ -3,6 +3,7 @@
 PROJECT_NAME           = "Secure Chat"
 PROJECT_NUMBER         = "0.1.0"
 PROJECT_BRIEF          = "Secure Chat is an application allowing distributed communication between users."
+PROJECT_LOGO           = ./assets/logo.png
 
 OUTPUT_DIRECTORY       = ./docs
 CREATE_SUBDIRS         = NO
@@ -51,8 +52,8 @@ FULL_SIDEBAR = NO
 HTML_EXTRA_STYLESHEET  = doxygen-awesome-css/doxygen-awesome.css
 HTML_COLORSTYLE        = LIGHT
 
-INPUT                  = ./common ./server ./client
-FILE_PATTERNS          = *.c *.h
+INPUT                  = ./common ./server ./client ./README.md
+FILE_PATTERNS          = *.c *.h *.md
 RECURSIVE              = YES
 EXCLUDE_PATTERNS       = */build/*
 SKIP_FUNCTION_MACROS   = YES
@@ -68,3 +69,4 @@ DIRECTORY_GRAPH        = YES
 DOT_PATH = ${DOXYGEN_DOT_PATH}
 DOT_IMAGE_FORMAT       = png
 INTERACTIVE_SVG        = NO
+USE_MDFILE_AS_MAINPAGE = ./README.md
