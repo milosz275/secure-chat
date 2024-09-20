@@ -79,7 +79,25 @@
             "options": {
                 "cwd": "${workspaceFolder}/client"
             },
-            "problemMatcher": []
+            "problemMatcher": [],
+            "isBackground": true,
+            "args": [
+                "${file}"
+            ],
+            "group": {
+                "kind": "none",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "runOptions": {
+                "instanceLimit": 99999,
+                "reevaluateOnRerun": false
+            }
         },
         {
             "label": "run all",
