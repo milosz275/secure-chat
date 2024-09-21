@@ -5,7 +5,7 @@
 [![Doxygen Pages](https://github.com/mldxo/secure-chat/actions/workflows/doxygen-pages.yml/badge.svg)](https://github.com/mldxo/secure-chat/actions/workflows/doxygen-pages.yml)
 [![GitHub release](https://img.shields.io/github/v/release/mldxo/secure-chat)](https://github.com/mldxo/secure-chat/releases)
 [![GitHub issues](https://img.shields.io/github/issues/mldxo/secure-chat)](https://github.com/mldxo/secure-chat/issues)
-[![GitHub license](https://img.shields.io/github/license/mldxo/secure-chat)](LICENSE)
+[![GitHub license](https://img.shields.io/github/license/mldxo/secure-chat)](/LICENSE)
 
 ![Logo](assets/logo.png)
 
@@ -80,7 +80,7 @@ Database is a [Cassandra](https://cassandra.apache.org/) database that stores me
 
 # License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](/LICENSE) file for details.
 
 # Authors
 
@@ -88,4 +88,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 # Contributing
 
-Please refer to [CONTRIBUTING.md](CONTRIBUTING.md). We appreciate your help!
+Please refer to [CONTRIBUTING.md](/CONTRIBUTING.md). We appreciate your help!
