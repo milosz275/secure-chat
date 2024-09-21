@@ -77,7 +77,7 @@ Common generates static library that is used by both server and client, i.e. com
 
 ## Database
 
-Database is a [Cassandra](https://cassandra.apache.org/) database that stores messages.
+SQLite3 database is utilized at the moment. There is planned usage of distributed database system [Cassandra](https://cassandra.apache.org/) in the further project iterations.
 
 # License
 
