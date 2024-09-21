@@ -44,6 +44,8 @@ GENERATE_CHI           = NO
 USE_MATHJAX            = NO
 SEARCHENGINE           = YES
 SERVER_BASED_SEARCH    = NO
+HTML_HEADER = ./header.html
+HTML_FOOTER = ./footer.html
 
 # Doxygen Awesome
 GENERATE_TREEVIEW      = YES
