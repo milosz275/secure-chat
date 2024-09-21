@@ -51,3 +51,6 @@ bin/
 
 # Logs
 *.log
+
+# Backup
+*.bak
