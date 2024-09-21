@@ -120,6 +120,8 @@ int run_server()
         cl->socket = client_socket;
         cl->address = client_addr;
 
+        // auth user here before adding to clients
+
         pthread_mutex_lock(&clients.mutex);
         for (int i = 0; i < MAX_CLIENTS; ++i)
         {
