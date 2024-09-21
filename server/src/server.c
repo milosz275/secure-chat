@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <arpa/inet.h>
-#include <cassandra.h>
 
 #include "protocol.h"
 
