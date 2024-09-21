@@ -29,12 +29,12 @@ const char *generate_unique_user_id(const char *username)
     char input_str[BUFFER_SIZE];
     snprintf(input_str, BUFFER_SIZE, "%s%s", username, get_timestamp());
     const unsigned char *hash = get_hash(input_str);
-    
-    static char user_id[65];
-    for(int i = 0; i < 32; ++i)
+
+    static char user_id[CLIENT_HASH_LENGTH + 1];
+    for (int i = 0; i < CLIENT_HASH_LENGTH / 2; ++i)
     {
         snprintf(user_id + (i * 2), 3, "%02x", hash[i]);
     }
-    user_id[64] = '\0';
+    user_id[CLIENT_HASH_LENGTH] = '\0';
     return user_id;
 }

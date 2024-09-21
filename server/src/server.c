@@ -17,18 +17,45 @@ void *handle_client(void *arg)
     char buffer[BUFFER_SIZE];
     int nbytes;
     client_t *cl = (client_t *)arg;
+    message_t msg;
 
     while ((nbytes = recv(cl->socket, buffer, sizeof(buffer), 0)) > 0)
     {
-        buffer[nbytes] = '\0';
-        printf("Received from client %d: %s\n", cl->id, buffer);
-        pthread_mutex_lock(&clients.mutex);
-        for (int i = 0; i < MAX_CLIENTS; ++i)
+        if (nbytes == sizeof(message_t))
         {
-            if (clients.array[i] && clients.array[i]->socket != cl->socket)
-                send(clients.array[i]->socket, buffer, nbytes, 0);
+            memcpy(&msg, buffer, sizeof(message_t));
+            printf("Received message from client %d to recipient %s: %s\n", cl->id, msg.recipient_uid, msg.message);
+            pthread_mutex_lock(&clients.mutex);
+            int recipient_found = 0;
+
+            for (int i = 0; i < MAX_CLIENTS; ++i)
+            {
+                // if (clients.array[i] && strcmp(clients.array[i]->uid, msg.recipient_uid) == 0)
+
+                // temporary use id instead of uid
+                char id_str[64];
+                sprintf(id_str, "%d", clients.array[i]->id);
+                if (clients.array[i] && strcmp(id_str, msg.recipient_uid) == 0)
+                {
+                    send(clients.array[i]->socket, msg.message, strlen(msg.message), 0);
+                    recipient_found = 1;
+                    break;
+                }
+            }
+
+            if (!recipient_found)
+            {
+                char error_message[BUFFER_SIZE];
+                sprintf(error_message, "Recipient with ID %s not found.\n", msg.recipient_uid);
+                send(cl->socket, error_message, strlen(error_message), 0);
+            }
+
+            pthread_mutex_unlock(&clients.mutex);
         }
-        pthread_mutex_unlock(&clients.mutex);
+        else
+        {
+            printf("Received malformed message from client %d\n", cl->id);
+        }
     }
 
     pthread_mutex_lock(&clients.mutex);

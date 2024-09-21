@@ -77,7 +77,8 @@ void run_client()
     // client
     int sock;
     struct sockaddr_in server_addr;
-    char message[BUFFER_SIZE];
+    char input[BUFFER_SIZE];
+    message_t msg;
     pthread_t recv_thread;
 
     sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -111,8 +112,12 @@ void run_client()
 
     while (1)
     {
-        fgets(message, BUFFER_SIZE, stdin);
-        if (send(sock, message, strlen(message), 0) < 0)
+        printf("Enter recipient ID and message (e.g., recipient_id:message): ");
+        fgets(input, BUFFER_SIZE, stdin);
+
+        sscanf(input, "%[^:]:%[^\n]", msg.recipient_uid, msg.message);
+
+        if (send(sock, (void *)&msg, sizeof(message_t), 0) < 0)
         {
             perror("Send failed");
             break;
