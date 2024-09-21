@@ -9,6 +9,20 @@
 #include <time.h>
 #include <openssl/evp.h>
 
+int create_message(char* recipient_uid, char* message_buf, message_t* message) 
+{
+    if (strlen(recipient_uid) > CLIENT_HASH_LENGTH)
+        return 1; 
+
+    if (strlen(message_buf) > MAX_MES_SIZE)
+        return 2; 
+    
+    strncpy(message->recipient_uid, recipient_uid, CLIENT_HASH_LENGTH - 1);
+    strncpy(message->message, message_buf, MAX_MES_SIZE - 1); 
+    
+    return 0;
+}
+
 const unsigned char *get_hash(const char *password)
 {
     unsigned char *hash = (unsigned char*)malloc(EVP_MAX_MD_SIZE);

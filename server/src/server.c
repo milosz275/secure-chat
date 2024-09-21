@@ -11,14 +11,57 @@
 
 static struct clients_t clients = {PTHREAD_MUTEX_INITIALIZER, {NULL}};
 
+//takes request as argument, asks for credentials (login, hashed password), checks db for a match, handles invalid credentials (closes socket after 3 fails), calls register function after first fail
+int user_auth(void)
+{
+    return 0;
+}
+
 void *handle_client(void *arg)
 {
     char buffer[BUFFER_SIZE];
     int nbytes;
-    client_t *cl = (client_t *)arg;
+    request_t *req;
     message_t msg;
 
-    while ((nbytes = recv(cl->socket, buffer, sizeof(buffer), 0)) > 0)
+    req = (request_t *) arg;
+
+    //user_auth
+
+    client_t *cl = (client_t *)malloc(sizeof(client_t));
+    cl->request = req;
+
+    pthread_mutex_lock(&clients.mutex);
+    for (int i = 0; i < MAX_CLIENTS; ++i)
+    {
+        if (!clients.array[i])
+        {
+            cl->id = i;
+            printf("Client %d connected\n", cl->id);
+            clients.array[i] = cl;
+            break;
+        }
+    }
+    pthread_mutex_unlock(&clients.mutex);
+
+    char welcome_message[BUFFER_SIZE];
+    sprintf(welcome_message, "Welcome to the chat server, your ID is %d\n", cl->id);
+    send(cl->request->socket, welcome_message, strlen(welcome_message), 0);
+
+    char join_message[BUFFER_SIZE];
+    sprintf(join_message, "Client %d has joined the chat\n", cl->id);
+    pthread_mutex_lock(&clients.mutex);
+
+    for (int i = 0; i < MAX_CLIENTS; ++i)
+    {
+        if (clients.array[i] && clients.array[i] != cl)
+        {
+            send(clients.array[i]->request->socket, join_message, strlen(join_message), 0);
+        }
+    }
+    pthread_mutex_unlock(&clients.mutex);
+
+    while ((nbytes = recv(cl->request->socket, buffer, sizeof(buffer), 0)) > 0)
     {
         if (nbytes == sizeof(message_t))
         {
@@ -36,7 +79,7 @@ void *handle_client(void *arg)
                 sprintf(id_str, "%d", clients.array[i]->id);
                 if (clients.array[i] && strcmp(id_str, msg.recipient_uid) == 0)
                 {
-                    send(clients.array[i]->socket, msg.message, strlen(msg.message), 0);
+                    send(clients.array[i]->request->socket, msg.message, strlen(msg.message), 0);
                     recipient_found = 1;
                     break;
                 }
@@ -46,7 +89,7 @@ void *handle_client(void *arg)
             {
                 char error_message[BUFFER_SIZE];
                 sprintf(error_message, "Recipient with ID %s not found.\n", msg.recipient_uid);
-                send(cl->socket, error_message, strlen(error_message), 0);
+                send(cl->request->socket, error_message, strlen(error_message), 0);
             }
 
             pthread_mutex_unlock(&clients.mutex);
@@ -69,7 +112,7 @@ void *handle_client(void *arg)
     }
     pthread_mutex_unlock(&clients.mutex);
 
-    close(cl->socket);
+    close(cl->request->socket);
     free(cl);
     pthread_exit(NULL);
 }
@@ -79,6 +122,7 @@ int run_server()
     int server_socket, client_socket;
     struct sockaddr_in server_addr, client_addr;
     socklen_t client_len = sizeof(client_addr);
+    request_t req;
 
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket < 0)
@@ -115,48 +159,17 @@ int run_server()
             continue;
         }
 
-        client_t *cl = (client_t *)malloc(sizeof(client_t));
-        cl->socket = client_socket;
-        cl->address = client_addr;
-
-        pthread_mutex_lock(&clients.mutex);
-        for (int i = 0; i < MAX_CLIENTS; ++i)
-        {
-            if (!clients.array[i])
-            {
-                cl->id = i;
-                printf("Client %d connected\n", cl->id);
-                clients.array[i] = cl;
-                break;
-            }
-        }
-        pthread_mutex_unlock(&clients.mutex);
+        req.socket = client_socket;
+        req.address = client_addr;
 
         pthread_t tid;
-        if (pthread_create(&tid, NULL, handle_client, (void *)cl) != 0)
+        if (pthread_create(&tid, NULL, handle_client, (void *)&req) != 0)
         {
             perror("Thread creation failed");
             close(client_socket);
-            free(cl);
             continue;
         }
 
-        char welcome_message[BUFFER_SIZE];
-        sprintf(welcome_message, "Welcome to the chat server, your ID is %d\n", cl->id);
-        send(cl->socket, welcome_message, strlen(welcome_message), 0);
-
-        char join_message[BUFFER_SIZE];
-        sprintf(join_message, "Client %d has joined the chat\n", cl->id);
-        pthread_mutex_lock(&clients.mutex);
-
-        for (int i = 0; i < MAX_CLIENTS; ++i)
-        {
-            if (clients.array[i] && clients.array[i] != cl)
-            {
-                send(clients.array[i]->socket, join_message, strlen(join_message), 0);
-            }
-        }
-        pthread_mutex_unlock(&clients.mutex);
     }
     close(server_socket);
 

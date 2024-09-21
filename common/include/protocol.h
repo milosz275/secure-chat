@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+//????
 #define LOGIN 1
 #define MESSAGE 2
 #define PRIVATE_MESSAGE 3
@@ -12,6 +13,7 @@
 #define PORT 12345
 #define BUFFER_SIZE 1024
 #define CLIENT_HASH_LENGTH 64
+#define MAX_MES_SIZE BUFFER_SIZE - CLIENT_HASH_LENGTH - 1
 
 /**
  * The message structure. This structure is used to determine structure of sent and received data between the client and the server.
@@ -22,8 +24,17 @@
 typedef struct
 {
     char recipient_uid[CLIENT_HASH_LENGTH];
-    char message[BUFFER_SIZE - CLIENT_HASH_LENGTH - 1];
+    char message[MAX_MES_SIZE];
 } message_t;
+
+/**
+ * Creates a message from recepient UID and message buffer
+ * @param recipient_uid The recipient's UID
+ * @param message_buf The message buffer
+ * @param message The filled message structure
+ * @return Exit code: 0 (success), 1 (invalid UID length), 2 (invalid message length)
+ */
+int create_message(char* recipient_uid, char* message_buf, message_t* message);
 
 /**
  * Get the hash of a password. This function is used to get the hash of a password using SHA-256 from the OpenSSL library.

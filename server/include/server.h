@@ -7,17 +7,27 @@
 #define MAX_CLIENTS 100
 
 /**
- * The singular client structure. This structure is used to store information about a client connected to the server.
+ * The singular request structure. This structure is used to store server connection data.
  * 
- * @param address The address of the client.
- * @param socket The socket of the client.
- * @param id The ID of the client.
- * @param uid The unique ID of the client.
+ * @param address The request address.
+ * @param socket The server returned socket.
  */
 typedef struct
 {
     struct sockaddr_in address;
     int socket;
+} request_t;
+
+/**
+ * The singular client structure. This structure is used to store information about a client connected to the server.
+ * 
+ * @param request The client request.
+ * @param id The ID of the client.
+ * @param uid The unique ID of the client.
+ */
+typedef struct
+{
+    request_t* request;
     int id;
     int uid;
 } client_t;
