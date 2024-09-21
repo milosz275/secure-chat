@@ -52,5 +52,8 @@ bin/
 # Logs
 *.log
 
+# Docs are auto-generated
+docs/
+
 # Backup
 *.bak
