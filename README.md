@@ -7,7 +7,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/mldxo/secure-chat)](https://github.com/mldxo/secure-chat/issues)
 [![GitHub license](https://img.shields.io/github/license/mldxo/secure-chat)](LICENSE)
 
-![Logo](https://raw.githubusercontent.com/mldxo/secure-chat/refs/heads/main/assets/logo.png)
+![Logo](assets/logo.png)
 
 Secure Chat is a C program that allows you to chat securely with your friends. It uses the RSA algorithm to encrypt and decrypt messages and the Diffie-Hellman algorithm to exchange keys. Messages are stored in Cassandra database and can be read by the recipient only. Sending messages in optimized for maximum performance and resource usage.
 
