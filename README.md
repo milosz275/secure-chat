@@ -39,6 +39,7 @@ These instructions will get you a copy of the project up and running on your loc
 ```bash
 git clone https://github.com/mldxo/secure-chat
 cd secure-chat
+git submodule update --init --recursive
 make
 ```
 
@@ -86,6 +87,7 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 # Authors
 
 - [mldxo](https://github.com/mldxo)
+- [antk02](https://github.com/antk02)
 
 # Contributing
 
