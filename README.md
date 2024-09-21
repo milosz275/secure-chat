@@ -80,7 +80,7 @@ Database is a [Cassandra](https://cassandra.apache.org/) database that stores me
 
 # License
 
-This project is licensed under the MIT License - see the [LICENSE](/LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/mldxo/secure-chat/blob/main/LICENSE) file for details.
 
 # Authors
 
@@ -88,4 +88,4 @@ This project is licensed under the MIT License - see the [LICENSE](/LICENSE) fil
 
 # Contributing
 
-Please refer to [CONTRIBUTING.md](/CONTRIBUTING.md). We appreciate your help!
+Please refer to [CONTRIBUTING.md](https://github.com/mldxo/secure-chat/blob/main/CONTRIBUTING.md). We appreciate your help!
