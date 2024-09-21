@@ -57,3 +57,7 @@ docs/
 
 # Backup
 *.bak
+
+# Database
+*.sqlite
+*.db
