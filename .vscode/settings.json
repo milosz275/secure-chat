@@ -2,6 +2,7 @@
     "cSpell.language": "en,pl",
     "cSpell.words": [
         "antk",
+        "AUTOINCREMENT",
         "codespace",
         "Diffie",
         "Doxygen",
@@ -14,7 +15,8 @@
     ],
     "files.associations": {
         "cassandra.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "random": "c"
     },
     "task.allowAutomaticTasks": "on",
     "editor.formatOnSave": true,
