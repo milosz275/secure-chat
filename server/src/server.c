@@ -6,8 +6,8 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <arpa/inet.h>
-#include <signal.h>
 #include <sqlite3.h>
+#include <ctype.h>
 
 #include "protocol.h"
 
@@ -29,7 +29,6 @@ int connect_db(sqlite3** db, char* db_name)
         "user_id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "username TEXT NOT NULL UNIQUE, "
         "password_hash TEXT NOT NULL, "
-        "email TEXT NOT NULL UNIQUE, "
         "created_at TEXT DEFAULT CURRENT_TIMESTAMP, "
         "last_login TEXT"
         ");";
@@ -110,10 +109,222 @@ int connect_db(sqlite3** db, char* db_name)
     return DATABASE_CONNECTION_SUCCESS;
 }
 
-// takes request as argument, asks for credentials (login, hashed password), checks db for a match, handles invalid credentials (closes socket after 3 fails), calls register function after first fail
-int user_auth(void)
+void trim_whitespace(char* str)
 {
-    return 0;
+    char* end;
+    while (isspace((unsigned char)*str)) str++;
+    end = str + strlen(str) - 1;
+    while (end > str && isspace((unsigned char)*end)) end--;
+    *(end + 1) = '\0';
+}
+
+int user_auth(request_t* req)
+{
+    char buffer[BUFFER_SIZE];
+    int nbytes;
+    sqlite3_stmt* stmt;
+    sqlite3* db;
+    int login_attempts = 0;
+
+    if (connect_db(&db, "sqlite.db") != DATABASE_CONNECTION_SUCCESS)
+    {
+        fprintf(stderr, "Database connection failed in user_auth\n");
+        return USER_AUTHENTICATION_DATABASE_CONNECTION_FAILURE;
+    }
+
+    while (login_attempts < 3)
+    {
+        char username[64];
+        char password[64];
+        char password_confirm[64];
+        char* password_hash;
+        char* sql;
+        int user_exists = 0;
+
+        const char* username_prompt = "Enter your username: ";
+        send(req->socket, username_prompt, strlen(username_prompt), 0);
+
+        nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
+        if (nbytes <= 0)
+        {
+            close(req->socket);
+            sqlite3_close(db);
+            return USER_AUTHENTICATION_USERNAME_RECEIVE_FAILURE;
+        }
+
+        buffer[nbytes] = '\0';
+        trim_whitespace(buffer);
+        strcpy(username, buffer);
+
+        sql = "SELECT user_id FROM users WHERE username = ?;";
+        if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK)
+        {
+            fprintf(stderr, "Can't prepare statement: %s\n", sqlite3_errmsg(db));
+            sqlite3_close(db);
+            return USER_AUTHENTICATION_USERNAME_QUERY_FAILURE;
+        }
+        sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC);
+
+        if (sqlite3_step(stmt) == SQLITE_ROW)
+        {
+            user_exists = 1;
+        }
+        sqlite3_finalize(stmt);
+
+        if (user_exists)
+        {
+            const char* password_prompt = "Enter your password: ";
+            send(req->socket, password_prompt, strlen(password_prompt), 0);
+
+            nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
+            if (nbytes <= 0)
+            {
+                close(req->socket);
+                sqlite3_close(db);
+                return USER_AUTHENTICATION_PASSWORD_RECEIVE_FAILURE;
+            }
+            buffer[nbytes] = '\0';
+            trim_whitespace(buffer);
+            strcpy(password, buffer);
+
+            password_hash = (char*)get_hash(password);
+
+            sql = "SELECT user_id FROM users WHERE username = ? AND password_hash = ?;";
+            if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK)
+            {
+                fprintf(stderr, "Can't prepare statement: %s\n", sqlite3_errmsg(db));
+                sqlite3_close(db);
+                return USER_AUTHENTICATION_PASSWORD_QUERY_FAILURE;
+            }
+            sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 2, password_hash, -1, SQLITE_STATIC);
+
+            if (sqlite3_step(stmt) == SQLITE_ROW)
+            {
+                sqlite3_finalize(stmt);
+                sqlite3_close(db);
+                return USER_AUTHENTICATION_SUCCESS;
+            }
+            else
+            {
+                const char* invalid_msg = "Invalid credentials\n";
+                send(req->socket, invalid_msg, strlen(invalid_msg), 0);
+                login_attempts++;
+            }
+            sqlite3_finalize(stmt);
+        }
+        else
+        {
+            const char* no_user_prompt = "User does not exist. Do you want to create a new account? [y/n]: ";
+            send(req->socket, no_user_prompt, strlen(no_user_prompt), 0);
+
+            nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
+            if (nbytes <= 0)
+            {
+                close(req->socket);
+                sqlite3_close(db);
+                return USER_AUTHENTICATION_CHOICE_RECEIVE_FAILURE;
+            }
+            buffer[nbytes] = '\0';
+            trim_whitespace(buffer);
+
+            if (strcmp(buffer, "y") == 0 || strcmp(buffer, "Y") == 0)
+            {
+                const char* password_prompt = "Enter a password: ";
+                send(req->socket, password_prompt, strlen(password_prompt), 0);
+
+                nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
+                if (nbytes <= 0)
+                {
+                    close(req->socket);
+                    sqlite3_close(db);
+                    return USER_AUTHENTICATION_PASSWORD_RECEIVE_FAILURE;
+                }
+                buffer[nbytes] = '\0';
+                trim_whitespace(buffer);
+                strcpy(password, buffer);
+
+                const char* confirm_password_prompt = "Confirm your password: ";
+                send(req->socket, confirm_password_prompt, strlen(confirm_password_prompt), 0);
+
+                nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
+                if (nbytes <= 0)
+                {
+                    close(req->socket);
+                    sqlite3_close(db);
+                    return USER_AUTHENTICATION_PASSWORD_CONFIRMATION_RECEIVE_FAILURE;
+                }
+                buffer[nbytes] = '\0';
+                trim_whitespace(buffer);
+                strcpy(password_confirm, buffer);
+
+                if (strcmp(password, password_confirm) != 0)
+                {
+                    const char* mismatch_msg = "Passwords do not match.\n";
+                    send(req->socket, mismatch_msg, strlen(mismatch_msg), 0);
+                    login_attempts++;
+                    continue;
+                }
+
+                password_hash = (char*)get_hash(password);
+                fprintf(stderr, "Password hash: %s\n", password_hash);
+
+                sql = "INSERT INTO users (username, password_hash) VALUES (?, ?);";
+                if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK)
+                {
+                    fprintf(stderr, "Can't prepare statement: %s\n", sqlite3_errmsg(db));
+                    sqlite3_close(db);
+                    return USER_AUTHENTICATION_USER_CREATION_QUERY_FAILURE;
+                }
+                sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC);
+                sqlite3_bind_text(stmt, 2, password_hash, -1, SQLITE_STATIC);
+
+                int step_result = sqlite3_step(stmt);
+                if (step_result == SQLITE_DONE)
+                {
+                    const char* success_msg = "Account created successfully.\n";
+                    send(req->socket, success_msg, strlen(success_msg), 0);
+                    sqlite3_finalize(stmt);
+                    sqlite3_close(db);
+                    return USER_AUTHENTICATION_SUCCESS;
+                }
+                else
+                {
+                    const char* failure_msg = "Failed to create account.\n";
+                    send(req->socket, failure_msg, strlen(failure_msg), 0);
+                    fprintf(stderr, "Failed to create account: %s\n", sqlite3_errmsg(db));
+                    sqlite3_finalize(stmt);
+                    sqlite3_close(db);
+                    return USER_AUTHENTICATION_USER_CREATION_FAILURE;
+                }
+            }
+            else if (strcmp(buffer, "n") == 0 || strcmp(buffer, "N") == 0)
+            {
+                const char* retry_msg = "Retrying login...\n";
+                send(req->socket, retry_msg, strlen(retry_msg), 0);
+                login_attempts++;
+            }
+            else
+            {
+                const char* invalid_input_msg = "Invalid input. Retrying login...\n";
+                fprintf(stderr, "Invalid input: %s\n", buffer);
+                send(req->socket, invalid_input_msg, strlen(invalid_input_msg), 0);
+                login_attempts++;
+            }
+        }
+
+        if (login_attempts >= 3)
+        {
+            const char* failure_msg = "Too many failed login attempts\n";
+            send(req->socket, failure_msg, strlen(failure_msg), 0);
+            close(req->socket);
+            sqlite3_close(db);
+            return USER_AUTHENTICATION_ATTEMPTS_EXCEEDED;
+        }
+    }
+
+    sqlite3_close(db);
+    return USER_AUTHENTICATION_FAILURE;
 }
 
 void* handle_client(void* arg)
@@ -123,7 +334,12 @@ void* handle_client(void* arg)
     request_t req = *((request_t*)arg);
     message_t msg;
 
-    // user_auth
+    int auth_result = user_auth(&req);
+    if (auth_result != USER_AUTHENTICATION_SUCCESS)
+    {
+        close(req.socket);
+        pthread_exit(NULL);
+    }
 
     client_t cl;
     cl.request = &req;
@@ -213,19 +429,6 @@ void* handle_client(void* arg)
     pthread_exit(NULL);
 }
 
-void int_handler(int sig)
-{
-    char c;
-    signal(sig, SIG_IGN);
-    printf(" Do you want to quit? [y/n] ");
-    c = getchar();
-    if (c == 'y' || c == 'Y')
-        exit(0);
-    else
-        signal(SIGINT, int_handler);
-    getchar();
-}
-
 int run_server()
 {
     int server_socket, client_socket;
@@ -233,8 +436,8 @@ int run_server()
     socklen_t client_len = sizeof(client_addr);
     request_t req;
     sqlite3* db;
-
     connect_db(&db, "sqlite.db");
+    sqlite3_close(db);
 
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket < 0)
@@ -283,7 +486,6 @@ int run_server()
         }
     }
     close(server_socket);
-    sqlite3_close(db);
 
     return 0;
 }
