@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -std=c11 -Wall -Wextra -Werror -pedantic -fsanitize=address -g -O2
 INCLUDES = -Iinclude -I../common/include
-CLIBS = -lpthread -L../common/build/lib -lcommon -lsqlite3
+CLIBS = -lpthread -L../common/build/lib -lcommon -lsqlite3 -lssl -lcrypto
 CSRCS = $(wildcard src/*.c)
 COBJS = $(CSRCS:.c=.o)
 COBJS := $(addprefix build/, $(COBJS))
@@ -12,11 +12,11 @@ MAIN = server
 default: all
 
 all: $(MAIN)
-	@echo "Project has been compiled"
+	@echo "✔️ Server has been compiled"
 
 debug: CFLAGS += -g -DDEBUG -D_DEBUG
 debug: $(MAIN)
-	@echo "Project has been compiled in debug mode"
+	@echo "✔️ Server has been compiled in debug mode"
 
 $(MAIN): $(COBJS)
 	@mkdir -p build/bin

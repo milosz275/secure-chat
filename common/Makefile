@@ -1,7 +1,7 @@
 CC = gcc
-CFLAGS = -std=c11 -Wall -Wextra -Werror -pedantic -fsanitize=address -g -O2 -lssl -lcrypto
+CFLAGS = -std=c11 -Wall -Wextra -Werror -pedantic -fsanitize=address -g -O2
 INCLUDES = -Iinclude
-CLIBS = 
+CLIBS = -lssl -lcrypto
 CSRCS = $(wildcard src/*.c)
 COBJS = $(CSRCS:.c=.o)
 COBJS := $(addprefix build/, $(COBJS))
@@ -13,11 +13,11 @@ LIBNAME = libcommon.a
 default: all
 
 all: $(MAIN)
-	@echo "Project has been compiled"
+	@echo "✔️ Common has been compiled"
 
 debug: CFLAGS += -g -DDEBUG -D_DEBUG
 debug: $(MAIN)
-	@echo "Project has been compiled in debug mode"
+	@echo "✔️ Common has been compiled in debug mode"
 
 $(MAIN): $(COBJS)
 	@mkdir -p build/bin
