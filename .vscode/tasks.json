@@ -125,7 +125,7 @@
             "type": "shell",
             "command": "rm -rf *.db",
             "options": {
-                "cwd": "${workspaceFolder}/server"
+                "cwd": "${workspaceFolder}/database"
             },
             "problemMatcher": []
         }
