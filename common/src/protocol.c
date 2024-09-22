@@ -12,15 +12,15 @@
 int create_message(char* recipient_uid, char* message_buf, message_t* message) 
 {
     if (strlen(recipient_uid) > CLIENT_HASH_LENGTH)
-        return 1; 
+        return INVALID_UID_LENGTH;
 
     if (strlen(message_buf) > MAX_MES_SIZE)
-        return 2; 
-    
+        return INVALID_MESSAGE_LENGTH;
+
     strncpy(message->recipient_uid, recipient_uid, CLIENT_HASH_LENGTH - 1);
-    strncpy(message->message, message_buf, MAX_MES_SIZE - 1); 
-    
-    return 0;
+    strncpy(message->message, message_buf, MAX_MES_SIZE - 1);
+
+    return MESSAGE_CREATED;
 }
 
 const unsigned char *get_hash(const char *password)
