@@ -16,6 +16,21 @@
 #define DATABASE_CREATE_MESSAGES_TABLE_FAILURE 205
 #define DATABASE_CREATE_MESSAGE_RECIPIENTS_TABLE_FAILURE 206
 
+// The user authentication result codes.
+#define USER_AUTHENTICATION_SUCCESS 300
+#define USER_AUTHENTICATION_FAILURE 301
+#define USER_AUTHENTICATION_DATABASE_CONNECTION_FAILURE 302
+#define USER_AUTHENTICATION_USERNAME_RECEIVE_FAILURE 303
+#define USER_AUTHENTICATION_USERNAME_QUERY_FAILURE 304
+#define USER_AUTHENTICATION_PASSWORD_RECEIVE_FAILURE 305
+#define USER_AUTHENTICATION_PASSWORD_QUERY_FAILURE 306
+#define USER_AUTHENTICATION_PASSWORD_SUCCESS 307
+#define USER_AUTHENTICATION_CHOICE_RECEIVE_FAILURE 308
+#define USER_AUTHENTICATION_PASSWORD_CONFIRMATION_RECEIVE_FAILURE 309
+#define USER_AUTHENTICATION_USER_CREATION_QUERY_FAILURE 310
+#define USER_AUTHENTICATION_USER_CREATION_FAILURE 311
+#define USER_AUTHENTICATION_ATTEMPTS_EXCEEDED 312
+
 /**
  * The singular request structure. This structure is used to store server connection data.
  *
@@ -64,18 +79,25 @@ struct clients_t
 int connect_db(sqlite3** db, char* db_name);
 
 /**
+ * Trims the whitespace from a string. This function is used to remove the whitespace from the beginning and end of a string.
+ *
+ * @param str The string to trim.
+ */
+void trim_whitespace(char* str);
+
+/**
+ * Authenticates a request. This function is used to authenticate a user request. Returns the authentication result code.
+ *
+ * @param req The request to authenticate.
+ */
+int user_auth(request_t* req);
+
+/**
  * Client handler. This function is used to handle a client connected to the server and is supposed to run in a separate thread.
  *
  * @param arg The client structure.
  */
 void* handle_client(void* arg);
-
-/**
- * Interrupt handler. This function is used to handle the SIGINT signal and is supposed to be called by the signal function.
- *
- * @param sig The signal number.
- */
-void int_handler(int sig);
 
 /**
  * Runs the server. This function is meant to be called by the main function of the server program.
