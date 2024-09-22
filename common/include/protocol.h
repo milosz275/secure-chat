@@ -3,15 +3,14 @@
 
 #include <stdint.h>
 
-//????
-#define LOGIN 1
-#define MESSAGE 2
-#define PRIVATE_MESSAGE 3
-#define LOGOUT 4
-#define ERROR 5
+// message creation
+#define MESSAGE_CREATED 0
+#define INVALID_UID_LENGTH 1
+#define INVALID_MESSAGE_LENGTH 2
 
+// message structure
 #define PORT 12345
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 4096
 #define CLIENT_HASH_LENGTH 64
 #define MAX_MES_SIZE BUFFER_SIZE - CLIENT_HASH_LENGTH - 1
 
@@ -28,7 +27,7 @@ typedef struct
 } message_t;
 
 /**
- * Creates a message from recepient UID and message buffer
+ * Creates a message from recipient UID and message buffer
  * @param recipient_uid The recipient's UID
  * @param message_buf The message buffer
  * @param message The filled message structure
