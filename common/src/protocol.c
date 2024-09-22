@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <signal.h>
 #include <openssl/evp.h>
 
 int create_message(char* recipient_uid, char* message_buf, message_t* message)
@@ -51,4 +52,17 @@ const char* generate_unique_user_id(const char* username)
     }
     user_id[CLIENT_HASH_LENGTH] = '\0';
     return user_id;
+}
+
+void int_handler(int sig)
+{
+    char c;
+    signal(sig, SIG_IGN);
+    printf(" Do you want to quit? [y/n] ");
+    c = getchar();
+    if (c == 'y' || c == 'Y')
+        exit(0);
+    else
+        signal(SIGINT, int_handler);
+    getchar();
 }

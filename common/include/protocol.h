@@ -58,4 +58,11 @@ const char* get_timestamp();
  */
 const char* generate_unique_user_id(const char* username);
 
+/**
+ * Interrupt handler. This function is used to handle the SIGINT signal and is supposed to be called by the signal function.
+ *
+ * @param sig The signal number.
+ */
+void int_handler(int sig);
+
 #endif

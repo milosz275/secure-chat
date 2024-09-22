@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include "server.h"
+#include "protocol.h"
 
 int main()
 {
