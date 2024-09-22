@@ -4,9 +4,9 @@
 #include <stdint.h>
 
 // message creation
-#define MESSAGE_CREATED 0
-#define INVALID_UID_LENGTH 1
-#define INVALID_MESSAGE_LENGTH 2
+#define MESSAGE_CREATED 100
+#define INVALID_UID_LENGTH 101
+#define INVALID_MESSAGE_LENGTH 102
 
 // message structure
 #define PORT 12345
