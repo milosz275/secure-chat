@@ -8,12 +8,15 @@
 #define MAX_CLIENTS 100
 
 /**
- * The database connection exit codes.
+ * The database connection result codes.
  */
 #define DATABASE_CONNECTION_SUCCESS 200
 #define DATABASE_OPEN_FAILURE 201
 #define DATABASE_CREATE_USERS_TABLE_FAILURE 202
-#define DATABASE_CREATE_MESSAGES_TABLE_FAILURE 203
+#define DATABASE_CREATE_GROUPS_TABLE_FAILURE 203
+#define DATABASE_CREATE_GROUP_MEMBERSHIP_TABLE_FAILURE 204
+#define DATABASE_CREATE_MESSAGES_TABLE_FAILURE 205
+#define DATABASE_CREATE_MESSAGE_RECIPIENTS_TABLE_FAILURE 206
 
 /**
  * The singular request structure. This structure is used to store server connection data.

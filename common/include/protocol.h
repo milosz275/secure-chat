@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 /**
- * The message creation exit codes. These are used to determine the exit code of the create_message function.
+ * The message creation result codes. These are used to determine the exit code of the create_message function.
  */
 #define MESSAGE_CREATED 100
 #define INVALID_UID_LENGTH 101
