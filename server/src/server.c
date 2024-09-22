@@ -17,11 +17,11 @@ int user_auth(void)
     return 0;
 }
 
-void *handle_client(void *arg)
+void* handle_client(void* arg)
 {
     char buffer[BUFFER_SIZE];
     int nbytes;
-    request_t req = *((request_t *)arg);
+    request_t req = *((request_t*)arg);
     message_t msg;
 
     //user_auth
@@ -132,7 +132,7 @@ int run_server()
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(PORT);
 
-    if (bind(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+    if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
     {
         perror("Bind failed");
         close(server_socket);
@@ -149,7 +149,7 @@ int run_server()
 
     while (1)
     {
-        client_socket = accept(server_socket, (struct sockaddr *)&client_addr, &client_len);
+        client_socket = accept(server_socket, (struct sockaddr*)&client_addr, &client_len);
         if (client_socket < 0)
         {
             perror("Accept failed");
@@ -160,7 +160,7 @@ int run_server()
         req.address = client_addr;
 
         pthread_t tid;
-        if (pthread_create(&tid, NULL, handle_client, (void *)&req) != 0)
+        if (pthread_create(&tid, NULL, handle_client, (void*)&req) != 0)
         {
             perror("Thread creation failed");
             close(client_socket);

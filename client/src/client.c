@@ -15,9 +15,9 @@
 #define NK_INCLUDE_DEFAULT_ALLOCATOR
 #define MAX_MEMORY 4096 * 1024 // 4MB
 
-void *receive_messages(void *socket_desc)
+void* receive_messages(void* socket_desc)
 {
-    int sock = *(int *)socket_desc;
+    int sock = *(int*)socket_desc;
     char buffer[BUFFER_SIZE];
     int nbytes;
 
@@ -96,20 +96,21 @@ void run_client()
         exit(EXIT_FAILURE);
     }
 
-    if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+    if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
     {
         perror("Connection failed");
         exit(EXIT_FAILURE);
     }
     printf("Connected to server\n");
 
-    if (pthread_create(&recv_thread, NULL, receive_messages, (void *)&sock) != 0)
+    if (pthread_create(&recv_thread, NULL, receive_messages, (void*)&sock) != 0)
     {
         perror("Thread creation failed");
         close(sock);
         exit(EXIT_FAILURE);
     }
 
+    sleep(2);
     while (1)
     {
         printf("Enter recipient ID and message (e.g., recipient_id:message): ");
@@ -117,7 +118,7 @@ void run_client()
 
         sscanf(input, "%[^:]:%[^\n]", msg.recipient_uid, msg.message);
 
-        if (send(sock, (void *)&msg, sizeof(message_t), 0) < 0)
+        if (send(sock, (void*)&msg, sizeof(message_t), 0) < 0)
         {
             perror("Send failed");
             break;

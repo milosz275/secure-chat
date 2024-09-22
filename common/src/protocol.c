@@ -23,14 +23,14 @@ int create_message(char* recipient_uid, char* message_buf, message_t* message)
     return MESSAGE_CREATED;
 }
 
-const unsigned char *get_hash(const char *password)
+const unsigned char* get_hash(const char* password)
 {
-    unsigned char *hash = (unsigned char*)malloc(EVP_MAX_MD_SIZE);
+    unsigned char* hash = (unsigned char*)malloc(EVP_MAX_MD_SIZE);
     EVP_Digest(password, sizeof(password), hash, NULL, EVP_sha256(), NULL);
     return hash;
 }
 
-const char *get_timestamp()
+const char* get_timestamp()
 {
     static char timestamp_str[20];
     time_t now = time(NULL);
@@ -38,11 +38,11 @@ const char *get_timestamp()
     return timestamp_str;
 }
 
-const char *generate_unique_user_id(const char *username)
+const char* generate_unique_user_id(const char* username)
 {
     char input_str[BUFFER_SIZE];
     snprintf(input_str, BUFFER_SIZE, "%s%s", username, get_timestamp());
-    const unsigned char *hash = get_hash(input_str);
+    const unsigned char* hash = get_hash(input_str);
 
     static char user_id[CLIENT_HASH_LENGTH + 1];
     for (int i = 0; i < CLIENT_HASH_LENGTH / 2; ++i)

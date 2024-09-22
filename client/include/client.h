@@ -8,7 +8,7 @@
  * 
  * @param socket_desc The socket descriptor.
  */
-void *receive_messages(void *socket_desc);
+void* receive_messages(void* socket_desc);
 
 /**
  * Run the client. This function is meant to be called by the main function of the client program.

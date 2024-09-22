@@ -41,14 +41,14 @@ int create_message(char* recipient_uid, char* message_buf, message_t* message);
  * @param password The password.
  * @return The hash of the password.
  */
-const unsigned char *get_hash(const char *password);
+const unsigned char* get_hash(const char* password);
 
 /**
  * Get the current timestamp. This function is used to get the current timestamp using time.h.
  * 
  * @return The current timestamp.
  */
-const char *get_timestamp();
+const char* get_timestamp();
 
 /**
  * Generate a unique user ID. This function is used to generate a unique user ID based on the username.
@@ -56,6 +56,6 @@ const char *get_timestamp();
  * @param username The username.
  * @return The unique user ID.
  */
-const char *generate_unique_user_id(const char *username);
+const char* generate_unique_user_id(const char* username);
 
 #endif

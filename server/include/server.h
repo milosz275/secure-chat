@@ -41,7 +41,7 @@ typedef struct
 struct clients_t
 {
     pthread_mutex_t mutex;
-    client_t *array[MAX_CLIENTS];
+    client_t* array[MAX_CLIENTS];
 };
 
 /**
@@ -49,7 +49,7 @@ struct clients_t
  * 
  * @param arg The client structure.
  */
-void *handle_client(void *arg);
+void* handle_client(void* arg);
 
 /**
  * Runs the server. This function is meant to be called by the main function of the server program.
