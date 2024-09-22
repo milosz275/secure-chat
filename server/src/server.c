@@ -18,7 +18,7 @@ int connect_db(sqlite3** db, char* db_name)
     {
         fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(*db));
         sqlite3_close(*db);
-        return 1;
+        return DATABASE_OPEN_FAILURE;
     }
 
     char *sql = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, uid TEXT NOT NULL, username TEXT NOT NULL, password TEXT NOT NULL);";
@@ -26,10 +26,18 @@ int connect_db(sqlite3** db, char* db_name)
     {
         fprintf(stderr, "Can't create table: %s\n", sqlite3_errmsg(*db));
         sqlite3_close(*db);
-        return 1;
+        return DATABASE_CREATE_USERS_TABLE_FAILURE;
     }
 
-    return 0;
+    *sql = "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, sender_uid TEXT NOT NULL, recipient_uid TEXT NOT NULL, message TEXT NOT NULL, timestamp TEXT NOT NULL);";
+    if (sqlite3_exec(*db, sql, NULL, 0, NULL) != SQLITE_OK)
+    {
+        fprintf(stderr, "Can't create table: %s\n", sqlite3_errmsg(*db));
+        sqlite3_close(*db);
+        return DATABASE_CREATE_MESSAGES_TABLE_FAILURE;
+    }
+
+    return DATABASE_CONNECTION_SUCCESS;
 }
 
 //takes request as argument, asks for credentials (login, hashed password), checks db for a match, handles invalid credentials (closes socket after 3 fails), calls register function after first fail
