@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include "server.h"
 
 int main()
 {
+    signal(SIGINT, int_handler);
     setbuf(stdout, NULL);
 
     int result = run_server();
