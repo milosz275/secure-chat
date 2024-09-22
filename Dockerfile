@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     cmake \
     sqlite3 \
+    libsqlite3-dev \
     libz-dev \
     libc6-dev \
     libssl-dev \
