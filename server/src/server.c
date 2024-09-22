@@ -21,52 +21,50 @@ void *handle_client(void *arg)
 {
     char buffer[BUFFER_SIZE];
     int nbytes;
-    request_t *req;
+    request_t req = *((request_t *)arg);
     message_t msg;
-
-    req = (request_t *) arg;
 
     //user_auth
 
-    client_t *cl = (client_t *)malloc(sizeof(client_t));
-    cl->request = req;
+    client_t cl;
+    cl.request = &req;
 
     pthread_mutex_lock(&clients.mutex);
     for (int i = 0; i < MAX_CLIENTS; ++i)
     {
         if (!clients.array[i])
         {
-            cl->id = i;
-            printf("Client %d connected\n", cl->id);
-            clients.array[i] = cl;
+            cl.id = i;
+            printf("Client %d connected\n", cl.id);
+            clients.array[i] = &cl;
             break;
         }
     }
     pthread_mutex_unlock(&clients.mutex);
 
     char welcome_message[BUFFER_SIZE];
-    sprintf(welcome_message, "Welcome to the chat server, your ID is %d\n", cl->id);
-    send(cl->request->socket, welcome_message, strlen(welcome_message), 0);
+    sprintf(welcome_message, "Welcome to the chat server, your ID is %d\n", cl.id);
+    send(cl.request->socket, welcome_message, strlen(welcome_message), 0);
 
     char join_message[BUFFER_SIZE];
-    sprintf(join_message, "Client %d has joined the chat\n", cl->id);
+    sprintf(join_message, "Client %d has joined the chat\n", cl.id);
+    
     pthread_mutex_lock(&clients.mutex);
-
     for (int i = 0; i < MAX_CLIENTS; ++i)
     {
-        if (clients.array[i] && clients.array[i] != cl)
+        if (clients.array[i] && clients.array[i] != &cl)
         {
             send(clients.array[i]->request->socket, join_message, strlen(join_message), 0);
         }
     }
     pthread_mutex_unlock(&clients.mutex);
 
-    while ((nbytes = recv(cl->request->socket, buffer, sizeof(buffer), 0)) > 0)
+    while ((nbytes = recv(cl.request->socket, buffer, sizeof(buffer), 0)) > 0)
     {
         if (nbytes == sizeof(message_t))
         {
             memcpy(&msg, buffer, sizeof(message_t));
-            printf("Received message from client %d to recipient %s: %s\n", cl->id, msg.recipient_uid, msg.message);
+            printf("Received message from client %d to recipient %s: %s\n", cl.id, msg.recipient_uid, msg.message);
             pthread_mutex_lock(&clients.mutex);
             int recipient_found = 0;
 
@@ -89,31 +87,30 @@ void *handle_client(void *arg)
             {
                 char error_message[BUFFER_SIZE];
                 sprintf(error_message, "Recipient with ID %s not found.\n", msg.recipient_uid);
-                send(cl->request->socket, error_message, strlen(error_message), 0);
+                send(cl.request->socket, error_message, strlen(error_message), 0);
             }
 
             pthread_mutex_unlock(&clients.mutex);
         }
         else
         {
-            printf("Received malformed message from client %d\n", cl->id);
+            printf("Received malformed message from client %d\n", cl.id);
         }
     }
 
     pthread_mutex_lock(&clients.mutex);
     for (int i = 0; i < MAX_CLIENTS; ++i)
     {
-        if (clients.array[i] == cl)
+        if (clients.array[i] == &cl)
         {
-            printf("Client %d disconnected\n", cl->id);
+            printf("Client %d disconnected\n", cl.id);
             clients.array[i] = NULL;
             break;
         }
     }
     pthread_mutex_unlock(&clients.mutex);
 
-    close(cl->request->socket);
-    free(cl);
+    close(cl.request->socket);
     pthread_exit(NULL);
 }
 
