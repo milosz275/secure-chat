@@ -12,11 +12,11 @@ MAIN = client
 default: all
 
 all: $(MAIN)
-	@echo "Project has been compiled"
+	@echo "✔️ Client has been compiled"
 
 debug: CFLAGS += -g -DDEBUG -D_DEBUG
 debug: $(MAIN)
-	@echo "Project has been compiled in debug mode"
+	@echo "✔️ Client has been compiled in debug mode"
 
 $(MAIN): $(COBJS)
 	@mkdir -p build/bin
