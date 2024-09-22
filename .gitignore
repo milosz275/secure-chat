@@ -39,6 +39,10 @@ bin/
 # Notes
 .notes/
 
+# VS Code
+browse.vc.db
+browse.vc.*
+
 # Visual Studio files
 *.sdf
 *.opensdf
