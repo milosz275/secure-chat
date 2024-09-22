@@ -106,13 +106,28 @@
         },
         {
             "label": "clean all",
-            "command": "make clean",
+            "command": "make",
+            "args": [
+                "clean"
+            ],
             "problemMatcher": []
         },
         {
             "label": "clean all and build all",
-            "command": "make clean && make",
-            "problemMatcher": []
+            "dependsOn": [
+                "clean all",
+                "build all"
+            ],
+            "dependsOrder": "sequence"
         },
+        {
+            "label": "delete database",
+            "type": "shell",
+            "command": "rm -rf *.db",
+            "options": {
+                "cwd": "${workspaceFolder}/server"
+            },
+            "problemMatcher": []
+        }
     ]
 }
