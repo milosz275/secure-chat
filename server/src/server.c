@@ -29,7 +29,7 @@ int connect_db(sqlite3** db, char* db_name)
         return DATABASE_CREATE_USERS_TABLE_FAILURE;
     }
 
-    *sql = "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, sender_uid TEXT NOT NULL, recipient_uid TEXT NOT NULL, message TEXT NOT NULL, timestamp TEXT NOT NULL);";
+    sql = "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, sender_uid TEXT NOT NULL, recipient_uid TEXT NOT NULL, message TEXT NOT NULL, timestamp TEXT NOT NULL);";
     if (sqlite3_exec(*db, sql, NULL, 0, NULL) != SQLITE_OK)
     {
         fprintf(stderr, "Can't create table: %s\n", sqlite3_errmsg(*db));

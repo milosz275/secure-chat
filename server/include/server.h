@@ -3,6 +3,7 @@
 
 #include <pthread.h>
 #include <arpa/inet.h>
+#include <sqlite3.h>
 
 #define MAX_CLIENTS 100
 
