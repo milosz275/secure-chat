@@ -3,12 +3,16 @@
 
 #include <stdint.h>
 
-// message creation
+/**
+ * The message creation exit codes. These are used to determine the exit code of the create_message function.
+ */
 #define MESSAGE_CREATED 100
 #define INVALID_UID_LENGTH 101
 #define INVALID_MESSAGE_LENGTH 102
 
-// message structure
+/**
+ * The server port and message buffer size. These are used to define the port and buffer size for the server and client.
+ */
 #define PORT 12345
 #define BUFFER_SIZE 4096
 #define CLIENT_HASH_LENGTH 64
