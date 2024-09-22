@@ -6,10 +6,31 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <arpa/inet.h>
+#include <sqlite3.h>
 
 #include "protocol.h"
 
 static struct clients_t clients = {PTHREAD_MUTEX_INITIALIZER, {NULL}};
+
+int connect_db(sqlite3** db, char* db_name)
+{
+    if (sqlite3_open(db_name, db) != SQLITE_OK)
+    {
+        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(*db));
+        sqlite3_close(*db);
+        return 1;
+    }
+
+    char *sql = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, uid TEXT NOT NULL, username TEXT NOT NULL, password TEXT NOT NULL);";
+    if (sqlite3_exec(*db, sql, NULL, 0, NULL) != SQLITE_OK)
+    {
+        fprintf(stderr, "Can't create table: %s\n", sqlite3_errmsg(*db));
+        sqlite3_close(*db);
+        return 1;
+    }
+
+    return 0;
+}
 
 //takes request as argument, asks for credentials (login, hashed password), checks db for a match, handles invalid credentials (closes socket after 3 fails), calls register function after first fail
 int user_auth(void)
@@ -120,6 +141,9 @@ int run_server()
     struct sockaddr_in server_addr, client_addr;
     socklen_t client_len = sizeof(client_addr);
     request_t req;
+    sqlite3* db;
+
+    connect_db(&db, "sqlite.db");
 
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket < 0)
