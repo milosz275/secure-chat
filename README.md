@@ -82,7 +82,7 @@ SQLite3 database is utilized at the moment. There is planned usage of distribute
 
 ### Database Schema
 
-Navigate to [database](/database) for detailed database schema documentation.
+Navigate to [database](https://github.com/mldxo/secure-chat/tree/main/database) for detailed database schema documentation.
 
 # License
 
