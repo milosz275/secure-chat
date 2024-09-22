@@ -78,7 +78,11 @@ Common generates static library that is used by both server and client, i.e. com
 
 ## Database
 
-SQLite3 database is utilized at the moment. There is planned usage of distributed database system [Cassandra](https://cassandra.apache.org/) in the further project iterations.
+SQLite3 database is utilized at the moment. There is planned usage of distributed database system [Cassandra](https://cassandra.apache.org/) or [MongoDB](https://www.mongodb.com/) in the further project iterations.
+
+### Database Schema
+
+Navigate to [server/README.md](server/README.md) for detailed database schema documentation.
 
 # License
 
