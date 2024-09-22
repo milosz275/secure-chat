@@ -5,7 +5,7 @@
 
 /**
  * Receive messages from the server. This function is meant to be run in a separate thread and handle the reception of messages from the server.
- * 
+ *
  * @param socket_desc The socket descriptor.
  */
 void* receive_messages(void* socket_desc);

@@ -9,7 +9,7 @@
 #include <time.h>
 #include <openssl/evp.h>
 
-int create_message(char* recipient_uid, char* message_buf, message_t* message) 
+int create_message(char* recipient_uid, char* message_buf, message_t* message)
 {
     if (strlen(recipient_uid) > CLIENT_HASH_LENGTH)
         return INVALID_UID_LENGTH;
