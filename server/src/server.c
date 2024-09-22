@@ -20,8 +20,15 @@ int connect_db(sqlite3** db, char* db_name)
     if (sqlite3_open(db_path, db) != SQLITE_OK)
     {
         fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(*db));
+        fprintf(stderr, "Trying again...\n"); // this is for Docker to work
         sqlite3_close(*db);
-        return DATABASE_OPEN_FAILURE;
+        if (sqlite3_open(db_name, db) != SQLITE_OK)
+        {
+            fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(*db));
+            sqlite3_close(*db);
+            return DATABASE_OPEN_FAILURE;
+        }
+        fprintf(stderr, "Database opened in the server directory\n");
     }
 
     // users
