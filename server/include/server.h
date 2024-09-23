@@ -4,8 +4,12 @@
 #include <pthread.h>
 #include <arpa/inet.h>
 #include <sqlite3.h>
+#include "protocol.h"
 
 #define MAX_CLIENTS 100
+
+#define DB_NAME "sqlite.db"
+#define DB_PATH_LENGTH 256
 
 // The database connection result codes.
 #define DATABASE_CONNECTION_SUCCESS 200
@@ -34,11 +38,13 @@
 /**
  * The singular request structure. This structure is used to store server connection data.
  *
+ * @param timestamp The request timestamp.
  * @param address The request address.
  * @param socket The server returned socket.
  */
 typedef struct
 {
+    char *timestamp;
     struct sockaddr_in address;
     int socket;
 } request_t;
@@ -77,13 +83,6 @@ struct clients_t
  * @return The database connection exit code.
  */
 int connect_db(sqlite3** db, char* db_name);
-
-/**
- * Trims the whitespace from a string. This function is used to remove the whitespace from the beginning and end of a string.
- *
- * @param str The string to trim.
- */
-void trim_whitespace(char* str);
 
 /**
  * Authenticates a request. This function is used to authenticate a user request. Returns the authentication result code.
