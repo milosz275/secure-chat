@@ -112,17 +112,6 @@ void run_client()
 
     while (1)
     {
-        while (1)
-        {
-            // auth
-            fgets(input, BUFFER_SIZE, stdin);
-            input[strcspn(input, "\n")] = 0;
-            if (send(sock, input, strlen(input), 0) < 0)
-            {
-                perror("Send failed");
-                break;
-            }
-        }
 
         // authed
         printf("Enter recipient ID and message (e.g., recipient_id:message): ");
