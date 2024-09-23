@@ -92,7 +92,7 @@ int connect_db(sqlite3** db, char* db_name);
  * @param req The request to authenticate.
  * @param uid The obtained unique ID of the client.
  */
-int user_auth(request_t* req, char* uid);
+int user_auth(request_t* req, client_t* cl);
 
 /**
  * Client handler. This function is used to handle a client connected to the server and is supposed to run in a separate thread.

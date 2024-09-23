@@ -117,7 +117,7 @@ int connect_db(sqlite3** db, char* db_name)
     return DATABASE_CONNECTION_SUCCESS;
 }
 
-int user_auth(request_t* req, char* uid)
+int user_auth(request_t* req, client_t* cl)
 {
     message_t msg;
     char buffer[BUFFER_SIZE];
@@ -147,8 +147,10 @@ int user_auth(request_t* req, char* uid)
     // [ ] Query the database for the username, etc.
 
     // for no warnings
-    uid = "test";
-    printf("User ID: %s\n", uid);
+    cl->request = req;
+    cl->uid = "test";
+    printf("User ID: %s\n", cl->uid);
+    cl->timestamp = (char*)get_timestamp();
 
     return USER_AUTHENTICATION_SUCCESS;
 }
@@ -157,21 +159,16 @@ void* handle_client(void* arg)
 {
     char buffer[BUFFER_SIZE];
     int nbytes;
-    request_t req = *((request_t*)arg);
-    char* uid = "";
+    request_t* req_ptr = ((request_t*)arg);
+    request_t req = *req_ptr;
     message_t msg;
+    client_t cl;
 
-    int auth_result = user_auth(&req, uid);
-    if (auth_result != USER_AUTHENTICATION_SUCCESS)
+    if (user_auth(&req, &cl) != USER_AUTHENTICATION_SUCCESS)
     {
         close(req.socket);
         pthread_exit(NULL);
     }
-
-    client_t cl;
-    cl.uid = uid;
-    cl.request = &req;
-    cl.timestamp = (char*)get_timestamp();
 
     pthread_mutex_lock(&clients.mutex);
     for (int i = 0; i < MAX_CLIENTS; ++i)
