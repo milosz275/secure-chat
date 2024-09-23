@@ -184,12 +184,12 @@ void* handle_client(void* arg)
     pthread_mutex_unlock(&clients.mutex);
 
     pthread_mutex_lock(&clients.mutex);
-    char welcome_message[BUFFER_SIZE];
+    char welcome_message[MAX_PAYLOAD_SIZE];
     sprintf(welcome_message, "Welcome to the chat server, your ID is %d\n", cl.id);
     create_message(&msg, MESSAGE_TEXT, "server", "client", welcome_message);
     send_message(cl.request->socket, &msg);
 
-    char join_message[BUFFER_SIZE];
+    char join_message[MAX_PAYLOAD_SIZE];
     sprintf(join_message, "Client %d has joined the chat\n", cl.id);
     create_message(&msg, MESSAGE_TEXT, "server", "client", join_message);
 
@@ -209,14 +209,17 @@ void* handle_client(void* arg)
             parse_message(&msg, buffer);
             printf("Received message from client %d: %s\n", cl.id, msg.payload);
 
+            char payload[MAX_PAYLOAD_SIZE];
+            strncpy(payload, msg.payload, MAX_PAYLOAD_SIZE);
+            payload[MAX_PAYLOAD_SIZE - 1] = '\0';
+
             pthread_mutex_lock(&clients.mutex);
             for (int i = 0; i < MAX_CLIENTS; ++i)
             {
                 if (clients.array[i] && clients.array[i] != &cl)
                 {
-                    msg.type = MESSAGE_TEXT;
-                    msg.payload_length = strlen(msg.payload);
-                    send_message(clients.array[i]->request->socket, &msg); // it is bugged here of on the client side to append part of ID to the message
+                    create_message(&msg, MESSAGE_TEXT, "server", "client", payload);
+                    send_message(clients.array[i]->request->socket, &msg);
                 }
             }
             pthread_mutex_unlock(&clients.mutex);
@@ -264,9 +267,35 @@ int run_server()
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(PORT);
 
-    if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
+    int attempts = 0;
+    int max_attempts = 30;
+    int bind_success = 0;
+    while (attempts < max_attempts)
     {
-        perror("Bind failed");
+        if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
+        {
+            perror("Bind failed");
+            attempts++;
+            if (attempts < max_attempts)
+            {
+                sleep(2);
+            }
+            else
+            {
+                printf("Could not bind to the server address\n");
+                close(server_socket);
+                exit(EXIT_FAILURE);
+            }
+        }
+        else
+        {
+            bind_success = 1;
+            break;
+        }
+    }
+    if (!bind_success)
+    {
+        printf("Could not bind to the server address\n");
         close(server_socket);
         exit(EXIT_FAILURE);
     }
