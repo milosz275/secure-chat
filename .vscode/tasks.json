@@ -92,9 +92,11 @@
             },
             "presentation": {
                 "reveal": "always",
+                "revealProblems": "onProblem",
                 "panel": "dedicated",
                 "showReuseMessage": false,
-                "clear": false
+                "clear": false,
+                "close": true
             },
             "runOptions": {
                 "instanceLimit": 99999,
