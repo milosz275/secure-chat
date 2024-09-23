@@ -19,21 +19,21 @@ void* receive_messages(void* socket_desc)
 {
     int sock = *(int*)socket_desc;
     char buffer[BUFFER_SIZE];
+    message_t msg;
     int nbytes;
 
-    while ((nbytes = recv(sock, buffer, sizeof(buffer), 0)) > 0)
+    while (1)
     {
-        buffer[nbytes] = '\0';
-        printf("%s\n", buffer);
-    }
+        nbytes = recv(sock, buffer, sizeof(buffer), 0);
+        if (nbytes <= 0)
+        {
+            printf("Connection closed or error occurred.\n");
+            close(sock);
+            pthread_exit(NULL);
+        }
 
-    if (!nbytes)
-    {
-        printf("Server disconnected\n");
-    }
-    else
-    {
-        perror("Recv failed");
+        parse_message(&msg, buffer);
+        printf("Server: %s\n", msg.payload);
     }
 
     pthread_exit(NULL);
