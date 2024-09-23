@@ -44,7 +44,7 @@
  */
 typedef struct
 {
-    char *timestamp;
+    char* timestamp;
     struct sockaddr_in address;
     int socket;
 } request_t;
