@@ -184,57 +184,28 @@ void* handle_client(void* arg)
 
     while ((nbytes = recv(cl.request->socket, buffer, sizeof(buffer), 0)) > 0)
     {
-        if (nbytes == sizeof(message_t))
+        if (nbytes > 0)
         {
-            memcpy(&msg, buffer, sizeof(message_t));
+            // move this to logging function
+            parse_message(&msg, buffer);
+            printf("Received message:\n");
+            printf("Message UID: %s\n", msg.message_uid);
+            printf("Type: %s\n", message_type_to_string(msg.type));
+            printf("Sender UID: %s\n", msg.sender_uid);
+            printf("Recipient UID: %s\n", msg.recipient_uid);
+            printf("Payload length: %d\n", msg.payload_length);
+            printf("Payload: %s\n", msg.payload);
 
-            if (strlen(msg.recipient_uid) > 0 && strlen(msg.message) > 0)
+            pthread_mutex_lock(&clients.mutex);
+            // temporary loop through all clients instead of mocking database
+            for (int i = 0; i < MAX_CLIENTS; ++i)
             {
-                printf("Received message from client %d to recipient %s: %s\n", cl.id, msg.recipient_uid, msg.message);
-                pthread_mutex_lock(&clients.mutex);
-                int recipient_found = 0;
-                // temporary loop through all clients instead of mocking database
-                for (int i = 0; i < MAX_CLIENTS; ++i)
+                if (clients.array[i] && clients.array[i] != &cl)
                 {
-                    // if (clients.array[i] && strcmp(clients.array[i]->uid, msg.recipient_uid) == 0)
-
-                    if (clients.array[i] == NULL)
-                    {
-                        continue;
-                    }
-                    
-                    // temporary use id instead of uid
-                    char id_str[64];
-                    sprintf(id_str, "%d", clients.array[i]->id);
-                    printf("Checking client %d with id %s\n", i, id_str);
-
-                    if (strcmp(id_str, msg.recipient_uid) == 0)
-                    {
-                        if (clients.array[i]->request == NULL)
-                        {
-                            printf("Client %d request is NULL\n", i);
-                            continue;
-                        }
-
-                        send(clients.array[i]->request->socket, msg.message, strlen(msg.message), 0);
-                        recipient_found = 1;
-                        break;
-                    }
+                    send(clients.array[i]->request->socket, buffer, nbytes, 0);
                 }
-
-                if (!recipient_found)
-                {
-                    char error_message[BUFFER_SIZE];
-                    sprintf(error_message, "Recipient with ID %s not found.\n", msg.recipient_uid);
-                    send(cl.request->socket, error_message, strlen(error_message), 0);
-                }
-
-                pthread_mutex_unlock(&clients.mutex);
             }
-            else
-            {
-                printf("Received malformed message from client %d: recipient uid or message length is zero\n", cl.id);
-            }
+            pthread_mutex_unlock(&clients.mutex);
         }
         else
         {
