@@ -16,7 +16,8 @@
     "files.associations": {
         "cassandra.h": "c",
         "stdlib.h": "c",
-        "random": "c"
+        "random": "c",
+        "string.h": "c"
     },
     "task.allowAutomaticTasks": "on",
     "editor.formatOnSave": true,
