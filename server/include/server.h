@@ -53,14 +53,16 @@ typedef struct
  * The singular client structure. This structure is used to store information about a client connected to the server.
  *
  * @param request The client request.
+ * @param timestamp The client creation timestamp.
  * @param id The ID of the client.
  * @param uid The unique ID of the client.
  */
 typedef struct
 {
     request_t* request;
+    char* timestamp;
     int id;
-    int uid;
+    char* uid;
 } client_t;
 
 /**
@@ -88,8 +90,9 @@ int connect_db(sqlite3** db, char* db_name);
  * Authenticates a request. This function is used to authenticate a user request. Returns the authentication result code.
  *
  * @param req The request to authenticate.
+ * @param uid The obtained unique ID of the client.
  */
-int user_auth(request_t* req);
+int user_auth(request_t* req, char* uid);
 
 /**
  * Client handler. This function is used to handle a client connected to the server and is supposed to run in a separate thread.
