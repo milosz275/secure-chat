@@ -112,17 +112,24 @@ void run_client()
 
     while (1)
     {
+        fgets(input, sizeof(input), stdin);
+        input[strcspn(input, "\n")] = '\0';
 
-        // authed
-        printf("Enter recipient ID and message (e.g., recipient_id:message): ");
-        fgets(input, BUFFER_SIZE, stdin);
-        sscanf(input, "%[^:]:%[^\n]", msg.recipient_uid, msg.message);
-
-        if (send(sock, (void*)&msg, sizeof(message_t), 0) < 0)
+        if (strlen(input) == 0)
         {
-            perror("Send failed");
+            continue;
+        }
+
+        if (strcmp(input, "!exit") == 0)
+        {
             break;
         }
+
+        create_message(&msg, MESSAGE_TEXT, "client", "server", "");
+        msg.payload_length = strlen(input);
+        strncpy(msg.payload, input, sizeof(msg.payload) - 1);
+        msg.payload[sizeof(msg.payload) - 1] = '\0';
+        send_message(sock, &msg);
     }
 
     close(sock);
