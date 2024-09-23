@@ -32,6 +32,8 @@ void* receive_messages(void* socket_desc)
             pthread_exit(NULL);
         }
 
+        buffer[nbytes] = '\0';
+        msg.payload[0] = '\0';
         parse_message(&msg, buffer);
         printf("Server: %s\n", msg.payload);
     }
@@ -77,7 +79,7 @@ void run_client()
     // client
     int sock;
     struct sockaddr_in server_addr;
-    char input[BUFFER_SIZE];
+    char input[MAX_PAYLOAD_SIZE];
     message_t msg;
     pthread_t recv_thread;
 
@@ -125,10 +127,7 @@ void run_client()
             break;
         }
 
-        create_message(&msg, MESSAGE_TEXT, "client", "server", "");
-        msg.payload_length = strlen(input);
-        strncpy(msg.payload, input, sizeof(msg.payload) - 1);
-        msg.payload[sizeof(msg.payload) - 1] = '\0';
+        create_message(&msg, MESSAGE_TEXT, "client", "server", input);
         send_message(sock, &msg);
     }
 
