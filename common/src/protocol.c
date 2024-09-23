@@ -11,7 +11,7 @@
 #include <arpa/inet.h>
 #include <openssl/evp.h>
 
-int create_message(message_t* msg, message_type_t type, const char* sender_uid, const char* recipient_uid, const char* payload)
+int create_message(message_t* msg, message_type_t type, char* sender_uid, char* recipient_uid, char* payload)
 {
     if (msg == NULL || sender_uid == NULL || recipient_uid == NULL || payload == NULL)
     {
@@ -24,7 +24,8 @@ int create_message(message_t* msg, message_type_t type, const char* sender_uid, 
     snprintf(msg->recipient_uid, USERNAME_HASH_LENGTH, "%s", recipient_uid);
     msg->payload_length = strlen(payload);
     snprintf(msg->payload, MAX_PAYLOAD_SIZE, "%s", payload);
-
+    msg->payload[MAX_PAYLOAD_SIZE - 1] = '\0';
+    
     return MESSAGE_CREATION_SUCCESS;
 }
 
@@ -42,6 +43,7 @@ int send_message(int socket, message_t* msg)
     }
 
     char buffer[BUFFER_SIZE];
+    msg->payload[msg->payload_length] = '\0';
     snprintf(buffer, BUFFER_SIZE, "%s%s%d%s%s%s%s%s%u%s%s",
         msg->message_uid, MESSAGE_DELIMITER,
         msg->type, MESSAGE_DELIMITER,
