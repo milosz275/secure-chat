@@ -10,20 +10,6 @@
 #include <signal.h>
 #include <openssl/evp.h>
 
-int create_message(char* recipient_uid, char* message_buf, message_t* message)
-{
-    if (strlen(recipient_uid) > CLIENT_HASH_LENGTH)
-        return INVALID_UID_LENGTH;
-
-    if (strlen(message_buf) > MAX_MES_SIZE)
-        return INVALID_MESSAGE_LENGTH;
-
-    strncpy(message->recipient_uid, recipient_uid, CLIENT_HASH_LENGTH - 1);
-    strncpy(message->message, message_buf, MAX_MES_SIZE - 1);
-
-    return MESSAGE_CREATED;
-}
-
 const unsigned char* get_hash(const char* password)
 {
     unsigned char* hash = (unsigned char*)malloc(EVP_MAX_MD_SIZE);
@@ -33,7 +19,7 @@ const unsigned char* get_hash(const char* password)
 
 const char* get_timestamp()
 {
-    static char timestamp_str[20];
+    static char timestamp_str[TIMESTAMP_LENGTH];
     time_t now = time(NULL);
     strftime(timestamp_str, sizeof(timestamp_str), "%Y%m%d%H%M%S", localtime(&now));
     return timestamp_str;

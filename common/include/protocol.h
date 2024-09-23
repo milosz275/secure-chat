@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#define TIMESTAMP_LENGTH 20
+
 // The message creation result codes. These are used to determine the exit code of the create_message function.
 #define MESSAGE_CREATED 100
 #define INVALID_UID_LENGTH 101
@@ -25,15 +27,6 @@ typedef struct
     char recipient_uid[CLIENT_HASH_LENGTH];
     char message[MAX_MES_SIZE];
 } message_t;
-
-/**
- * Creates a message from recipient UID and message buffer
- * @param recipient_uid The recipient's UID
- * @param message_buf The message buffer
- * @param message The filled message structure
- * @return Exit code: 0 (success), 1 (invalid UID length), 2 (invalid message length)
- */
-int create_message(char* recipient_uid, char* message_buf, message_t* message);
 
 /**
  * Get the hash of a password. This function is used to get the hash of a password using SHA-256 from the OpenSSL library.
