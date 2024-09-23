@@ -119,17 +119,7 @@ int connect_db(sqlite3** db, char* db_name)
 
 int user_auth(request_t* req, char* uid)
 {
-    // move this to logging function
-    fprintf(stderr, "User authentication started\n");
-    fprintf(stderr, "Request timestamp: %s\n", req->timestamp);
-    fprintf(stderr, "Request address: %s\n", inet_ntoa(req->address.sin_addr));
-    fprintf(stderr, "Request port: %d\n", ntohs(req->address.sin_port));
-    fprintf(stderr, "Request socket: %d\n", req->socket);
-    uid = "1234567890";
-    fprintf(stderr, "UID: %s\n", uid);
-    return USER_AUTHENTICATION_SUCCESS;
-
-    return USER_AUTHENTICATION_FAILURE;
+    
 }
 
 void* handle_client(void* arg)
@@ -186,16 +176,6 @@ void* handle_client(void* arg)
     {
         if (nbytes > 0)
         {
-            // move this to logging function
-            parse_message(&msg, buffer);
-            printf("Received message:\n");
-            printf("Message UID: %s\n", msg.message_uid);
-            printf("Type: %s\n", message_type_to_string(msg.type));
-            printf("Sender UID: %s\n", msg.sender_uid);
-            printf("Recipient UID: %s\n", msg.recipient_uid);
-            printf("Payload length: %d\n", msg.payload_length);
-            printf("Payload: %s\n", msg.payload);
-
             pthread_mutex_lock(&clients.mutex);
             // temporary loop through all clients instead of mocking database
             for (int i = 0; i < MAX_CLIENTS; ++i)
