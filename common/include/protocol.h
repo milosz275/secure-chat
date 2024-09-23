@@ -104,7 +104,7 @@ typedef struct
  * @param payload The message content or control data.
  * @return The message creation result code.
  */
-int create_message(message_t* msg, message_type_t type, const char* sender_uid, const char* recipient_uid, const char* payload);
+int create_message(message_t* msg, message_type_t type, char* sender_uid, char* recipient_uid, char* payload);
 
 /**
  * Parse a message. This function is used to parse a message structure and return the message content.
