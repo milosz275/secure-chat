@@ -25,19 +25,29 @@ const char* get_timestamp()
     return timestamp_str;
 }
 
-const char* generate_unique_user_id(const char* username)
+const char* generate_uid(const char* text, int hash_length)
 {
-    char input_str[BUFFER_SIZE];
-    snprintf(input_str, BUFFER_SIZE, "%s%s", username, get_timestamp());
+    static char input_str[BUFFER_SIZE];
+    snprintf(input_str, BUFFER_SIZE, "%s%s", text, get_timestamp());
     const unsigned char* hash = get_hash(input_str);
 
-    static char user_id[CLIENT_HASH_LENGTH + 1];
-    for (int i = 0; i < CLIENT_HASH_LENGTH / 2; ++i)
+    char* uid = (char*)malloc((hash_length * 2) + 1);
+    if (uid == NULL)
     {
-        snprintf(user_id + (i * 2), 3, "%02x", hash[i]);
+        return NULL;
     }
-    user_id[CLIENT_HASH_LENGTH] = '\0';
-    return user_id;
+
+    for (int i = 0; i < hash_length; ++i)
+    {
+        snprintf(uid + (i * 2), 3, "%02x", hash[i]);
+    }
+    uid[hash_length * 2] = '\0';
+    return uid;
+}
+
+const char* generate_unique_user_id(const char* username)
+{
+    return generate_uid(username, CLIENT_HASH_LENGTH);
 }
 
 void int_handler(int sig)

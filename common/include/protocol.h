@@ -44,6 +44,15 @@ const unsigned char* get_hash(const char* password);
 const char* get_timestamp();
 
 /**
+ * Generate a unique ID. This function is used to generate a unique ID based on the text and the current timestamp.
+ *
+ * @param text The text.
+ * @param hash_length The length of the hash.
+ * @return The unique ID.
+ */
+const char* generate_uid(const char* text, int hash_length);
+
+/**
  * Generate a unique user ID. This function is used to generate a unique user ID based on the username.
  *
  * @param username The username.
