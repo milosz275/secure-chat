@@ -119,7 +119,38 @@ int connect_db(sqlite3** db, char* db_name)
 
 int user_auth(request_t* req, char* uid)
 {
-    
+    message_t msg;
+    char buffer[BUFFER_SIZE];
+    int nbytes;
+
+    sqlite3* db;
+    int db_result = connect_db(&db, DB_NAME);
+    if (db_result != DATABASE_CONNECTION_SUCCESS)
+    {
+        close(req->socket);
+        return USER_AUTHENTICATION_DATABASE_CONNECTION_FAILURE;
+    }
+
+    create_message(&msg, MESSAGE_TEXT, "server", "client", "Enter your username: ");
+    send_message(req->socket, &msg);
+
+    nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
+    if (nbytes <= 0)
+    {
+        close(req->socket);
+        return USER_AUTHENTICATION_USERNAME_RECEIVE_FAILURE;
+    }
+
+    parse_message(&msg, buffer);
+    printf("Received username: %s\n", msg.payload);
+
+    // [ ] Query the database for the username, etc.
+
+    // for no warnings
+    uid = "test";
+    printf("User ID: %s\n", uid);
+
+    return USER_AUTHENTICATION_SUCCESS;
 }
 
 void* handle_client(void* arg)
@@ -155,19 +186,21 @@ void* handle_client(void* arg)
     }
     pthread_mutex_unlock(&clients.mutex);
 
+    pthread_mutex_lock(&clients.mutex);
     char welcome_message[BUFFER_SIZE];
     sprintf(welcome_message, "Welcome to the chat server, your ID is %d\n", cl.id);
-    send(cl.request->socket, welcome_message, strlen(welcome_message), 0);
+    create_message(&msg, MESSAGE_TEXT, "server", "client", welcome_message);
+    send_message(cl.request->socket, &msg);
 
     char join_message[BUFFER_SIZE];
     sprintf(join_message, "Client %d has joined the chat\n", cl.id);
+    create_message(&msg, MESSAGE_TEXT, "server", "client", join_message);
 
-    pthread_mutex_lock(&clients.mutex);
     for (int i = 0; i < MAX_CLIENTS; ++i)
     {
         if (clients.array[i] && clients.array[i] != &cl)
         {
-            send(clients.array[i]->request->socket, join_message, strlen(join_message), 0);
+            send_message(clients.array[i]->request->socket, &msg);
         }
     }
     pthread_mutex_unlock(&clients.mutex);
@@ -176,13 +209,17 @@ void* handle_client(void* arg)
     {
         if (nbytes > 0)
         {
+            parse_message(&msg, buffer);
+            printf("Received message from client %d: %s\n", cl.id, msg.payload);
+
             pthread_mutex_lock(&clients.mutex);
-            // temporary loop through all clients instead of mocking database
             for (int i = 0; i < MAX_CLIENTS; ++i)
             {
                 if (clients.array[i] && clients.array[i] != &cl)
                 {
-                    send(clients.array[i]->request->socket, buffer, nbytes, 0);
+                    msg.type = MESSAGE_TEXT;
+                    msg.payload_length = strlen(msg.payload);
+                    send_message(clients.array[i]->request->socket, &msg); // it is bugged here of on the client side to append part of ID to the message
                 }
             }
             pthread_mutex_unlock(&clients.mutex);
