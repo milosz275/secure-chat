@@ -17,7 +17,6 @@ Stores user information.
 | `user_id`    | INTEGER | PRIMARY KEY AUTOINCREMENT           |
 | `username`    | TEXT    | NOT NULL UNIQUE                     |
 | `password_hash` | TEXT  | NOT NULL                            |
-| `email`      | TEXT    | NOT NULL UNIQUE                     |
 | `created_at` | TEXT    | DEFAULT CURRENT_TIMESTAMP           |
 | `last_login` | TEXT    |                                     |
 
