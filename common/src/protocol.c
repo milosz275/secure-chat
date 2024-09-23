@@ -90,7 +90,7 @@ const char* generate_uid(const char* text, int hash_length)
 {
     static char input_str[BUFFER_SIZE];
     snprintf(input_str, BUFFER_SIZE, "%s%s", text, get_timestamp());
-    const unsigned char* hash = get_hash(input_str);
+    const unsigned char* hash = get_hash(input_str); // memory leak
 
     char* uid = (char*)malloc((hash_length * 2) + 1);
     if (uid == NULL)
@@ -117,9 +117,17 @@ void int_handler(int sig)
     signal(sig, SIG_IGN);
     printf(" Do you want to quit? [y/n] ");
     c = getchar();
-    if (c == 'y' || c == 'Y')
-        exit(0);
-    else
+    if (c == '\n')
+    {
         signal(SIGINT, int_handler);
-    getchar();
+    }
+    else if (c == 'y' || c == 'Y')
+    {
+        exit(0);
+    }
+    else
+    {
+        signal(SIGINT, int_handler);
+    }
+    while (getchar() != '\n');
 }
