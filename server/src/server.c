@@ -35,6 +35,7 @@ int connect_db(sqlite3** db, char* db_name)
     char* sql = "CREATE TABLE IF NOT EXISTS users ("
         "user_id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "username TEXT NOT NULL UNIQUE, "
+        "uid TEXT NOT NULL UNIQUE, "
         "password_hash TEXT NOT NULL, "
         "created_at TEXT DEFAULT CURRENT_TIMESTAMP, "
         "last_login TEXT"
