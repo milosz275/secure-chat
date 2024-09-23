@@ -117,25 +117,18 @@ int connect_db(sqlite3** db, char* db_name)
     return DATABASE_CONNECTION_SUCCESS;
 }
 
-int user_auth(request_t* req)
+int user_auth(request_t* req, char* uid)
 {
-    printf("Request timestamp: %s\n", req->timestamp);
+    // move this to logging function
+    fprintf(stderr, "User authentication started\n");
+    fprintf(stderr, "Request timestamp: %s\n", req->timestamp);
+    fprintf(stderr, "Request address: %s\n", inet_ntoa(req->address.sin_addr));
+    fprintf(stderr, "Request port: %d\n", ntohs(req->address.sin_port));
+    fprintf(stderr, "Request socket: %d\n", req->socket);
+    uid = "1234567890";
+    fprintf(stderr, "UID: %s\n", uid);
+    return USER_AUTHENTICATION_SUCCESS;
 
-    // char buffer[BUFFER_SIZE];
-    // int nbytes;
-    // sqlite3_stmt* stmt;
-    // sqlite3* db;
-    // int login_attempts = 0;
-
-    // if (connect_db(&db, DB_NAME) != DATABASE_CONNECTION_SUCCESS)
-    // {
-    //     fprintf(stderr, "Database connection failed in user_auth\n");
-    //     return USER_AUTHENTICATION_DATABASE_CONNECTION_FAILURE;
-    // }
-
-    // // todo: implement login attempts
-
-    // sqlite3_close(db);
     return USER_AUTHENTICATION_FAILURE;
 }
 
@@ -144,9 +137,10 @@ void* handle_client(void* arg)
     char buffer[BUFFER_SIZE];
     int nbytes;
     request_t req = *((request_t*)arg);
+    char* uid = "";
     message_t msg;
 
-    int auth_result = user_auth(&req);
+    int auth_result = user_auth(&req, uid);
     if (auth_result != USER_AUTHENTICATION_SUCCESS)
     {
         close(req.socket);
@@ -154,7 +148,9 @@ void* handle_client(void* arg)
     }
 
     client_t cl;
+    cl.uid = uid;
     cl.request = &req;
+    cl.timestamp = (char*)get_timestamp();
 
     pthread_mutex_lock(&clients.mutex);
     for (int i = 0; i < MAX_CLIENTS; ++i)
@@ -191,33 +187,54 @@ void* handle_client(void* arg)
         if (nbytes == sizeof(message_t))
         {
             memcpy(&msg, buffer, sizeof(message_t));
-            printf("Received message from client %d to recipient %s: %s\n", cl.id, msg.recipient_uid, msg.message);
-            pthread_mutex_lock(&clients.mutex);
-            int recipient_found = 0;
 
-            for (int i = 0; i < MAX_CLIENTS; ++i)
+            if (strlen(msg.recipient_uid) > 0 && strlen(msg.message) > 0)
             {
-                // if (clients.array[i] && strcmp(clients.array[i]->uid, msg.recipient_uid) == 0)
-
-                // temporary use id instead of uid
-                char id_str[64];
-                sprintf(id_str, "%d", clients.array[i]->id);
-                if (clients.array[i] && strcmp(id_str, msg.recipient_uid) == 0)
+                printf("Received message from client %d to recipient %s: %s\n", cl.id, msg.recipient_uid, msg.message);
+                pthread_mutex_lock(&clients.mutex);
+                int recipient_found = 0;
+                // temporary loop through all clients instead of mocking database
+                for (int i = 0; i < MAX_CLIENTS; ++i)
                 {
-                    send(clients.array[i]->request->socket, msg.message, strlen(msg.message), 0);
-                    recipient_found = 1;
-                    break;
+                    // if (clients.array[i] && strcmp(clients.array[i]->uid, msg.recipient_uid) == 0)
+
+                    if (clients.array[i] == NULL)
+                    {
+                        continue;
+                    }
+                    
+                    // temporary use id instead of uid
+                    char id_str[64];
+                    sprintf(id_str, "%d", clients.array[i]->id);
+                    printf("Checking client %d with id %s\n", i, id_str);
+
+                    if (strcmp(id_str, msg.recipient_uid) == 0)
+                    {
+                        if (clients.array[i]->request == NULL)
+                        {
+                            printf("Client %d request is NULL\n", i);
+                            continue;
+                        }
+
+                        send(clients.array[i]->request->socket, msg.message, strlen(msg.message), 0);
+                        recipient_found = 1;
+                        break;
+                    }
                 }
-            }
 
-            if (!recipient_found)
+                if (!recipient_found)
+                {
+                    char error_message[BUFFER_SIZE];
+                    sprintf(error_message, "Recipient with ID %s not found.\n", msg.recipient_uid);
+                    send(cl.request->socket, error_message, strlen(error_message), 0);
+                }
+
+                pthread_mutex_unlock(&clients.mutex);
+            }
+            else
             {
-                char error_message[BUFFER_SIZE];
-                sprintf(error_message, "Recipient with ID %s not found.\n", msg.recipient_uid);
-                send(cl.request->socket, error_message, strlen(error_message), 0);
+                printf("Received malformed message from client %d: recipient uid or message length is zero\n", cl.id);
             }
-
-            pthread_mutex_unlock(&clients.mutex);
         }
         else
         {
