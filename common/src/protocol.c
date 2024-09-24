@@ -11,6 +11,8 @@
 #include <arpa/inet.h>
 #include <openssl/evp.h>
 
+extern int quit_flag;
+
 int create_message(message_t* msg, message_type_t type, char* sender_uid, char* recipient_uid, char* payload)
 {
     if (msg == NULL || sender_uid == NULL || recipient_uid == NULL || payload == NULL)
@@ -104,7 +106,6 @@ char* generate_password_hash(const char* password)
     char* hash_str = (char*)malloc((hash_length * 2) + 1);
     if (hash_str == NULL)
     {
-        free((void*)hash);
         return NULL;
     }
 
@@ -138,10 +139,9 @@ char* generate_uid(const char* text, int hash_length)
         return NULL;
     }
 
-    char* uid = (char*)malloc((hash_length * 2) + 1);
-    if (uid == NULL)
+    static char uid[BUFFER_SIZE];
+    if (hash_length * 2 + 1 > BUFFER_SIZE)
     {
-        free((void*)hash);
         return NULL;
     }
 
@@ -162,21 +162,19 @@ char* generate_unique_user_id(const char* username)
 
 void int_handler(int sig)
 {
-    char c;
+    char input[10];
     signal(sig, SIG_IGN);
-    printf(" Do you want to quit? [y/n] ");
-    c = getchar();
-    if (c == '\n')
+    printf(" Do you want to quit? [Y/n] ");
+    if (fgets(input, sizeof(input), stdin) != NULL)
     {
-        signal(SIGINT, int_handler);
+        input[strcspn(input, "\n")] = 0;
+        if (input[0] == 'y' || input[0] == 'Y' || input[0] == '\0')
+        {
+            quit_flag = 1;
+        }
+        else
+        {
+            signal(SIGINT, int_handler);
+        }
     }
-    else if (c == 'y' || c == 'Y')
-    {
-        exit(0);
-    }
-    else
-    {
-        signal(SIGINT, int_handler);
-    }
-    while (getchar() != '\n');
 }
