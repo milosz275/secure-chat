@@ -89,6 +89,24 @@ struct clients_t
 };
 
 /**
+ * The server structure. This structure is used to store information about the server.
+ *
+ * @param socket The server socket.
+ * @param address The server address.
+ * @param thread_count The number of allocated threads.
+ * @param thread_count_mutex The mutex to lock the thread count.
+ * @param threads The array of threads.
+ */
+struct server_t
+{
+    int socket;
+    struct sockaddr_in address;
+    int thread_count;
+    pthread_mutex_t thread_count_mutex;
+    pthread_t threads[MAX_CLIENTS];
+};
+
+/**
  * Database connector. This function is used to connect to a SQLite3 database and create it with its tables if it does not exist.
  *
  * @param db The SQLite3 database.
