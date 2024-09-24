@@ -8,42 +8,43 @@
 // The server port and message components size. These are used to define the port and buffer size for the server and client.
 #define PORT 12345
 #define BUFFER_SIZE 4096
-#define MESSAGE_HASH_LENGTH 64
-#define USERNAME_HASH_LENGTH 64
+#define MESSAGE_HASH_LENGTH 32
+#define USERNAME_HASH_LENGTH 32
+#define PASSWORD_HASH_LENGTH 32
 #define MAX_PAYLOAD_SIZE 2048
-#define MAX_USERNAME_SIZE 16
-#define MAX_PASSWORD_SIZE 32
-#define MAX_GROUP_NAME_SIZE 32
+#define MAX_USERNAME_LENGTH 16
+#define MAX_PASSWORD_LENGTH 16
+#define MAX_GROUP_NAME_LENGTH 16
 #define MAX_GROUP_MEMBERS 16
 #define MESSAGE_DELIMITER "|"
 
 // The message creation result codes. These are used to determine the exit code of the create_message function.
-#define MESSAGE_CREATION_SUCCESS 100
-#define MESSAGE_CREATION_FAILURE 101
-#define MESSAGE_CREATION_INVALID_UID_LENGTH 102
-#define MESSAGE_CREATION_INVALID_MESSAGE 103
-#define MESSAGE_CREATION_INVALID_MESSAGE_LENGTH 104
-#define MESSAGE_CREATION_INVALID_RECIPIENT_UID 105
-#define MESSAGE_CREATION_INVALID_RECIPIENT_UID_LENGTH 106
-#define MESSAGE_CREATION_INVALID_PAYLOAD 107
-#define MESSAGE_CREATION_INVALID_PAYLOAD_LENGTH 108
+#define MESSAGE_CREATION_SUCCESS 2100
+#define MESSAGE_CREATION_FAILURE 2101
+#define MESSAGE_CREATION_INVALID_UID_LENGTH 2102
+#define MESSAGE_CREATION_INVALID_MESSAGE 2103
+#define MESSAGE_CREATION_INVALID_MESSAGE_LENGTH 2104
+#define MESSAGE_CREATION_INVALID_RECIPIENT_UID 2105
+#define MESSAGE_CREATION_INVALID_RECIPIENT_UID_LENGTH 2106
+#define MESSAGE_CREATION_INVALID_PAYLOAD 2107
+#define MESSAGE_CREATION_INVALID_PAYLOAD_LENGTH 2108
 
 // The message parsing result codes. These are used to determine the exit code of the parse_message function.
-#define MESSAGE_PARSING_SUCCESS 200
-#define MESSAGE_PARSING_FAILURE 201
-#define MESSAGE_PARSING_INVALID_MESSAGE 202
-#define MESSAGE_PARSING_INVALID_MESSAGE_LENGTH 203
-#define MESSAGE_PARSING_INVALID_MESSAGE_UID 204
-#define MESSAGE_PARSING_INVALID_MESSAGE_UID_LENGTH 205
-#define MESSAGE_PARSING_INVALID_MESSAGE_TYPE 206
-#define MESSAGE_PARSING_INVALID_SENDER_UID 207
-#define MESSAGE_PARSING_INVALID_SENDER_UID_LENGTH 208
-#define MESSAGE_PARSING_INVALID_RECIPIENT_UID 209
-#define MESSAGE_PARSING_INVALID_RECIPIENT_UID_LENGTH 210
+#define MESSAGE_PARSING_SUCCESS 2200
+#define MESSAGE_PARSING_FAILURE 2201
+#define MESSAGE_PARSING_INVALID_MESSAGE 2202
+#define MESSAGE_PARSING_INVALID_MESSAGE_LENGTH 2203
+#define MESSAGE_PARSING_INVALID_MESSAGE_UID 2204
+#define MESSAGE_PARSING_INVALID_MESSAGE_UID_LENGTH 2205
+#define MESSAGE_PARSING_INVALID_MESSAGE_TYPE 2206
+#define MESSAGE_PARSING_INVALID_SENDER_UID 2207
+#define MESSAGE_PARSING_INVALID_SENDER_UID_LENGTH 2208
+#define MESSAGE_PARSING_INVALID_RECIPIENT_UID 2209
+#define MESSAGE_PARSING_INVALID_RECIPIENT_UID_LENGTH 2210
 
 // The message send result codes. These are used to determine the exit code of the send_message function.
-#define MESSAGE_SEND_SUCCESS 300
-#define MESSAGE_SEND_FAILURE 301
+#define MESSAGE_SEND_SUCCESS 2300
+#define MESSAGE_SEND_FAILURE 2301
 
 /**
  * The message type enumeration. This enumeration is used to define the type of message that is being sent.
@@ -133,12 +134,20 @@ int send_message(int socket, message_t* msg);
 const char* message_type_to_string(message_type_t type);
 
 /**
- * Get the hash of a password. This function is used to get the hash of a password using SHA-256 from the OpenSSL library.
+ * Get the hash of an input. This function is used to get the hash of given input using SHA-256 from the OpenSSL library.
  *
- * @param password The password.
+ * @param input The input to hash.
  * @return The hash of the password.
  */
-const unsigned char* get_hash(const char* password);
+unsigned char* get_hash(const char* input);
+
+/**
+ * Generate a password hash. This function is used to generate a password hash using SHA-256 from the OpenSSL library.
+ *
+ * @param password The password to hash.
+ * @return The password hash.
+ */
+char* generate_password_hash(const char* password);
 
 /**
  * Get the current timestamp. This function is used to get the current timestamp using time.h.
@@ -154,7 +163,7 @@ const char* get_timestamp();
  * @param hash_length The length of the hash.
  * @return The unique ID.
  */
-const char* generate_uid(const char* text, int hash_length);
+char* generate_uid(const char* text, int hash_length);
 
 /**
  * Generate a unique user ID. This function is used to generate a unique user ID based on the username.
@@ -162,7 +171,7 @@ const char* generate_uid(const char* text, int hash_length);
  * @param username The username.
  * @return The unique user ID.
  */
-const char* generate_unique_user_id(const char* username);
+char* generate_unique_user_id(const char* username);
 
 /**
  * Interrupt handler. This function is used to handle the SIGINT signal and is supposed to be called by the signal function.
