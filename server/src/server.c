@@ -382,12 +382,50 @@ int user_auth(request_t* req, client_t* cl)
             return USER_AUTHENTICATION_USER_AUTHENTICATION_FAILURE;
         }
 
+        const char* uid = (const char*)sqlite3_column_text(stmt, 0);
+
+        cl->uid = (char*)malloc(strlen(uid) + 1);
+        if (cl->uid == NULL)
+        {
+            fprintf(stderr, "Memory allocation failed for cl->uid\n");
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            close(req->socket);
+            return USER_AUTHENTICATION_MEMORY_ALLOCATION_FAILURE;
+        }
+        strcpy(cl->uid, uid);
+        printf("Authenticated user %s with UID %s\n", username, cl->uid);
+        sqlite3_finalize(stmt);
+
+        const char* update_sql = "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE uid = ?;";
+        if (sqlite3_prepare_v2(db, update_sql, -1, &stmt, 0) != SQLITE_OK)
+        {
+            fprintf(stderr, "Can't prepare last login update query: %s\n", sqlite3_errmsg(db));
+            sqlite3_close(db);
+            close(req->socket);
+            return USER_AUTHENTICATION_LAST_LOGIN_UPDATE_FAILURE;
+        }
+
+        if (sqlite3_bind_text(stmt, 1, cl->uid, -1, SQLITE_STATIC) != SQLITE_OK)
+        {
+            fprintf(stderr, "Can't bind uid parameter for last login update: %s\n", sqlite3_errmsg(db));
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            close(req->socket);
+            return USER_AUTHENTICATION_LAST_LOGIN_UPDATE_FAILURE;
+        }
+
+        if (sqlite3_step(stmt) != SQLITE_DONE)
+        {
+            fprintf(stderr, "Failed to update last login: %s\n", sqlite3_errmsg(db));
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            close(req->socket);
+            return USER_AUTHENTICATION_LAST_LOGIN_UPDATE_FAILURE;
+        }
+
         sqlite3_finalize(stmt);
         sqlite3_close(db);
-
-        // [ ] obtain uid from database
-
-        // [ ] update last login
     }
 
     sqlite3_close(db);
