@@ -19,21 +19,26 @@ void* receive_messages(void* socket_desc)
 {
     int sock = *(int*)socket_desc;
     char buffer[BUFFER_SIZE];
+    message_t msg;
     int nbytes;
 
-    while ((nbytes = recv(sock, buffer, sizeof(buffer), 0)) > 0)
+    while (1)
     {
-        buffer[nbytes] = '\0';
-        printf("%s\n", buffer);
-    }
+        memset(buffer, 0, sizeof(buffer));
+        nbytes = recv(sock, buffer, sizeof(buffer), 0);
+        if (nbytes <= 0)
+        {
+            printf("Connection closed or error occurred.\n");
+            close(sock);
+            pthread_exit(NULL);
+        }
 
-    if (!nbytes)
-    {
-        printf("Server disconnected\n");
-    }
-    else
-    {
-        perror("Recv failed");
+        buffer[nbytes] = '\0';
+        msg.payload[0] = '\0';
+        msg.payload_length = 0;
+
+        parse_message(&msg, buffer);
+        printf("%s: %s\n", msg.sender_uid, msg.payload);
     }
 
     pthread_exit(NULL);
@@ -77,7 +82,7 @@ void run_client()
     // client
     int sock;
     struct sockaddr_in server_addr;
-    char input[BUFFER_SIZE];
+    char input[MAX_PAYLOAD_SIZE];
     message_t msg;
     pthread_t recv_thread;
 
@@ -110,19 +115,31 @@ void run_client()
         exit(EXIT_FAILURE);
     }
 
-    sleep(2);
     while (1)
     {
-        printf("Enter recipient ID and message (e.g., recipient_id:message): ");
-        fgets(input, BUFFER_SIZE, stdin);
+        msg.payload[0] = '\0';
+        msg.payload_length = 0;
+        memset(input, 0, sizeof(input));
 
-        sscanf(input, "%[^:]:%[^\n]", msg.recipient_uid, msg.message);
+        fgets(input, sizeof(input), stdin);
+        input[strcspn(input, "\n")] = '\0';
 
-        if (send(sock, (void*)&msg, sizeof(message_t), 0) < 0)
+        if (strlen(input) == 0)
         {
-            perror("Send failed");
+            continue;
+        }
+
+        if (strcmp(input, "!exit") == 0)
+        {
             break;
         }
+
+        create_message(&msg, MESSAGE_TEXT, "client", "server", input);
+        send_message(sock, &msg);
+
+        msg.payload[0] = '\0';
+        msg.payload_length = 0;
+        memset(input, 0, sizeof(input));
     }
 
     close(sock);
