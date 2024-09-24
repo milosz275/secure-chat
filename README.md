@@ -97,6 +97,8 @@ Navigate to [database](https://github.com/mldxo/secure-chat/tree/main/database) 
 - [ ] Protocol signal codes ("User is typing...", "User has read the message", "User has joined the chat")
 - [ ] Server logging (requests, client connections, errors)
 - [ ] IP banning and rate limiting
+- [ ] Server start arguments using argv[], argc and/or configuration file (port, database, log level)
+- [ ] Interpreter for server automation
 
 # License
 
