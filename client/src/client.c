@@ -24,6 +24,7 @@ void* receive_messages(void* socket_desc)
 
     while (1)
     {
+        memset(buffer, 0, sizeof(buffer));
         nbytes = recv(sock, buffer, sizeof(buffer), 0);
         if (nbytes <= 0)
         {
@@ -34,8 +35,10 @@ void* receive_messages(void* socket_desc)
 
         buffer[nbytes] = '\0';
         msg.payload[0] = '\0';
+        msg.payload_length = 0;
+
         parse_message(&msg, buffer);
-        printf("Server: %s\n", msg.payload);
+        printf("%s: %s\n", msg.sender_uid, msg.payload);
     }
 
     pthread_exit(NULL);
@@ -114,6 +117,10 @@ void run_client()
 
     while (1)
     {
+        msg.payload[0] = '\0';
+        msg.payload_length = 0;
+        memset(input, 0, sizeof(input));
+
         fgets(input, sizeof(input), stdin);
         input[strcspn(input, "\n")] = '\0';
 
@@ -129,6 +136,10 @@ void run_client()
 
         create_message(&msg, MESSAGE_TEXT, "client", "server", input);
         send_message(sock, &msg);
+
+        msg.payload[0] = '\0';
+        msg.payload_length = 0;
+        memset(input, 0, sizeof(input));
     }
 
     close(sock);
