@@ -128,7 +128,6 @@ int setup_db(sqlite3** db, char* db_name)
     return DATABASE_CREATE_SUCCESS;
 }
 
-// add attempts handling
 int user_auth(request_t* req, client_t* cl)
 {
     message_t msg;

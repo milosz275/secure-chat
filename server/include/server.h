@@ -10,6 +10,7 @@
 
 #define DB_NAME "sqlite.db"
 #define DB_PATH_LENGTH 256
+#define USER_LOGIN_ATTEMPTS 3
 
 // The database connection result codes.
 #define DATABASE_CONNECTION_SUCCESS 1200
