@@ -18,14 +18,15 @@ int create_message(message_t* msg, message_type_t type, char* sender_uid, char* 
         return MESSAGE_CREATION_FAILURE;
     }
 
+    msg->payload[0] = '\0';
     snprintf(msg->message_uid, MESSAGE_HASH_LENGTH, "%s", generate_uid(payload, MESSAGE_HASH_LENGTH));
     msg->type = type;
     snprintf(msg->sender_uid, USERNAME_HASH_LENGTH, "%s", sender_uid);
     snprintf(msg->recipient_uid, USERNAME_HASH_LENGTH, "%s", recipient_uid);
     msg->payload_length = strlen(payload);
     snprintf(msg->payload, MAX_PAYLOAD_SIZE, "%s", payload);
-    msg->payload[MAX_PAYLOAD_SIZE - 1] = '\0';
-    
+    msg->payload[msg->payload_length] = '\0';
+
     return MESSAGE_CREATION_SUCCESS;
 }
 
@@ -33,6 +34,7 @@ void parse_message(message_t* msg, const char* buffer)
 {
     sscanf(buffer, "%63[^|]|%d|%63[^|]|%63[^|]|%u|%1023[^\n]",
         msg->message_uid, (int*)&msg->type, msg->sender_uid, msg->recipient_uid, &msg->payload_length, msg->payload);
+    msg->payload[msg->payload_length] = '\0';
 }
 
 int send_message(int socket, message_t* msg)
@@ -43,7 +45,7 @@ int send_message(int socket, message_t* msg)
     }
 
     char buffer[BUFFER_SIZE];
-    msg->payload[msg->payload_length] = '\0';
+    memset(buffer, 0, sizeof(buffer));
     snprintf(buffer, BUFFER_SIZE, "%s%s%d%s%s%s%s%s%u%s%s",
         msg->message_uid, MESSAGE_DELIMITER,
         msg->type, MESSAGE_DELIMITER,
@@ -52,6 +54,9 @@ int send_message(int socket, message_t* msg)
         msg->payload_length, MESSAGE_DELIMITER,
         msg->payload);
     send(socket, buffer, strlen(buffer), 0);
+    msg->payload[0] = '\0';
+    msg->payload_length = 0;
+
     return MESSAGE_SEND_SUCCESS;
 }
 
@@ -73,12 +78,46 @@ const char* message_type_to_string(message_type_t type)
     }
 }
 
-const unsigned char* get_hash(const char* password)
+unsigned char* get_hash(const char* input)
 {
     unsigned char* hash = (unsigned char*)malloc(EVP_MAX_MD_SIZE);
-    EVP_Digest(password, sizeof(password), hash, NULL, EVP_sha256(), NULL);
+    if (hash == NULL)
+    {
+        return NULL;
+    }
+
+    unsigned int length = 0;
+    EVP_Digest(input, strlen(input), hash, &length, EVP_sha256(), NULL);
+
     return hash;
 }
+
+char* generate_password_hash(const char* password)
+{
+    const unsigned char* hash = get_hash(password);
+    if (hash == NULL)
+    {
+        return NULL;
+    }
+
+    int hash_length = 32;
+    char* hash_str = (char*)malloc((hash_length * 2) + 1);
+    if (hash_str == NULL)
+    {
+        free((void*)hash);
+        return NULL;
+    }
+
+    for (int i = 0; i < hash_length; ++i)
+    {
+        snprintf(hash_str + (i * 2), 3, "%02x", hash[i]);
+    }
+    hash_str[hash_length * 2] = '\0';
+
+    free((void*)hash);
+    return hash_str;
+}
+
 
 const char* get_timestamp()
 {
@@ -88,15 +127,21 @@ const char* get_timestamp()
     return timestamp_str;
 }
 
-const char* generate_uid(const char* text, int hash_length)
+char* generate_uid(const char* text, int hash_length)
 {
     static char input_str[BUFFER_SIZE];
     snprintf(input_str, BUFFER_SIZE, "%s%s", text, get_timestamp());
-    const unsigned char* hash = get_hash(input_str); // memory leak
+
+    const unsigned char* hash = get_hash(input_str);
+    if (hash == NULL)
+    {
+        return NULL;
+    }
 
     char* uid = (char*)malloc((hash_length * 2) + 1);
     if (uid == NULL)
     {
+        free((void*)hash);
         return NULL;
     }
 
@@ -105,10 +150,12 @@ const char* generate_uid(const char* text, int hash_length)
         snprintf(uid + (i * 2), 3, "%02x", hash[i]);
     }
     uid[hash_length * 2] = '\0';
+
+    free((void*)hash);
     return uid;
 }
 
-const char* generate_unique_user_id(const char* username)
+char* generate_unique_user_id(const char* username)
 {
     return generate_uid(username, USERNAME_HASH_LENGTH);
 }
