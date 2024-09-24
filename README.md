@@ -84,6 +84,20 @@ SQLite3 database is utilized at the moment. There is planned usage of distribute
 
 Navigate to [database](https://github.com/mldxo/secure-chat/tree/main/database) for detailed database schema documentation.
 
+# Current work
+
+- [ ] Graphical user interface
+- [ ] Message E2EE encryption
+- [ ] Direct message and group chat support
+- [ ] Database message save and synchronization
+- [ ] Previous message loading
+- [ ] Server instances scaling
+- [ ] User activity tracking and polling (kick afk, statistics)
+- [ ] Server command line interface for system administration (!exit, !ban, !kick, !mute, !shutdown)
+- [ ] Protocol signal codes ("User is typing...", "User has read the message", "User has joined the chat")
+- [ ] Server logging (requests, client connections, errors)
+- [ ] IP banning and rate limiting
+
 # License
 
 This project is licensed under the MIT License - see the [LICENSE](https://github.com/mldxo/secure-chat/blob/main/LICENSE) file for details.
