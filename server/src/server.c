@@ -11,7 +11,11 @@
 
 #include "protocol.h"
 
+int quit_flag = 0;
+
 static struct clients_t clients = { PTHREAD_MUTEX_INITIALIZER, {NULL} };
+
+static struct server_t server = { 0, {0}, 0, PTHREAD_MUTEX_INITIALIZER, {0} };
 
 int connect_db(sqlite3** db, char* db_name)
 {
@@ -28,7 +32,7 @@ int connect_db(sqlite3** db, char* db_name)
             sqlite3_close(*db);
             return DATABASE_OPEN_FAILURE;
         }
-        fprintf(stderr, "Database opened in the server directory\n");
+        fprintf(stderr, "Database opened in the working directory\n");
     }
     sqlite3_exec(*db, "PRAGMA journal_mode=WAL;", NULL, NULL, NULL);
 
@@ -257,6 +261,8 @@ int user_auth(request_t* req, client_t* cl)
                             sqlite3_bind_text(stmt, 3, (char*)password_hash, PASSWORD_HASH_LENGTH, SQLITE_STATIC) != SQLITE_OK)
                         {
                             fprintf(stderr, "Can't bind query parameters: %s\n", sqlite3_errmsg(db));
+                            free(password_hash);
+                            password_hash = NULL;
                             goto cleanup;
                         }
 
@@ -265,6 +271,8 @@ int user_auth(request_t* req, client_t* cl)
                             fprintf(stderr, "Can't create user: %s\n", sqlite3_errmsg(db));
                             goto cleanup;
                         }
+                        free(password_hash);
+                        password_hash = NULL;
                     }
                     else
                     {
@@ -332,11 +340,16 @@ int user_auth(request_t* req, client_t* cl)
                 sqlite3_bind_text(stmt, 2, (char*)password_hash, PASSWORD_HASH_LENGTH, SQLITE_STATIC) != SQLITE_OK)
             {
                 fprintf(stderr, "Can't bind query parameters: %s\n", sqlite3_errmsg(db));
+                free(password_hash);
+                password_hash = NULL;
                 goto cleanup;
             }
 
             if (sqlite3_step(stmt) != SQLITE_ROW)
             {
+                free(password_hash);
+                password_hash = NULL;
+
                 fprintf(stderr, "Authentication failed for user %s\n", username);
                 attempts++;
                 if (attempts == USER_LOGIN_ATTEMPTS)
@@ -352,6 +365,9 @@ int user_auth(request_t* req, client_t* cl)
             }
             else
             {
+                free(password_hash);
+                password_hash = NULL;
+
                 // successful auth, get UID
                 const char* uid = (const char*)sqlite3_column_text(stmt, 0);
                 cl->uid = (char*)malloc(strlen(uid) + 1);
@@ -398,6 +414,10 @@ cleanup:
     if (stmt != NULL)
     {
         sqlite3_finalize(stmt);
+    }
+    if (cl->uid != NULL)
+    {
+        free(cl->uid);
     }
     sqlite3_close(db);
     close(req->socket);
@@ -446,6 +466,7 @@ void* handle_client(void* arg)
     {
         if (clients.array[i] && clients.array[i] != &cl)
         {
+            create_message(&msg, MESSAGE_TEXT, "server", "client", join_message);
             send_message(clients.array[i]->request->socket, &msg);
         }
     }
@@ -453,6 +474,11 @@ void* handle_client(void* arg)
 
     while ((nbytes = recv(cl.request->socket, buffer, sizeof(buffer), 0)) > 0)
     {
+        if (quit_flag)
+        {
+            break;
+        }
+
         if (nbytes > 0)
         {
             parse_message(&msg, buffer);
@@ -481,19 +507,13 @@ void* handle_client(void* arg)
         }
     }
 
-    pthread_mutex_lock(&clients.mutex);
-    for (int i = 0; i < MAX_CLIENTS; ++i)
-    {
-        if (clients.array[i] == &cl)
-        {
-            printf("Client %d disconnected\n", cl.id);
-            clients.array[i] = NULL;
-            break;
-        }
-    }
-    pthread_mutex_unlock(&clients.mutex);
-
     close(cl.request->socket);
+    if (cl.uid)
+        free(cl.uid);
+    if (cl.timestamp)
+        free(cl.timestamp);
+    if (cl.request->timestamp)
+        free(cl.request->timestamp);
     pthread_exit(NULL);
 }
 
@@ -529,6 +549,12 @@ int run_server()
             attempts++;
             if (attempts < max_attempts)
             {
+                if (quit_flag)
+                {
+                    close(server_socket);
+                    printf("Server shutting down...\n");
+                    exit(EXIT_SUCCESS);
+                }
                 sleep(2);
             }
             else
@@ -559,12 +585,16 @@ int run_server()
     }
     printf("Server listening on port %d\n", PORT);
 
-    while (1)
+    while (!quit_flag)
     {
         client_socket = accept(server_socket, (struct sockaddr*)&client_addr, &client_len);
         if (client_socket < 0)
         {
             perror("Accept failed");
+            if (quit_flag)
+            {
+                break;
+            }
             continue;
         }
 
@@ -579,8 +609,20 @@ int run_server()
             close(client_socket);
             continue;
         }
+        pthread_mutex_lock(&server.thread_count_mutex);
+        if (server.thread_count < MAX_CLIENTS)
+        {
+            server.threads[server.thread_count++] = tid;
+        }
+        pthread_mutex_unlock(&server.thread_count_mutex);
     }
-    close(server_socket);
 
-    return 0;
+    for (int i = 0; i < server.thread_count; i++)
+    {
+        pthread_join(server.threads[i], NULL);
+    }
+
+    close(server_socket);
+    printf("Server shutting down...\n");
+    exit(EXIT_SUCCESS);
 }

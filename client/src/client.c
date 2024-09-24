@@ -15,6 +15,8 @@
 #define NK_INCLUDE_DEFAULT_ALLOCATOR
 #define MAX_MEMORY 4096 * 1024 // 4MB
 
+int quit_flag = 0;
+
 void* receive_messages(void* socket_desc)
 {
     int sock = *(int*)socket_desc;
@@ -22,7 +24,7 @@ void* receive_messages(void* socket_desc)
     message_t msg;
     int nbytes;
 
-    while (1)
+    while (!quit_flag)
     {
         memset(buffer, 0, sizeof(buffer));
         nbytes = recv(sock, buffer, sizeof(buffer), 0);
@@ -115,7 +117,7 @@ void run_client()
         exit(EXIT_FAILURE);
     }
 
-    while (1)
+    while (!quit_flag)
     {
         msg.payload[0] = '\0';
         msg.payload_length = 0;
