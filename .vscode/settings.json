@@ -20,7 +20,9 @@
         "stdlib.h": "c",
         "random": "c",
         "string.h": "c",
-        "protocol.h": "c"
+        "protocol.h": "c",
+        "evp.h": "c",
+        "server.h": "c"
     },
     "task.allowAutomaticTasks": "on",
     "editor.formatOnSave": true,
