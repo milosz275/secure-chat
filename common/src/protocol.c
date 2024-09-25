@@ -3,15 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include "protocol.h"
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <signal.h>
 #include <arpa/inet.h>
 #include <openssl/evp.h>
-
-extern int quit_flag;
 
 int create_message(message_t* msg, message_type_t type, char* sender_uid, char* recipient_uid, char* payload)
 {
@@ -158,23 +151,4 @@ char* generate_uid(const char* text, int hash_length)
 char* generate_unique_user_id(const char* username)
 {
     return generate_uid(username, USERNAME_HASH_LENGTH);
-}
-
-void int_handler(int sig)
-{
-    char input[10];
-    signal(sig, SIG_IGN);
-    printf(" Do you want to quit? [Y/n] ");
-    if (fgets(input, sizeof(input), stdin) != NULL)
-    {
-        input[strcspn(input, "\n")] = 0;
-        if (input[0] == 'y' || input[0] == 'Y' || input[0] == '\0')
-        {
-            quit_flag = 1;
-        }
-        else
-        {
-            signal(SIGINT, int_handler);
-        }
-    }
 }

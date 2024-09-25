@@ -595,7 +595,6 @@ int run_server()
     }
     sqlite3_close(db);
 
-    signal(SIGINT, int_handler);
     pthread_t cli_thread;
     if (pthread_create(&cli_thread, NULL, handle_cli, (void*)NULL) != 0)
     {
