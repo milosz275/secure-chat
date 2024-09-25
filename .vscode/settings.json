@@ -17,7 +17,8 @@
         "cassandra.h": "c",
         "stdlib.h": "c",
         "random": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "protocol.h": "c"
     },
     "task.allowAutomaticTasks": "on",
     "editor.formatOnSave": true,
