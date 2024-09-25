@@ -15,9 +15,13 @@
 #define PORT_BIND_INTERVAL 2
 #define PORT_BIND_ATTEMPTS 60
 
+#define DATABASE_CONNECTION_INTERVAL 5 
+#define DATABASE_CONNECTION_ATTEMPTS 10 
+
 // The database connection result codes.
 #define DATABASE_CONNECTION_SUCCESS 1200
 #define DATABASE_OPEN_FAILURE 1201
+#define DATABASE_SETUP_FAILURE 1202
 
 // The database setup result codes.
 #define DATABASE_CREATE_SUCCESS 1300
