@@ -1,7 +1,8 @@
 #include "servercli.h"
 
 //Server command array
-static srv_command_t srv_commands[] = {
+static srv_command_t srv_commands[] =
+{
     {.srv_command = &srv_exit, .srv_command_name = "!exit", .srv_command_description = "Exit" },
     {.srv_command = &srv_ban, .srv_command_name = "!ban", .srv_command_description = "Bans user" },
     {.srv_command = &srv_kick, .srv_command_name = "!kick", .srv_command_description = "Kicks user" },
@@ -9,32 +10,10 @@ static srv_command_t srv_commands[] = {
     {.srv_command = &srv_help, .srv_command_name = "!help", .srv_command_description = "Prints command descriptions" },
 };
 
-int srv_exit(char** args) {
-    printf("EXIT executed\n");
-    if (args[0] != NULL) {}
-    return 1;
-}
-
-int srv_ban(char** args) {
-    printf("BAN executed\n");
-    if (args[0] != NULL) {}
-    return 1;
-}
-
-int srv_kick(char** args) {
-    printf("KICK executed\n");
-    if (args[0] != NULL) {}
-    return 1;
-}
-
-int srv_mute(char** args) {
-    printf("MUTE executed\n");
-    if (args[0] != NULL) {}
-    return 1;
-}
-
-int srv_help(char** args) {
-    for (int i = 0; i < SRV_COMMANDS_NUM; i++) {
+int srv_help(char** args)
+{
+    for (int i = 0; i < SRV_COMMANDS_NUM; ++i)
+    {
         printf("%s\t-\t%s\n", srv_commands[i].srv_command_name, srv_commands[i].srv_command_description);
     }
     if (args[0] != NULL) {}
@@ -80,19 +59,22 @@ int getline(char** lineptr, size_t* n, FILE* stream)
     return(len);
 }
 
-char* srv_read_line(void) {
+char* srv_read_line(void)
+{
     size_t n;
     char* line = NULL;
     if (!(n = (line == NULL)))
         n = strlen(line);
-    if (getline(&line, &n, stdin) == -1) {
+    if (getline(&line, &n, stdin) == -1)
+    {
         perror("getline");
         exit(EXIT_FAILURE);
     }
     return line;
 }
 
-int srv_exec_line(char* line) {
+int srv_exec_line(char* line)
+{
     int i = 0;
     int buffer_size = SRV_BUFSIZE;
     char** tokens = malloc(buffer_size * sizeof(char*));
@@ -101,20 +83,24 @@ int srv_exec_line(char* line) {
     char* command;
     char** args;
 
-    if (!tokens) {
+    if (!tokens)
+    {
         fprintf(stderr, "srv_exec_line: malloc error\n");
         exit(EXIT_FAILURE);
     }
 
     token = strtok(line, SRV_DELIM);
-    while (token != NULL) {
+    while (token != NULL)
+    {
         tokens[i] = token;
         i++;
 
-        if (i >= buffer_size) {
+        if (i >= buffer_size)
+        {
             buffer_size += SRV_BUFSIZE;
             tokens = realloc(tokens, buffer_size * sizeof(char*));
-            if (!tokens) {
+            if (!tokens)
+            {
                 fprintf(stderr, "srv_exec_line: malloc error\n");
                 exit(EXIT_FAILURE);
             }
@@ -128,13 +114,21 @@ int srv_exec_line(char* line) {
     args = tokens + 1;
 
     if (command == NULL)
+    {
+        free(tokens);
         return 1;
+    }
 
-    for (i = 0; i < SRV_COMMANDS_NUM; i++) {
-        if (strcmp(command, srv_commands[i].srv_command_name) == 0) {
-            return (srv_commands[i].srv_command)(args);
+    for (i = 0; i < SRV_COMMANDS_NUM; ++i)
+    {
+        if (strcmp(command, srv_commands[i].srv_command_name) == 0)
+        {
+            int result = (srv_commands[i].srv_command)(args);
+            free(tokens);
+            return result;
         }
     }
     printf("Command not found!\n");
+    free(tokens);
     return 1;
 }
