@@ -37,7 +37,6 @@ void* receive_messages(void* socket_desc)
             if (nbytes == 0)
             {
                 printf("Server disconnected.\n");
-                // printf("Press Enter to reconnect.\n");
             }
             else
             {
