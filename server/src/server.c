@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <arpa/inet.h>
@@ -10,8 +11,9 @@
 #include <ctype.h>
 
 #include "protocol.h"
+#include "servercli.h"
 
-int quit_flag = 0;
+volatile sig_atomic_t quit_flag = 0;
 
 static struct clients_t clients = { PTHREAD_MUTEX_INITIALIZER, {NULL} };
 
@@ -19,26 +21,59 @@ static struct server_t server = { 0, {0}, 0, PTHREAD_MUTEX_INITIALIZER, {0} };
 
 void usleep(unsigned int usec);
 
+int srv_exit(char** args)
+{
+    quit_flag = 1;
+    exit(0);
+    if (args[0] != NULL) {}
+    return 1;
+}
+
+int srv_ban(char** args)
+{
+    // [ ] Implement ban command
+    if (args[0] != NULL) {}
+    return 1;
+}
+
+int srv_kick(char** args)
+{
+    // [ ] Implement kick command
+    if (args[0] != NULL) {}
+    return 1;
+}
+
+int srv_mute(char** args)
+{
+    // [ ] Implement mute command
+    if (args[0] != NULL) {}
+    return 1;
+}
+
 int connect_db(sqlite3** db, char* db_name)
 {
     char db_path[DB_PATH_LENGTH];
-    snprintf(db_path, sizeof(db_path), "../database/%s", db_name);
-    if (sqlite3_open(db_path, db) != SQLITE_OK)
+    snprintf(db_path, sizeof(db_path), "./database/%s", db_name);
+
+    int attempts = 0;
+    while (attempts < DATABASE_CONNECTION_ATTEMPTS)
     {
-        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(*db));
-        fprintf(stderr, "Trying again...\n"); // this is for Docker to work
-        sqlite3_close(*db);
-        if (sqlite3_open(db_name, db) != SQLITE_OK)
+        if (sqlite3_open(db_path, db) != SQLITE_OK)
         {
             fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(*db));
             sqlite3_close(*db);
-            return DATABASE_OPEN_FAILURE;
+            attempts++;
+            sleep(DATABASE_CONNECTION_INTERVAL);
         }
-        fprintf(stderr, "Database opened in the working directory\n");
+        else
+        {
+            // sqlite3_exec(*db, "PRAGMA journal_mode=WAL;", NULL, NULL, NULL);
+            return DATABASE_CONNECTION_SUCCESS;
+        }
     }
-    sqlite3_exec(*db, "PRAGMA journal_mode=WAL;", NULL, NULL, NULL);
-
-    return DATABASE_CONNECTION_SUCCESS;
+    fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(*db));
+    sqlite3_close(*db);
+    return DATABASE_OPEN_FAILURE;
 }
 
 int setup_db(sqlite3** db, char* db_name)
@@ -131,6 +166,11 @@ int setup_db(sqlite3** db, char* db_name)
         return DATABASE_CREATE_MESSAGE_RECIPIENTS_TABLE_FAILURE;
     }
 
+    if (*db)
+    {
+        sqlite3_close(*db);
+    }
+
     return DATABASE_CREATE_SUCCESS;
 }
 
@@ -156,7 +196,7 @@ int user_auth(request_t* req, client_t* cl)
         if (attempts == 0)
             sprintf(start_message, "Welcome! You have %d login attempts and you can register on the first one.", USER_LOGIN_ATTEMPTS - attempts);
         else if (USER_LOGIN_ATTEMPTS - attempts == 1)
-            sprintf(start_message, "You have %d login attempt.", USER_LOGIN_ATTEMPTS - attempts);
+            sprintf(start_message, "You have 1 login attempt.");
         else
             sprintf(start_message, "You have %d login attempts.", USER_LOGIN_ATTEMPTS - attempts);
 
@@ -411,6 +451,10 @@ int user_auth(request_t* req, client_t* cl)
             }
         }
     }
+    if (db)
+    {
+        sqlite3_close(db);
+    }
 
 cleanup:
     if (stmt != NULL)
@@ -519,6 +563,25 @@ void* handle_client(void* arg)
     pthread_exit(NULL);
 }
 
+void* handle_cli(void* arg)
+{
+    char* line = NULL;
+    int status;
+    while (!quit_flag)
+    {
+        line = srv_read_line();
+        status = srv_exec_line(line);
+        if (line)
+            free(line);
+        if (status == 1)
+        {
+            break;
+        }
+    }
+    if (arg) {}
+    pthread_exit(NULL);
+}
+
 int run_server()
 {
     int server_socket, client_socket;
@@ -526,9 +589,20 @@ int run_server()
     socklen_t client_len = sizeof(client_addr);
     request_t req;
     sqlite3* db;
-    setup_db(&db, DB_NAME);
+    if (setup_db(&db, DB_NAME) != DATABASE_CREATE_SUCCESS)
+    {
+        return DATABASE_SETUP_FAILURE;
+    }
     sqlite3_close(db);
 
+    signal(SIGINT, int_handler);
+    pthread_t cli_thread;
+    if (pthread_create(&cli_thread, NULL, handle_cli, (void*)NULL) != 0)
+    {
+        perror("CLI thread creation failed");
+    }
+
+    // move all to handle_cli thread
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket < 0)
     {
@@ -593,11 +667,13 @@ int run_server()
         client_socket = accept(server_socket, (struct sockaddr*)&client_addr, &client_len);
         if (client_socket < 0)
         {
-            perror("Accept failed");
             if (quit_flag)
             {
-                break;
+                close(server_socket);
+                printf("Server shutting down...\n");
+                exit(EXIT_SUCCESS);
             }
+            perror("Accept failed");
             continue;
         }
 
@@ -622,12 +698,13 @@ int run_server()
         usleep(200000); // 200 ms
     }
 
-    for (int i = 0; i < server.thread_count; i++)
+    for (int i = 0; i < server.thread_count; ++i)
     {
         pthread_join(server.threads[i], NULL);
     }
 
     close(server_socket);
+    pthread_join(cli_thread, NULL);
     printf("Server shutting down...\n");
     exit(EXIT_SUCCESS);
 }
