@@ -1,44 +1,50 @@
+#ifndef __SERVERCLI_H
+#define __SERVERCLI_H
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 
-//Server commands
+#define SRV_BUFSIZE 64
+#define SRV_DELIM " "
+
+#define SRV_COMMANDS_NUM (int) (sizeof(srv_commands) / sizeof(srv_command_t))
+
+/**
+ * Server commands structure.
+ *
+ * @param srv_command The function pointer to executed function.
+ * @param srv_command_name The name of command by which it is called.
+ * @param srv_command_description The description of command printed by !help.
+ */
+typedef struct
+{
+    int (*srv_command)(char**);
+    char* srv_command_name;
+    char* srv_command_description;
+} srv_command_t;
+
 int srv_exit(char**);
 int srv_ban(char**);
 int srv_kick(char**);
 int srv_mute(char**);
 int srv_help(char**);
 
-//Server command array
-char* builtin_str[] = {
-  "!exit",
-  "!ban",
-  "!kick",
-  "!mute",
-  "!help"
-};
+//getline() implementation
+int getline(char** lineptr, size_t* n, FILE* stream);
 
-int (*server_commands[]) (char**) = {
-    &srv_exit,
-    &srv_ban,
-    &srv_kick,
-    &srv_mute,
-    &srv_help
-};
+/**
+ * Function reading input from server
+ * !!!WARNING!!! char* returned from this function must be freed
+ */
+char* srv_read_line(void);
 
-//Takes dynamically allocated buffer as input
-int srv_read_line(char* line) {
-    size_t n;
-    if (!(n = (line == NULL)))
-        n = strlen(line);
-    if (getline(&line, &n, stdin) == -1) {
-        perror("getline");
-        exit(EXIT_FAILURE);
-    }
-    return (int)n;
-}
+/**
+ * Functione executing the input line.
+ *
+ * @param line The string containing input from user.
+ */
+int srv_exec_line(char* line);
 
-//Divide line into tokens - command and args, checks if command exists, if it does executes it and passes args
-int srv_exec_line(char* line) {
-
-}
+#endif
