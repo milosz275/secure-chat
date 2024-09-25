@@ -31,9 +31,13 @@ jobs:
         libsqlite3-dev \
         build-essential
 
-    - name: Git Submodule Update
+    - name: Clone Nuklear
       run: |
-        git submodule update --init --recursive
+        git clone https://github.com/Immediate-Mode-UI/Nuklear.git
+
+    - name: Move Nuklear
+      run: |
+        mv Nuklear client/include
 
     - name: Create Symlink
       run: |
