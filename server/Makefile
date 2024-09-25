@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -std=c11 -Wall -Wextra -Werror -pedantic -fsanitize=address -g -O2
+CFLAGS = -std=c11 -Wall -Wextra -Werror -pedantic -fsanitize=address -g -O2 -Wno-unused-result
 INCLUDES = -Iinclude -I../common/include
 CLIBS = -lpthread -L../common/build/lib -lcommon -lsqlite3 -lssl -lcrypto
 CSRCS = $(wildcard src/*.c)
