@@ -7,10 +7,12 @@
         "Diffie",
         "Doxygen",
         "hankey",
+        "lineptr",
         "Maculewicz",
         "Miłosz",
         "mldxo",
         "Nuklear",
+        "SERVERCLI",
         "Styleguides"
     ],
     "files.associations": {
