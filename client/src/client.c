@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <sys/select.h>
 
 #include "protocol.h"
 
@@ -16,6 +17,9 @@
 #define MAX_MEMORY 4096 * 1024 // 4MB
 
 int quit_flag = 0;
+int reconnect_flag = 0;
+pthread_t recv_thread;
+int sock = -1;
 
 void* receive_messages(void* socket_desc)
 {
@@ -24,14 +28,23 @@ void* receive_messages(void* socket_desc)
     message_t msg;
     int nbytes;
 
-    while (!quit_flag)
+    while (!quit_flag && !reconnect_flag)
     {
         memset(buffer, 0, sizeof(buffer));
         nbytes = recv(sock, buffer, sizeof(buffer), 0);
         if (nbytes <= 0)
         {
-            printf("Connection closed or error occurred.\n");
+            if (nbytes == 0)
+            {
+                printf("Server disconnected.\n");
+                // printf("Press Enter to reconnect.\n");
+            }
+            else
+            {
+                perror("Receive failed");
+            }
             close(sock);
+            reconnect_flag = 1;
             pthread_exit(NULL);
         }
 
@@ -46,54 +59,45 @@ void* receive_messages(void* socket_desc)
     pthread_exit(NULL);
 }
 
+int connect_to_server(struct sockaddr_in* server_addr)
+{
+    int sock;
+    int connection_attempts = 0;
+
+    while (connection_attempts < SERVER_RECONNECTION_ATTEMPTS)
+    {
+        sock = socket(AF_INET, SOCK_STREAM, 0);
+        if (sock < 0)
+        {
+            perror("Socket creation failed");
+            exit(EXIT_FAILURE);
+        }
+
+        if (connect(sock, (struct sockaddr*)server_addr, sizeof(*server_addr)) < 0)
+        {
+            printf("Connection failed. Retrying in %d seconds... (Attempt %d/%d)\n",
+                SERVER_RECONNECTION_INTERVAL, connection_attempts + 1, SERVER_RECONNECTION_ATTEMPTS);
+            close(sock);
+            connection_attempts++;
+            sleep(SERVER_RECONNECTION_INTERVAL);
+        }
+        else
+        {
+            printf("Connected to server\n");
+            return sock;  
+        }
+    }
+
+    return -1;
+}
+
 void run_client()
 {
-    // // Initialize Nuklear - template from https://immediate-mode-ui.github.io/Nuklear/doc/index.html#nuklear/example
-    // enum {EASY, HARD};
-    // static int op = EASY;
-    // static float value = 0.6f;
-
-    // struct nk_context ctx;
-    // nk_init_fixed(&ctx, calloc(1, MAX_MEMORY), MAX_MEMORY, NULL);
-    // if (nk_begin(&ctx, "Show", nk_rect(50, 50, 220, 220), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_CLOSABLE))
-    //     {
-
-    //     nk_layout_row_static(&ctx, 30, 80, 1);
-    //     if (nk_button_label(&ctx, "button"))
-    //     {
-
-    //     }
-
-    //     nk_layout_row_dynamic(&ctx, 30, 2);
-    //     if (nk_option_label(&ctx, "easy", op == EASY))
-    //         op = EASY;
-    //     if (nk_option_label(&ctx, "hard", op == HARD))
-    //         op = HARD;
-
-    //     nk_layout_row_begin(&ctx, NK_STATIC, 30, 2);
-    //     {
-    //         nk_layout_row_push(&ctx, 50);
-    //         nk_label(&ctx, "Volume:", NK_TEXT_LEFT);
-    //         nk_layout_row_push(&ctx, 110);
-    //         nk_slider_float(&ctx, 0, &value, 1.0f, 0.1f);
-    //     }
-    //     nk_layout_row_end(&ctx);
-    // }
-    // nk_end(&ctx);
-
-    // client
-    int sock;
     struct sockaddr_in server_addr;
     char input[MAX_PAYLOAD_SIZE];
     message_t msg;
-    pthread_t recv_thread;
-
-    sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock < 0)
-    {
-        perror("Socket creation failed");
-        exit(EXIT_FAILURE);
-    }
+    fd_set read_fds;
+    int max_fd;
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(PORT);
@@ -103,46 +107,86 @@ void run_client()
         exit(EXIT_FAILURE);
     }
 
-    if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
+    while (!quit_flag)  
     {
-        perror("Connection failed");
-        exit(EXIT_FAILURE);
-    }
-    printf("Connected to server\n");
-
-    if (pthread_create(&recv_thread, NULL, receive_messages, (void*)&sock) != 0)
-    {
-        perror("Thread creation failed");
-        close(sock);
-        exit(EXIT_FAILURE);
-    }
-
-    while (!quit_flag)
-    {
-        msg.payload[0] = '\0';
-        msg.payload_length = 0;
-        memset(input, 0, sizeof(input));
-
-        fgets(input, sizeof(input), stdin);
-        input[strcspn(input, "\n")] = '\0';
-
-        if (strlen(input) == 0)
+        sock = connect_to_server(&server_addr); 
+        if (sock < 0)
         {
-            continue;
+            printf("Failed to connect to server after %d attempts. Exiting.\n", SERVER_RECONNECTION_ATTEMPTS);
+            exit(EXIT_FAILURE); 
         }
 
-        if (strcmp(input, "!exit") == 0)
+        reconnect_flag = 0;  
+
+        if (pthread_create(&recv_thread, NULL, receive_messages, (void*)&sock) != 0)
         {
-            break;
+            perror("Thread creation failed");
+            close(sock);
+            exit(EXIT_FAILURE);
         }
 
-        create_message(&msg, MESSAGE_TEXT, "client", "server", input);
-        send_message(sock, &msg);
+        while (!quit_flag && !reconnect_flag)
+        {
+            FD_ZERO(&read_fds);
+            FD_SET(STDIN_FILENO, &read_fds); 
+            FD_SET(sock, &read_fds);      
 
-        msg.payload[0] = '\0';
-        msg.payload_length = 0;
-        memset(input, 0, sizeof(input));
+            max_fd = sock; 
+
+            int activity = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
+
+            if (activity < 0 && !quit_flag)
+            {
+                perror("select error");
+                reconnect_flag = 1;
+                break;
+            }
+
+            if (FD_ISSET(STDIN_FILENO, &read_fds))
+            {
+                memset(input, 0, sizeof(input));
+                fgets(input, sizeof(input), stdin);
+                input[strcspn(input, "\n")] = '\0'; 
+
+                if (strlen(input) == 0)  
+                {
+                    continue;
+                }
+
+                if (strcmp(input, "!exit") == 0)  
+                {
+                    quit_flag = 1;
+                    break;
+                }
+
+                create_message(&msg, MESSAGE_TEXT, "client", "server", input);
+
+                if (send_message(sock, &msg) != MESSAGE_SEND_SUCCESS)
+                {
+                    perror("Send failed. Server might be disconnected.");
+                    reconnect_flag = 1; 
+                    break;
+                }
+            }
+
+            if (FD_ISSET(sock, &read_fds))
+            {
+                continue;
+            }
+        }
+
+        if (reconnect_flag)
+        {
+            printf("Attempting to reconnect...\n");
+            close(sock); 
+            pthread_cancel(recv_thread); 
+            pthread_join(recv_thread, NULL); 
+        }
     }
 
-    close(sock);
+    printf("Client is shutting down.\n");
+    close(sock); 
+    pthread_cancel(recv_thread);  
+    pthread_join(recv_thread, NULL);
+    exit(EXIT_SUCCESS);
 }
