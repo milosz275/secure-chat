@@ -6,20 +6,29 @@ on:
   pull_request:
     branches: [ "main", "default-pattern" ]
   schedule:
-    - cron: '31 23 * * 4'
+    - cron: '33 10 * * 5'
 
 jobs:
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag docker.io/mlsh/secure-chat:latest
+
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
     permissions:
       security-events: write
-
       packages: read
-
       actions: read
       contents: read
 
+    needs: build
     strategy:
       fail-fast: false
       matrix:
@@ -40,6 +49,27 @@ jobs:
     - if: matrix.build-mode == 'manual'
       shell: bash
       run: |
+        sudo apt-get update && sudo apt-get install -y \
+        git \
+        g++ \
+        gcc \
+        make \
+        wget \
+        cmake \
+        sqlite3 \
+        libz-dev \
+        libc6-dev \
+        libssl-dev \
+        libuv1-dev \
+        libsqlite3-dev \
+        build-essential
+
+        git clone https://github.com/Immediate-Mode-UI/Nuklear.git
+        mv Nuklear client/include
+        if [ ! -L client/include/nuklear.h ]; then
+          ln -s client/include/Nuklear/nuklear.h client/include/nuklear.h
+        fi
+
         make
         exit 0
 
