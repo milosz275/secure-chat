@@ -22,7 +22,8 @@
         "string.h": "c",
         "protocol.h": "c",
         "evp.h": "c",
-        "server.h": "c"
+        "server.h": "c",
+        "nuklear.h": "c"
     },
     "task.allowAutomaticTasks": "on",
     "editor.formatOnSave": true,
