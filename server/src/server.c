@@ -175,7 +175,7 @@ int user_auth(request_t* req, client_t* cl)
         printf("Received username: %s\n", msg.payload);
 
         char username[MAX_USERNAME_LENGTH + 1];
-        snprintf(username, MAX_USERNAME_LENGTH + 1, "%.*s", MAX_USERNAME_LENGTH, msg.payload);
+        snprintf(username, MAX_USERNAME_LENGTH, "%.*s", MAX_USERNAME_LENGTH - 1, msg.payload);
         username[MAX_USERNAME_LENGTH] = '\0';
 
         char* sql = "SELECT uid FROM users WHERE username = ?;";
@@ -224,7 +224,7 @@ int user_auth(request_t* req, client_t* cl)
                     printf("Received password: %s\n", msg.payload);
 
                     char password[MAX_PASSWORD_LENGTH];
-                    snprintf(password, MAX_PASSWORD_LENGTH + 1, "%.*s", MAX_PASSWORD_LENGTH, msg.payload);
+                    snprintf(password, MAX_PASSWORD_LENGTH, "%.*s", MAX_PASSWORD_LENGTH - 1, msg.payload);
 
                     create_message(&msg, MESSAGE_TEXT, "server", "client", "Confirm your password: ");
                     send_message(req->socket, &msg);
@@ -239,7 +239,7 @@ int user_auth(request_t* req, client_t* cl)
                     printf("Received password confirmation: %s\n", msg.payload);
 
                     char password_confirmation[MAX_PASSWORD_LENGTH];
-                    snprintf(password_confirmation, MAX_PASSWORD_LENGTH + 1, "%.*s", MAX_PASSWORD_LENGTH, msg.payload);
+                    snprintf(password_confirmation, MAX_PASSWORD_LENGTH, "%.*s", MAX_PASSWORD_LENGTH - 1, msg.payload);
 
                     if (strcmp(password, password_confirmation) == 0)
                     {
@@ -323,7 +323,7 @@ int user_auth(request_t* req, client_t* cl)
             printf("Received password: %s\n", msg.payload);
 
             char password[MAX_PASSWORD_LENGTH];
-            snprintf(password, MAX_PASSWORD_LENGTH + 1, "%.*s", MAX_PASSWORD_LENGTH, msg.payload);
+            snprintf(password, MAX_PASSWORD_LENGTH, "%.*s", MAX_PASSWORD_LENGTH - 1, msg.payload);
 
             char* password_hash = generate_password_hash(password);
 
