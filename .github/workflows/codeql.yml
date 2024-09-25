@@ -6,38 +6,26 @@ on:
   pull_request:
     branches: [ "main", "default-pattern" ]
   schedule:
-    - cron: '33 10 * * 5'
+    - cron: '31 23 * * 4'
 
 jobs:
-  build:
-    name: Build Docker Image
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag docker.io/mlsh/secure-chat:latest
-
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
-    timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
     permissions:
       security-events: write
+
       packages: read
+
       actions: read
       contents: read
 
-    needs: build
     strategy:
       fail-fast: false
       matrix:
         include:
         - language: c-cpp
           build-mode: autobuild
-
-    container:
-      image: docker.io/mlsh/secure-chat:latest
 
     steps:
     - name: Checkout repository
@@ -48,6 +36,12 @@ jobs:
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
+
+    - if: matrix.build-mode == 'manual'
+      shell: bash
+      run: |
+        make
+        exit 0
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
