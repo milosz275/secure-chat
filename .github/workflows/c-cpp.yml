@@ -1,0 +1,47 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ "main", "default-pattern" ]
+  pull_request:
+    branches: [ "main", "default-pattern" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update && sudo apt-get install -y \
+        git \
+        g++ \
+        gcc \
+        make \
+        wget \
+        cmake \
+        sqlite3 \
+        libz-dev \
+        libc6-dev \
+        libssl-dev \
+        libuv1-dev \
+        libsqlite3-dev \
+        build-essential
+
+    - name: Clone Nuklear
+      run: |
+        git clone https://github.com/Immediate-Mode-UI/Nuklear.git
+
+    - name: Git Submodule Update
+      run: |
+        git submodule update --init --recursive
+
+    - name: Create Symlink
+      run: |
+        ln -s client/include/Nuklear/nuklear.h client/include/nuklear.h
+
+    - name: make
+      run: make
