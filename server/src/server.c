@@ -17,6 +17,8 @@ static struct clients_t clients = { PTHREAD_MUTEX_INITIALIZER, {NULL} };
 
 static struct server_t server = { 0, {0}, 0, PTHREAD_MUTEX_INITIALIZER, {0} };
 
+void usleep(unsigned int usec);
+
 int connect_db(sqlite3** db, char* db_name)
 {
     char db_path[DB_PATH_LENGTH];
@@ -157,10 +159,10 @@ int user_auth(request_t* req, client_t* cl)
             sprintf(start_message, "You have %d login attempt.", USER_LOGIN_ATTEMPTS - attempts);
         else
             sprintf(start_message, "You have %d login attempts.", USER_LOGIN_ATTEMPTS - attempts);
-        
+
         create_message(&msg, MESSAGE_TEXT, "server", "client", start_message);
         send_message(req->socket, &msg);
-
+        sleep(2);
         create_message(&msg, MESSAGE_TEXT, "server", "client", "Enter your username: ");
         send_message(req->socket, &msg);
 
@@ -539,15 +541,16 @@ int run_server()
     server_addr.sin_port = htons(PORT);
 
     int attempts = 0;
-    int max_attempts = 30;
     int bind_success = 0;
-    while (attempts < max_attempts)
+    while (attempts < PORT_BIND_ATTEMPTS)
     {
         if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
         {
             perror("Bind failed");
+            printf("Retrying in %d seconds... (Attempt %d/%d)\n",
+                PORT_BIND_INTERVAL, attempts + 1, PORT_BIND_ATTEMPTS);
             attempts++;
-            if (attempts < max_attempts)
+            if (attempts < PORT_BIND_ATTEMPTS)
             {
                 if (quit_flag)
                 {
@@ -555,7 +558,7 @@ int run_server()
                     printf("Server shutting down...\n");
                     exit(EXIT_SUCCESS);
                 }
-                sleep(2);
+                sleep(PORT_BIND_INTERVAL);
             }
             else
             {
@@ -615,6 +618,8 @@ int run_server()
             server.threads[server.thread_count++] = tid;
         }
         pthread_mutex_unlock(&server.thread_count_mutex);
+
+        usleep(200000); // 200 ms
     }
 
     for (int i = 0; i < server.thread_count; i++)

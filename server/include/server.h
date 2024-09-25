@@ -12,6 +12,9 @@
 #define DB_PATH_LENGTH 256
 #define USER_LOGIN_ATTEMPTS 3
 
+#define PORT_BIND_INTERVAL 2
+#define PORT_BIND_ATTEMPTS 60
+
 // The database connection result codes.
 #define DATABASE_CONNECTION_SUCCESS 1200
 #define DATABASE_OPEN_FAILURE 1201
