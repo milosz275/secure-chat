@@ -11,21 +11,25 @@ static srv_command_t srv_commands[] = {
 
 int srv_exit(char** args) {
     printf("EXIT executed\n");
+    if (args[0] != NULL) {}
     return 1;
 }
 
 int srv_ban(char** args) {
     printf("BAN executed\n");
+    if (args[0] != NULL) {}
     return 1;
 }
 
 int srv_kick(char** args) {
     printf("KICK executed\n");
+    if (args[0] != NULL) {}
     return 1;
 }
 
 int srv_mute(char** args) {
     printf("MUTE executed\n");
+    if (args[0] != NULL) {}
     return 1;
 }
 
@@ -33,6 +37,7 @@ int srv_help(char** args) {
     for (int i = 0; i < SRV_COMMANDS_NUM; i++) {
         printf("%s\t-\t%s\n", srv_commands[i].srv_command_name, srv_commands[i].srv_command_description);
     }
+    if (args[0] != NULL) {}
     return 1;
 }
 
@@ -77,7 +82,7 @@ int getline(char** lineptr, size_t* n, FILE* stream)
 
 char* srv_read_line(void) {
     size_t n;
-    char* line;
+    char* line = NULL;
     if (!(n = (line == NULL)))
         n = strlen(line);
     if (getline(&line, &n, stdin) == -1) {
