@@ -34,10 +34,7 @@ jobs:
       matrix:
         include:
         - language: c-cpp
-          build-mode: autobuild
-
-    container:
-      image: docker.io/mlsh/secure-chat:latest
+          build-mode: manual
 
     steps:
     - name: Checkout repository
@@ -48,6 +45,32 @@ jobs:
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
+
+    - if: matrix.build-mode == 'manual'
+      shell: bash
+      run: |
+        sudo apt-get update && sudo apt-get install -y \
+        git \
+        g++ \
+        gcc \
+        make \
+        wget \
+        cmake \
+        sqlite3 \
+        libz-dev \
+        libc6-dev \
+        libssl-dev \
+        libuv1-dev \
+        libsqlite3-dev \
+        build-essential
+
+        git submodule update --init --recursive
+        if [ ! -L client/include/nuklear.h ]; then
+          ln -s client/include/Nuklear/nuklear.h client/include/nuklear.h
+        fi
+
+        make
+        exit 0
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3

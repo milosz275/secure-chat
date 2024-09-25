@@ -12,6 +12,9 @@
 #define DB_PATH_LENGTH 256
 #define USER_LOGIN_ATTEMPTS 3
 
+#define PORT_BIND_INTERVAL 2
+#define PORT_BIND_ATTEMPTS 60
+
 // The database connection result codes.
 #define DATABASE_CONNECTION_SUCCESS 1200
 #define DATABASE_OPEN_FAILURE 1201
@@ -86,6 +89,24 @@ struct clients_t
 {
     pthread_mutex_t mutex;
     client_t* array[MAX_CLIENTS];
+};
+
+/**
+ * The server structure. This structure is used to store information about the server.
+ *
+ * @param socket The server socket.
+ * @param address The server address.
+ * @param thread_count The number of allocated threads.
+ * @param thread_count_mutex The mutex to lock the thread count.
+ * @param threads The array of threads.
+ */
+struct server_t
+{
+    int socket;
+    struct sockaddr_in address;
+    int thread_count;
+    pthread_mutex_t thread_count_mutex;
+    pthread_t threads[MAX_CLIENTS];
 };
 
 /**

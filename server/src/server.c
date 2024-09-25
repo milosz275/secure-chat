@@ -11,7 +11,13 @@
 
 #include "protocol.h"
 
+int quit_flag = 0;
+
 static struct clients_t clients = { PTHREAD_MUTEX_INITIALIZER, {NULL} };
+
+static struct server_t server = { 0, {0}, 0, PTHREAD_MUTEX_INITIALIZER, {0} };
+
+void usleep(unsigned int usec);
 
 int connect_db(sqlite3** db, char* db_name)
 {
@@ -28,7 +34,7 @@ int connect_db(sqlite3** db, char* db_name)
             sqlite3_close(*db);
             return DATABASE_OPEN_FAILURE;
         }
-        fprintf(stderr, "Database opened in the server directory\n");
+        fprintf(stderr, "Database opened in the working directory\n");
     }
     sqlite3_exec(*db, "PRAGMA journal_mode=WAL;", NULL, NULL, NULL);
 
@@ -135,7 +141,7 @@ int user_auth(request_t* req, client_t* cl)
     int nbytes;
 
     sqlite3* db;
-    sqlite3_stmt* stmt;
+    sqlite3_stmt* stmt = NULL;
     int db_result = connect_db(&db, DB_NAME);
     if (db_result != DATABASE_CONNECTION_SUCCESS)
     {
@@ -143,296 +149,281 @@ int user_auth(request_t* req, client_t* cl)
         return USER_AUTHENTICATION_DATABASE_CONNECTION_FAILURE;
     }
 
-    create_message(&msg, MESSAGE_TEXT, "server", "client", "Enter your username: ");
-    send_message(req->socket, &msg);
-
-    nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
-    if (nbytes <= 0)
+    int attempts = 0;
+    while (attempts < USER_LOGIN_ATTEMPTS)
     {
-        close(req->socket);
-        return USER_AUTHENTICATION_USERNAME_RECEIVE_FAILURE;
-    }
+        char start_message[MAX_PAYLOAD_SIZE];
+        if (attempts == 0)
+            sprintf(start_message, "Welcome! You have %d login attempts and you can register on the first one.", USER_LOGIN_ATTEMPTS - attempts);
+        else if (USER_LOGIN_ATTEMPTS - attempts == 1)
+            sprintf(start_message, "You have %d login attempt.", USER_LOGIN_ATTEMPTS - attempts);
+        else
+            sprintf(start_message, "You have %d login attempts.", USER_LOGIN_ATTEMPTS - attempts);
 
-    parse_message(&msg, buffer);
-    printf("Received username: %s\n", msg.payload);
-
-    char username[MAX_USERNAME_LENGTH + 1];
-    snprintf(username, MAX_USERNAME_LENGTH + 1, "%.*s", MAX_USERNAME_LENGTH, msg.payload);
-    username[MAX_USERNAME_LENGTH] = '\0';
-
-    char* sql = "SELECT uid FROM users WHERE username = ?;";
-
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK)
-    {
-        fprintf(stderr, "Can't prepare username query: %s\n", sqlite3_errmsg(db));
-        sqlite3_close(db);
-        close(req->socket);
-        return USER_AUTHENTICATION_USERNAME_QUERY_FAILURE;
-    }
-
-    if (sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC) != SQLITE_OK)
-    {
-        fprintf(stderr, "Can't bind username parameter: %s\n", sqlite3_errmsg(db));
-        sqlite3_finalize(stmt);
-        sqlite3_close(db);
-        close(req->socket);
-        return USER_AUTHENTICATION_USERNAME_QUERY_FAILURE;
-    }
-
-    if (sqlite3_step(stmt) != SQLITE_ROW)
-    {
-        // register new user
-        create_message(&msg, MESSAGE_TEXT, "server", "client", "Username does not exist, would you like to register? [y/n]: ");
+        create_message(&msg, MESSAGE_TEXT, "server", "client", start_message);
+        send_message(req->socket, &msg);
+        sleep(2);
+        create_message(&msg, MESSAGE_TEXT, "server", "client", "Enter your username: ");
         send_message(req->socket, &msg);
 
         nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
         if (nbytes <= 0)
         {
-            sqlite3_finalize(stmt);
-            sqlite3_close(db);
             close(req->socket);
-            return USER_AUTHENTICATION_CHOICE_RECEIVE_FAILURE;
+            return USER_AUTHENTICATION_USERNAME_RECEIVE_FAILURE;
         }
 
         parse_message(&msg, buffer);
-        printf("Received choice: %s\n", msg.payload);
+        printf("Received username: %s\n", msg.payload);
 
-        if (strcmp(msg.payload, "y") == 0 || strcmp(msg.payload, "Y") == 0)
+        char username[MAX_USERNAME_LENGTH + 1];
+        snprintf(username, MAX_USERNAME_LENGTH, "%.*s", MAX_USERNAME_LENGTH - 1, msg.payload);
+        username[MAX_USERNAME_LENGTH] = '\0';
+
+        char* sql = "SELECT uid FROM users WHERE username = ?;";
+
+        if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK)
         {
+            fprintf(stderr, "Can't prepare username query: %s\n", sqlite3_errmsg(db));
+            goto cleanup;
+        }
+
+        if (sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC) != SQLITE_OK)
+        {
+            fprintf(stderr, "Can't bind username parameter: %s\n", sqlite3_errmsg(db));
+            goto cleanup;
+        }
+
+        if (sqlite3_step(stmt) != SQLITE_ROW)
+        {
+            if (!attempts)
+            {
+                // register
+                create_message(&msg, MESSAGE_TEXT, "server", "client", "Username does not exist. Would you like to register? [y/n]: ");
+                send_message(req->socket, &msg);
+
+                nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
+                if (nbytes <= 0)
+                {
+                    goto cleanup;
+                }
+
+                parse_message(&msg, buffer);
+                printf("Received choice: %s\n", msg.payload);
+
+                if (strcmp(msg.payload, "y") == 0 || strcmp(msg.payload, "Y") == 0)
+                {
+                    create_message(&msg, MESSAGE_TEXT, "server", "client", "Enter your password: ");
+                    send_message(req->socket, &msg);
+
+                    nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
+                    if (nbytes <= 0)
+                    {
+                        goto cleanup;
+                    }
+
+                    parse_message(&msg, buffer);
+                    printf("Received password: %s\n", msg.payload);
+
+                    char password[MAX_PASSWORD_LENGTH];
+                    snprintf(password, MAX_PASSWORD_LENGTH, "%.*s", MAX_PASSWORD_LENGTH - 1, msg.payload);
+
+                    create_message(&msg, MESSAGE_TEXT, "server", "client", "Confirm your password: ");
+                    send_message(req->socket, &msg);
+
+                    nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
+                    if (nbytes <= 0)
+                    {
+                        goto cleanup;
+                    }
+
+                    parse_message(&msg, buffer);
+                    printf("Received password confirmation: %s\n", msg.payload);
+
+                    char password_confirmation[MAX_PASSWORD_LENGTH];
+                    snprintf(password_confirmation, MAX_PASSWORD_LENGTH, "%.*s", MAX_PASSWORD_LENGTH - 1, msg.payload);
+
+                    if (strcmp(password, password_confirmation) == 0)
+                    {
+                        cl->uid = (char*)generate_unique_user_id(username);
+                        printf("Generated UID for %s: %s\n", username, cl->uid);
+
+                        char* password_hash = generate_password_hash(password);
+
+                        sql = "INSERT INTO users (username, uid, password_hash, last_login) VALUES (?, ?, ?, CURRENT_TIMESTAMP);";
+
+                        if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK)
+                        {
+                            fprintf(stderr, "Can't prepare user creation query: %s\n", sqlite3_errmsg(db));
+                            goto cleanup;
+                        }
+
+                        if (sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC) != SQLITE_OK ||
+                            sqlite3_bind_text(stmt, 2, cl->uid, -1, SQLITE_STATIC) != SQLITE_OK ||
+                            sqlite3_bind_text(stmt, 3, (char*)password_hash, PASSWORD_HASH_LENGTH, SQLITE_STATIC) != SQLITE_OK)
+                        {
+                            fprintf(stderr, "Can't bind query parameters: %s\n", sqlite3_errmsg(db));
+                            free(password_hash);
+                            password_hash = NULL;
+                            goto cleanup;
+                        }
+
+                        if (sqlite3_step(stmt) != SQLITE_DONE)
+                        {
+                            fprintf(stderr, "Can't create user: %s\n", sqlite3_errmsg(db));
+                            goto cleanup;
+                        }
+                        free(password_hash);
+                        password_hash = NULL;
+                    }
+                    else
+                    {
+                        create_message(&msg, MESSAGE_TEXT, "server", "client", "Passwords do not match, please try again.");
+                        send_message(req->socket, &msg);
+                        goto cleanup;
+                    }
+
+                    sqlite3_finalize(stmt);
+                    stmt = NULL;
+                    sqlite3_close(db);
+                    cl->request = req;
+                    cl->timestamp = (char*)get_timestamp();
+                    return USER_AUTHENTICATION_SUCCESS;
+                }
+                else if (strcmp(msg.payload, "n") == 0 || strcmp(msg.payload, "N") == 0)
+                {
+                    attempts++;
+                }
+                else
+                {
+                    goto cleanup;
+                }
+            }
+            else
+            {
+                attempts++;
+                if (attempts == USER_LOGIN_ATTEMPTS)
+                    create_message(&msg, MESSAGE_TEXT, "server", "client", "Username does not exist.");
+                else
+                    create_message(&msg, MESSAGE_TEXT, "server", "client", "Username does not exist. Please try again.");
+                send_message(req->socket, &msg);
+            }
+        }
+        else
+        {
+            // username exists, authenticate credentials
             create_message(&msg, MESSAGE_TEXT, "server", "client", "Enter your password: ");
             send_message(req->socket, &msg);
 
             nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
             if (nbytes <= 0)
             {
-                sqlite3_finalize(stmt);
-                sqlite3_close(db);
-                close(req->socket);
-                return USER_AUTHENTICATION_PASSWORD_RECEIVE_FAILURE;
+                goto cleanup;
             }
 
             parse_message(&msg, buffer);
             printf("Received password: %s\n", msg.payload);
 
             char password[MAX_PASSWORD_LENGTH];
-            snprintf(password, MAX_PASSWORD_LENGTH + 1, "%.*s", MAX_PASSWORD_LENGTH, msg.payload);
+            snprintf(password, MAX_PASSWORD_LENGTH, "%.*s", MAX_PASSWORD_LENGTH - 1, msg.payload);
 
-            create_message(&msg, MESSAGE_TEXT, "server", "client", "Confirm your password: ");
-            send_message(req->socket, &msg);
+            char* password_hash = generate_password_hash(password);
 
-            nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
-            if (nbytes <= 0)
+            sqlite3_finalize(stmt);
+            stmt = NULL;
+            sql = "SELECT uid FROM users WHERE username = ? AND password_hash = ?;";
+            if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK)
             {
-                sqlite3_finalize(stmt);
-                sqlite3_close(db);
-                close(req->socket);
-                return USER_AUTHENTICATION_PASSWORD_CONFIRMATION_RECEIVE_FAILURE;
+                fprintf(stderr, "Can't prepare user authentication query: %s\n", sqlite3_errmsg(db));
+                goto cleanup;
             }
 
-            parse_message(&msg, buffer);
-            printf("Received password confirmation: %s\n", msg.payload);
-
-            char password_confirmation[MAX_PASSWORD_LENGTH];
-            snprintf(password_confirmation, MAX_PASSWORD_LENGTH + 1, "%.*s", MAX_PASSWORD_LENGTH, msg.payload);
-
-            if (strcmp(password, password_confirmation) == 0)
+            if (sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC) != SQLITE_OK ||
+                sqlite3_bind_text(stmt, 2, (char*)password_hash, PASSWORD_HASH_LENGTH, SQLITE_STATIC) != SQLITE_OK)
             {
-                cl->uid = (char*)generate_unique_user_id(username);
-                printf("Generated UID for %s: %s\n", username, cl->uid);
+                fprintf(stderr, "Can't bind query parameters: %s\n", sqlite3_errmsg(db));
+                free(password_hash);
+                password_hash = NULL;
+                goto cleanup;
+            }
 
-                char* password_hash = generate_password_hash(password);
+            if (sqlite3_step(stmt) != SQLITE_ROW)
+            {
+                free(password_hash);
+                password_hash = NULL;
 
-                char* sql = "INSERT INTO users (username, uid, password_hash, last_login) VALUES (?, ?, ?, CURRENT_TIMESTAMP);";
+                fprintf(stderr, "Authentication failed for user %s\n", username);
+                attempts++;
+                if (attempts == USER_LOGIN_ATTEMPTS)
+                    create_message(&msg, MESSAGE_TEXT, "server", "client", "Invalid password.");
+                else
+                    create_message(&msg, MESSAGE_TEXT, "server", "client", "Invalid password, try again.");
+                send_message(req->socket, &msg);
 
-                if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK)
+                if (attempts >= USER_LOGIN_ATTEMPTS)
                 {
-                    fprintf(stderr, "Can't prepare user creation query: %s\n", sqlite3_errmsg(db));
-                    sqlite3_finalize(stmt);
-                    sqlite3_close(db);
-                    close(req->socket);
-                    return USER_AUTHENTICATION_USER_CREATION_QUERY_FAILURE;
-                }
-
-                if (sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC) != SQLITE_OK)
-                {
-                    fprintf(stderr, "Can't bind username parameter: %s\n", sqlite3_errmsg(db));
-                    sqlite3_finalize(stmt);
-                    sqlite3_close(db);
-                    close(req->socket);
-                    return USER_AUTHENTICATION_USER_CREATION_QUERY_FAILURE;
-                }
-
-                if (sqlite3_bind_text(stmt, 2, cl->uid, -1, SQLITE_STATIC) != SQLITE_OK)
-                {
-                    fprintf(stderr, "Can't bind UID parameter: %s\n", sqlite3_errmsg(db));
-                    sqlite3_finalize(stmt);
-                    sqlite3_close(db);
-                    close(req->socket);
-                    return USER_AUTHENTICATION_USER_CREATION_QUERY_FAILURE;
-                }
-
-                if (sqlite3_bind_text(stmt, 3, (char*)password_hash, PASSWORD_HASH_LENGTH, SQLITE_STATIC) != SQLITE_OK)
-                {
-                    fprintf(stderr, "Can't bind password hash parameter: %s\n", sqlite3_errmsg(db));
-                    sqlite3_finalize(stmt);
-                    sqlite3_close(db);
-                    close(req->socket);
-                    return USER_AUTHENTICATION_USER_CREATION_QUERY_FAILURE;
-                }
-
-                if (sqlite3_step(stmt) != SQLITE_DONE)
-                {
-                    fprintf(stderr, "Can't create user: %s\n", sqlite3_errmsg(db));
-                    sqlite3_finalize(stmt);
-                    sqlite3_close(db);
-                    close(req->socket);
-                    return USER_AUTHENTICATION_USER_CREATION_FAILURE;
+                    goto cleanup;
                 }
             }
             else
             {
-                create_message(&msg, MESSAGE_TEXT, "server", "client", "Passwords do not match, please try again");
-                send_message(req->socket, &msg);
+                free(password_hash);
+                password_hash = NULL;
+
+                // successful auth, get UID
+                const char* uid = (const char*)sqlite3_column_text(stmt, 0);
+                cl->uid = (char*)malloc(strlen(uid) + 1);
+                if (!cl->uid)
+                {
+                    fprintf(stderr, "Memory allocation failed for cl->uid\n");
+                    sqlite3_finalize(stmt);
+                    sqlite3_close(db);
+                    close(req->socket);
+                    return USER_AUTHENTICATION_MEMORY_ALLOCATION_FAILURE;
+                }
+                strcpy(cl->uid, uid);
+                printf("Authenticated user %s with UID %s\n", username, cl->uid);
 
                 sqlite3_finalize(stmt);
+                stmt = NULL;
+
+                // last login update
+                sql = "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE uid = ?;";
+                if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK ||
+                    sqlite3_bind_text(stmt, 1, cl->uid, -1, SQLITE_STATIC) != SQLITE_OK)
+                {
+                    fprintf(stderr, "Can't update last login: %s\n", sqlite3_errmsg(db));
+                    goto cleanup;
+                }
+
+                if (sqlite3_step(stmt) != SQLITE_DONE)
+                {
+                    fprintf(stderr, "Failed to update last login: %s\n", sqlite3_errmsg(db));
+                    goto cleanup;
+                }
+
+                sqlite3_finalize(stmt);
+                stmt = NULL;
                 sqlite3_close(db);
-                close(req->socket);
-                return USER_AUTHENTICATION_PASSWORD_MISMATCH;
+                cl->request = req;
+                cl->timestamp = (char*)get_timestamp();
+                return USER_AUTHENTICATION_SUCCESS;
             }
         }
-        else if (strcmp(msg.payload, "n") == 0 || strcmp(msg.payload, "N") == 0)
-        {
-            create_message(&msg, MESSAGE_TEXT, "server", "client", "Enter your username : ");
-            send_message(req->socket, &msg);
-
-            sqlite3_finalize(stmt);
-            sqlite3_close(db);
-            close(req->socket);
-            return USER_AUTHENTICATION_USERNAME_DOES_NOT_EXIST;
-        }
-        else
-        {
-            sqlite3_finalize(stmt);
-            sqlite3_close(db);
-            close(req->socket);
-            return USER_AUTHENTICATION_INVALID_CHOICE;
-        }
-
-        sqlite3_finalize(stmt);
-        sqlite3_close(db);
     }
-    else
+
+cleanup:
+    if (stmt != NULL)
     {
-        // authenticate user
-        create_message(&msg, MESSAGE_TEXT, "server", "client", "Enter your password: ");
-        send_message(req->socket, &msg);
-
-        nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
-        if (nbytes <= 0)
-        {
-            sqlite3_finalize(stmt);
-            sqlite3_close(db);
-            close(req->socket);
-            return USER_AUTHENTICATION_PASSWORD_RECEIVE_FAILURE;
-        }
-
-        parse_message(&msg, buffer);
-        printf("Received password: %s\n", msg.payload);
-
-        char password[MAX_PASSWORD_LENGTH];
-        snprintf(password, MAX_PASSWORD_LENGTH + 1, "%.*s", MAX_PASSWORD_LENGTH, msg.payload);
-
-        char* sql = "SELECT uid FROM users WHERE username = ? AND password_hash = ?;";
-        if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK)
-        {
-            fprintf(stderr, "Can't prepare user authentication query: %s\n", sqlite3_errmsg(db));
-            sqlite3_finalize(stmt);
-            sqlite3_close(db);
-            close(req->socket);
-            return USER_AUTHENTICATION_USER_AUTHENTICATION_QUERY_FAILURE;
-        }
-
-        if (sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC) != SQLITE_OK)
-        {
-            fprintf(stderr, "Can't bind username parameter: %s\n", sqlite3_errmsg(db));
-            sqlite3_finalize(stmt);
-            sqlite3_close(db);
-            close(req->socket);
-            return USER_AUTHENTICATION_USER_AUTHENTICATION_QUERY_FAILURE;
-        }
-
-        char* password_hash = generate_password_hash(password);
-
-        if (sqlite3_bind_text(stmt, 2, (char*)password_hash, PASSWORD_HASH_LENGTH, SQLITE_STATIC) != SQLITE_OK)
-        {
-            fprintf(stderr, "Can't bind password hash parameter: %s\n", sqlite3_errmsg(db));
-            sqlite3_finalize(stmt);
-            sqlite3_close(db);
-            close(req->socket);
-            return USER_AUTHENTICATION_USER_AUTHENTICATION_QUERY_FAILURE;
-        }
-
-        if (sqlite3_step(stmt) != SQLITE_ROW)
-        {
-            fprintf(stderr, "Authentication failed: %s\n", sqlite3_errmsg(db));
-            sqlite3_finalize(stmt);
-            sqlite3_close(db);
-            close(req->socket);
-            return USER_AUTHENTICATION_USER_AUTHENTICATION_FAILURE;
-        }
-
-        const char* uid = (const char*)sqlite3_column_text(stmt, 0);
-
-        cl->uid = (char*)malloc(strlen(uid) + 1);
-        if (cl->uid == NULL)
-        {
-            fprintf(stderr, "Memory allocation failed for cl->uid\n");
-            sqlite3_finalize(stmt);
-            sqlite3_close(db);
-            close(req->socket);
-            return USER_AUTHENTICATION_MEMORY_ALLOCATION_FAILURE;
-        }
-        strcpy(cl->uid, uid);
-        printf("Authenticated user %s with UID %s\n", username, cl->uid);
         sqlite3_finalize(stmt);
-
-        const char* update_sql = "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE uid = ?;";
-        if (sqlite3_prepare_v2(db, update_sql, -1, &stmt, 0) != SQLITE_OK)
-        {
-            fprintf(stderr, "Can't prepare last login update query: %s\n", sqlite3_errmsg(db));
-            sqlite3_close(db);
-            close(req->socket);
-            return USER_AUTHENTICATION_LAST_LOGIN_UPDATE_FAILURE;
-        }
-
-        if (sqlite3_bind_text(stmt, 1, cl->uid, -1, SQLITE_STATIC) != SQLITE_OK)
-        {
-            fprintf(stderr, "Can't bind uid parameter for last login update: %s\n", sqlite3_errmsg(db));
-            sqlite3_finalize(stmt);
-            sqlite3_close(db);
-            close(req->socket);
-            return USER_AUTHENTICATION_LAST_LOGIN_UPDATE_FAILURE;
-        }
-
-        if (sqlite3_step(stmt) != SQLITE_DONE)
-        {
-            fprintf(stderr, "Failed to update last login: %s\n", sqlite3_errmsg(db));
-            sqlite3_finalize(stmt);
-            sqlite3_close(db);
-            close(req->socket);
-            return USER_AUTHENTICATION_LAST_LOGIN_UPDATE_FAILURE;
-        }
-
-        sqlite3_finalize(stmt);
-        sqlite3_close(db);
     }
-
+    if (cl->uid != NULL)
+    {
+        free(cl->uid);
+    }
     sqlite3_close(db);
-
-    cl->request = req;
-    cl->timestamp = (char*)get_timestamp();
-
-    return USER_AUTHENTICATION_SUCCESS;
+    close(req->socket);
+    return USER_AUTHENTICATION_FAILURE;
 }
 
 void* handle_client(void* arg)
@@ -477,6 +468,7 @@ void* handle_client(void* arg)
     {
         if (clients.array[i] && clients.array[i] != &cl)
         {
+            create_message(&msg, MESSAGE_TEXT, "server", "client", join_message);
             send_message(clients.array[i]->request->socket, &msg);
         }
     }
@@ -484,6 +476,11 @@ void* handle_client(void* arg)
 
     while ((nbytes = recv(cl.request->socket, buffer, sizeof(buffer), 0)) > 0)
     {
+        if (quit_flag)
+        {
+            break;
+        }
+
         if (nbytes > 0)
         {
             parse_message(&msg, buffer);
@@ -512,19 +509,13 @@ void* handle_client(void* arg)
         }
     }
 
-    pthread_mutex_lock(&clients.mutex);
-    for (int i = 0; i < MAX_CLIENTS; ++i)
-    {
-        if (clients.array[i] == &cl)
-        {
-            printf("Client %d disconnected\n", cl.id);
-            clients.array[i] = NULL;
-            break;
-        }
-    }
-    pthread_mutex_unlock(&clients.mutex);
-
     close(cl.request->socket);
+    if (cl.uid)
+        free(cl.uid);
+    if (cl.timestamp)
+        free(cl.timestamp);
+    if (cl.request->timestamp)
+        free(cl.request->timestamp);
     pthread_exit(NULL);
 }
 
@@ -550,17 +541,24 @@ int run_server()
     server_addr.sin_port = htons(PORT);
 
     int attempts = 0;
-    int max_attempts = 30;
     int bind_success = 0;
-    while (attempts < max_attempts)
+    while (attempts < PORT_BIND_ATTEMPTS)
     {
         if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
         {
             perror("Bind failed");
+            printf("Retrying in %d seconds... (Attempt %d/%d)\n",
+                PORT_BIND_INTERVAL, attempts + 1, PORT_BIND_ATTEMPTS);
             attempts++;
-            if (attempts < max_attempts)
+            if (attempts < PORT_BIND_ATTEMPTS)
             {
-                sleep(2);
+                if (quit_flag)
+                {
+                    close(server_socket);
+                    printf("Server shutting down...\n");
+                    exit(EXIT_SUCCESS);
+                }
+                sleep(PORT_BIND_INTERVAL);
             }
             else
             {
@@ -590,12 +588,16 @@ int run_server()
     }
     printf("Server listening on port %d\n", PORT);
 
-    while (1)
+    while (!quit_flag)
     {
         client_socket = accept(server_socket, (struct sockaddr*)&client_addr, &client_len);
         if (client_socket < 0)
         {
             perror("Accept failed");
+            if (quit_flag)
+            {
+                break;
+            }
             continue;
         }
 
@@ -610,8 +612,22 @@ int run_server()
             close(client_socket);
             continue;
         }
-    }
-    close(server_socket);
+        pthread_mutex_lock(&server.thread_count_mutex);
+        if (server.thread_count < MAX_CLIENTS)
+        {
+            server.threads[server.thread_count++] = tid;
+        }
+        pthread_mutex_unlock(&server.thread_count_mutex);
 
-    return 0;
+        usleep(200000); // 200 ms
+    }
+
+    for (int i = 0; i < server.thread_count; i++)
+    {
+        pthread_join(server.threads[i], NULL);
+    }
+
+    close(server_socket);
+    printf("Server shutting down...\n");
+    exit(EXIT_SUCCESS);
 }

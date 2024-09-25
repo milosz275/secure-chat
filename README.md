@@ -1,5 +1,6 @@
 # Secure Chat
 
+[![C/C++ CI](https://github.com/mldxo/secure-chat/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/mldxo/secure-chat/actions/workflows/c-cpp.yml)
 [![Docker image](https://github.com/mldxo/secure-chat/actions/workflows/docker-image.yml/badge.svg)](https://github.com/mldxo/secure-chat/actions/workflows/docker-image.yml)
 [![CodeQL scan](https://github.com/mldxo/secure-chat/actions/workflows/codeql.yml/badge.svg)](https://github.com/mldxo/secure-chat/actions/workflows/codeql.yml)
 [![Doxygen Pages](https://github.com/mldxo/secure-chat/actions/workflows/doxygen-pages.yml/badge.svg)](https://github.com/mldxo/secure-chat/actions/workflows/doxygen-pages.yml)
@@ -97,6 +98,8 @@ Navigate to [database](https://github.com/mldxo/secure-chat/tree/main/database) 
 - [ ] Protocol signal codes ("User is typing...", "User has read the message", "User has joined the chat")
 - [ ] Server logging (requests, client connections, errors)
 - [ ] IP banning and rate limiting
+- [ ] Server start arguments using argv[], argc and/or configuration file (port, database, log level)
+- [ ] Interpreter for server automation
 
 # License
 
