@@ -21,9 +21,6 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "runOptions": {
-                "runOn": "folderOpen"
-            },
             "problemMatcher": []
         },
         {
@@ -36,9 +33,6 @@
             "group": {
                 "kind": "build",
                 "isDefault": true
-            },
-            "runOptions": {
-                "runOn": "folderOpen"
             },
             "problemMatcher": []
         },
@@ -53,14 +47,14 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "runOptions": {
-                "runOn": "folderOpen"
-            },
             "problemMatcher": []
         },
         {
             "label": "build all",
             "command": "make",
+            "runOptions": {
+                "runOn": "folderOpen"
+            },
             "problemMatcher": []
         },
         {
