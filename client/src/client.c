@@ -74,7 +74,7 @@ int connect_to_server(struct sockaddr_in* server_addr)
 
         if (connect(sock, (struct sockaddr*)server_addr, sizeof(*server_addr)) < 0)
         {
-            printf("Connection failed. Retrying in %d seconds... (Attempt %d/%d)\n",
+            printf("Connection failed.\nRetrying in %d seconds... (Attempt %d/%d)\n",
                 SERVER_RECONNECTION_INTERVAL, connection_attempts + 1, SERVER_RECONNECTION_ATTEMPTS);
             close(sock);
             connection_attempts++;
@@ -83,7 +83,7 @@ int connect_to_server(struct sockaddr_in* server_addr)
         else
         {
             printf("Connected to server\n");
-            return sock;  
+            return sock;
         }
     }
 
@@ -106,16 +106,16 @@ void run_client()
         exit(EXIT_FAILURE);
     }
 
-    while (!quit_flag)  
+    while (!quit_flag)
     {
-        sock = connect_to_server(&server_addr); 
+        sock = connect_to_server(&server_addr);
         if (sock < 0)
         {
             printf("Failed to connect to server after %d attempts. Exiting.\n", SERVER_RECONNECTION_ATTEMPTS);
-            exit(EXIT_FAILURE); 
+            exit(EXIT_FAILURE);
         }
-
-        reconnect_flag = 0;  
+        reconnect_flag = 0;
+        sleep(1);
 
         if (pthread_create(&recv_thread, NULL, receive_messages, (void*)&sock) != 0)
         {
@@ -127,10 +127,10 @@ void run_client()
         while (!quit_flag && !reconnect_flag)
         {
             FD_ZERO(&read_fds);
-            FD_SET(STDIN_FILENO, &read_fds); 
-            FD_SET(sock, &read_fds);      
+            FD_SET(STDIN_FILENO, &read_fds);
+            FD_SET(sock, &read_fds);
 
-            max_fd = sock; 
+            max_fd = sock;
 
             int activity = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
 
@@ -145,14 +145,14 @@ void run_client()
             {
                 memset(input, 0, sizeof(input));
                 fgets(input, sizeof(input), stdin);
-                input[strcspn(input, "\n")] = '\0'; 
+                input[strcspn(input, "\n")] = '\0';
 
-                if (strlen(input) == 0)  
+                if (strlen(input) == 0)
                 {
                     continue;
                 }
 
-                if (strcmp(input, "!exit") == 0)  
+                if (strcmp(input, "!exit") == 0)
                 {
                     quit_flag = 1;
                     break;
@@ -163,7 +163,7 @@ void run_client()
                 if (send_message(sock, &msg) != MESSAGE_SEND_SUCCESS)
                 {
                     perror("Send failed. Server might be disconnected.");
-                    reconnect_flag = 1; 
+                    reconnect_flag = 1;
                     break;
                 }
             }
@@ -177,15 +177,15 @@ void run_client()
         if (reconnect_flag)
         {
             printf("Attempting to reconnect...\n");
-            close(sock); 
-            pthread_cancel(recv_thread); 
-            pthread_join(recv_thread, NULL); 
+            close(sock);
+            pthread_cancel(recv_thread);
+            pthread_join(recv_thread, NULL);
         }
     }
 
     printf("Client is shutting down.\n");
-    close(sock); 
-    pthread_cancel(recv_thread);  
+    close(sock);
+    pthread_cancel(recv_thread);
     pthread_join(recv_thread, NULL);
     exit(EXIT_SUCCESS);
 }
