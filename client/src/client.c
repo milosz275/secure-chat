@@ -136,7 +136,6 @@ void run_client()
 
             if (activity < 0 && !quit_flag)
             {
-                perror("select error");
                 reconnect_flag = 1;
                 break;
             }
