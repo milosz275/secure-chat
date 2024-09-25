@@ -539,15 +539,16 @@ int run_server()
     server_addr.sin_port = htons(PORT);
 
     int attempts = 0;
-    int max_attempts = 30;
     int bind_success = 0;
-    while (attempts < max_attempts)
+    while (attempts < PORT_BIND_ATTEMPTS)
     {
         if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
         {
             perror("Bind failed");
+            printf("Retrying in %d seconds... (Attempt %d/%d)\n",
+                PORT_BIND_INTERVAL, attempts + 1, PORT_BIND_ATTEMPTS);
             attempts++;
-            if (attempts < max_attempts)
+            if (attempts < PORT_BIND_ATTEMPTS)
             {
                 if (quit_flag)
                 {
@@ -555,7 +556,7 @@ int run_server()
                     printf("Server shutting down...\n");
                     exit(EXIT_SUCCESS);
                 }
-                sleep(2);
+                sleep(PORT_BIND_INTERVAL);
             }
             else
             {
