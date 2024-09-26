@@ -56,13 +56,11 @@
 /**
  * The singular request structure. This structure is used to store server connection data.
  *
- * @param timestamp The request timestamp.
  * @param address The request address.
  * @param socket The server returned socket.
  */
 typedef struct
 {
-    char* timestamp;
     struct sockaddr_in address;
     int socket;
 } request_t;
@@ -71,14 +69,12 @@ typedef struct
  * The singular client structure. This structure is used to store information about a client connected to the server.
  *
  * @param request The client request.
- * @param timestamp The client creation timestamp.
  * @param id The ID of the client.
  * @param uid The unique ID of the client.
  */
 typedef struct
 {
     request_t* request;
-    char* timestamp;
     int id;
     char* uid;
 } client_t;
@@ -112,32 +108,6 @@ struct server_t
     pthread_mutex_t thread_count_mutex;
     pthread_t threads[MAX_CLIENTS];
 };
-
-/**
- * Database connector. This function is used to connect to a SQLite3 database and create it with its tables if it does not exist.
- *
- * @param db The SQLite3 database.
- * @param db_name The name of the database.
- * @return The database connection exit code.
- */
-int connect_db(sqlite3** db, char* db_name);
-
-/**
- * Database setup. This function is used to set up a SQLite3 database and create its tables if they do not exist.
- *
- * @param db The SQLite3 database.
- * @param db_name The name of the database.
- * @return The database setup exit code.
- */
-int setup_db(sqlite3** db, char* db_name);
-
-/**
- * Authenticates a request. This function is used to authenticate a user request. Returns the authentication result code.
- *
- * @param req The request to authenticate.
- * @param uid The obtained unique ID of the client.
- */
-int user_auth(request_t* req, client_t* cl);
 
 /**
  * Client handler. This function is used to handle a client connected to the server and is supposed to run in a separate thread.
