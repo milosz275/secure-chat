@@ -6,6 +6,7 @@
         "codespace",
         "Diffie",
         "Doxygen",
+        "freeram",
         "hankey",
         "lineptr",
         "Maculewicz",
@@ -15,7 +16,8 @@
         "SERVERAUTH",
         "SERVERCLI",
         "SERVERDB",
-        "Styleguides"
+        "Styleguides",
+        "totalram"
     ],
     "files.associations": {
         "cassandra.h": "c",
