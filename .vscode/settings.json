@@ -2,10 +2,12 @@
     "cSpell.language": "en,pl",
     "cSpell.words": [
         "antk",
+        "Auths",
         "AUTOINCREMENT",
         "codespace",
         "Diffie",
         "Doxygen",
+        "freeram",
         "hankey",
         "lineptr",
         "Maculewicz",
@@ -15,7 +17,8 @@
         "SERVERAUTH",
         "SERVERCLI",
         "SERVERDB",
-        "Styleguides"
+        "Styleguides",
+        "totalram"
     ],
     "files.associations": {
         "cassandra.h": "c",
@@ -25,7 +28,8 @@
         "protocol.h": "c",
         "evp.h": "c",
         "server.h": "c",
-        "nuklear.h": "c"
+        "nuklear.h": "c",
+        "stdio.h": "c"
     },
     "task.allowAutomaticTasks": "on",
     "editor.formatOnSave": true,
@@ -35,11 +39,9 @@
     "editor.formatOnSaveMode": "file",
     "editor.formatOnType": true,
     "editor.formatOnPaste": true,
-    "editor.rulers": [
-        200
-    ],
+    "editor.rulers": [],
     "editor.tabSize": 4,
-    "editor.wordWrap": "on",
+    "editor.wordWrap": "off",
     "editor.wordWrapColumn": 200,
     "makefile.configureOnOpen": true,
     "C_Cpp.formatting": "vcFormat",

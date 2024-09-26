@@ -2,6 +2,7 @@
 #define __PROTOCOL_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 #define TIMESTAMP_LENGTH 20
 
@@ -9,7 +10,7 @@
 #define PORT 12345
 #define BUFFER_SIZE 4096
 #define MESSAGE_HASH_LENGTH 64
-#define USERNAME_HASH_LENGTH 64
+#define USERNAME_HASH_LENGTH 32
 #define PASSWORD_HASH_LENGTH 64
 #define MAX_PAYLOAD_SIZE 2048
 #define MAX_USERNAME_LENGTH 16
@@ -28,6 +29,9 @@
 #define MESSAGE_CREATION_INVALID_RECIPIENT_UID_LENGTH 2106
 #define MESSAGE_CREATION_INVALID_PAYLOAD 2107
 #define MESSAGE_CREATION_INVALID_PAYLOAD_LENGTH 2108
+#define MESSAGE_CREATION_PAYLOAD_SIZE_EXCEEDED 2109
+#define MESSAGE_CREATION_USERNAME_SIZE_EXCEEDED 2110
+#define MESSAGE_CREATION_PAYLOAD_EMPTY 2111
 
 // The message parsing result codes. These are used to determine the exit code of the parse_message function.
 #define MESSAGE_PARSING_SUCCESS 2200
@@ -152,9 +156,16 @@ char* generate_password_hash(const char* password);
 /**
  * Get the current timestamp. This function is used to get the current timestamp using time.h.
  *
- * @return The current timestamp.
+ * @return The basic "%Y%m%d%H%M%S" current timestamp.
  */
 const char* get_timestamp();
+
+/**
+ * Get the formatted timestamp. This function is used to get the formatted timestamp using time.h.
+ *
+ * @return The "%Y-%m-%d %H:%M:%S" formatted timestamp.
+ */
+const char* get_formatted_timestamp();
 
 /**
  * Generate a unique ID. This function is used to generate a unique ID based on the text and the current timestamp.
@@ -172,5 +183,14 @@ char* generate_uid(const char* text, int hash_length);
  * @return The unique user ID.
  */
 char* generate_unique_user_id(const char* username);
+
+/**
+ * Format the uptime. This function is used to format the uptime in a hh:mm:ss format.
+ *
+ * @param seconds The number of seconds.
+ * @param buffer The buffer to store the formatted uptime.
+ * @param buffer_size The size of the buffer.
+ */
+void format_uptime(long seconds, char* buffer, size_t buffer_size);
 
 #endif

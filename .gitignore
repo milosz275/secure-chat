@@ -54,6 +54,7 @@ browse.vc.*
 .vs/
 
 # Logs
+logs/
 *.log
 
 # Docs are auto-generated
@@ -65,5 +66,4 @@ docs/
 # Database
 *.sqlite
 *.db
-*.db-shm
-*.db-wal
+*.db-*

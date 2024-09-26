@@ -124,7 +124,7 @@
         {
             "label": "delete database",
             "type": "shell",
-            "command": "rm -rf *.db",
+            "command": "rm -rf *.db || rm -rf *.db-*",
             "options": {
                 "cwd": "${workspaceFolder}/database"
             },

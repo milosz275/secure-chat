@@ -71,12 +71,14 @@ typedef struct
  * @param request The client request.
  * @param id The ID of the client.
  * @param uid The unique ID of the client.
+ * @param username The username of the client.
  */
 typedef struct
 {
     request_t* request;
     int id;
     char* uid;
+    char username[MAX_USERNAME_LENGTH + 1];
 } client_t;
 
 /**
@@ -96,6 +98,8 @@ struct clients_t
  *
  * @param socket The server socket.
  * @param address The server address.
+ * @param requests_handled The number of requests handled.
+ * @param client_logins_handled The number of client logins handled.
  * @param thread_count The number of allocated threads.
  * @param thread_count_mutex The mutex to lock the thread count.
  * @param threads The array of threads.
@@ -104,6 +108,8 @@ struct server_t
 {
     int socket;
     struct sockaddr_in address;
+    int requests_handled;
+    int client_logins_handled;
     int thread_count;
     pthread_mutex_t thread_count_mutex;
     pthread_t threads[MAX_CLIENTS];
