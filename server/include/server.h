@@ -71,12 +71,14 @@ typedef struct
  * @param request The client request.
  * @param id The ID of the client.
  * @param uid The unique ID of the client.
+ * @param username The username of the client.
  */
 typedef struct
 {
     request_t* request;
     int id;
     char* uid;
+    char username[MAX_USERNAME_LENGTH + 1];
 } client_t;
 
 /**
