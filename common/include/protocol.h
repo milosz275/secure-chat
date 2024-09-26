@@ -9,7 +9,7 @@
 #define PORT 12345
 #define BUFFER_SIZE 4096
 #define MESSAGE_HASH_LENGTH 64
-#define USERNAME_HASH_LENGTH 64
+#define USERNAME_HASH_LENGTH 32
 #define PASSWORD_HASH_LENGTH 64
 #define MAX_PAYLOAD_SIZE 2048
 #define MAX_USERNAME_LENGTH 16
@@ -152,9 +152,16 @@ char* generate_password_hash(const char* password);
 /**
  * Get the current timestamp. This function is used to get the current timestamp using time.h.
  *
- * @return The current timestamp.
+ * @return The basic "%Y%m%d%H%M%S" current timestamp.
  */
 const char* get_timestamp();
+
+/**
+ * Get the formatted timestamp. This function is used to get the formatted timestamp using time.h.
+ *
+ * @return The "%Y-%m-%d %H:%M:%S" formatted timestamp.
+ */
+const char* get_formatted_timestamp();
 
 /**
  * Generate a unique ID. This function is used to generate a unique ID based on the text and the current timestamp.
