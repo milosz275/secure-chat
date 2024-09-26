@@ -50,7 +50,6 @@ int user_auth(request_t* req, client_t* cl)
         }
 
         parse_message(&msg, buffer);
-        printf("Received username: %s\n", msg.payload);
 
         char username[MAX_USERNAME_LENGTH + 1];
         snprintf(username, MAX_USERNAME_LENGTH, "%.*s", MAX_USERNAME_LENGTH - 1, msg.payload);
@@ -85,7 +84,6 @@ int user_auth(request_t* req, client_t* cl)
                 }
 
                 parse_message(&msg, buffer);
-                printf("Received choice: %s\n", msg.payload);
 
                 if (strcmp(msg.payload, "y") == 0 || strcmp(msg.payload, "Y") == 0)
                 {
@@ -99,7 +97,6 @@ int user_auth(request_t* req, client_t* cl)
                     }
 
                     parse_message(&msg, buffer);
-                    printf("Received password: %s\n", msg.payload);
 
                     char password[MAX_PASSWORD_LENGTH];
                     snprintf(password, MAX_PASSWORD_LENGTH, "%.*s", MAX_PASSWORD_LENGTH - 1, msg.payload);
@@ -114,7 +111,6 @@ int user_auth(request_t* req, client_t* cl)
                     }
 
                     parse_message(&msg, buffer);
-                    printf("Received password confirmation: %s\n", msg.payload);
 
                     char password_confirmation[MAX_PASSWORD_LENGTH];
                     snprintf(password_confirmation, MAX_PASSWORD_LENGTH, "%.*s", MAX_PASSWORD_LENGTH - 1, msg.payload);
@@ -124,7 +120,6 @@ int user_auth(request_t* req, client_t* cl)
                         snprintf(cl->username, MAX_USERNAME_LENGTH + 1, "%s", username);
 
                         cl->uid = (char*)generate_unique_user_id(username);
-                        printf("Generated UID for %s: %s\n", username, cl->uid);
 
                         char* password_hash = generate_password_hash(password);
 
@@ -215,7 +210,6 @@ int user_auth(request_t* req, client_t* cl)
             }
 
             parse_message(&msg, buffer);
-            printf("Received password: %s\n", msg.payload);
 
             char password[MAX_PASSWORD_LENGTH];
             snprintf(password, MAX_PASSWORD_LENGTH, "%.*s", MAX_PASSWORD_LENGTH - 1, msg.payload);
@@ -280,7 +274,6 @@ int user_auth(request_t* req, client_t* cl)
                     return USER_AUTHENTICATION_MEMORY_ALLOCATION_FAILURE;
                 }
                 strcpy(cl->uid, uid);
-                printf("Obtained UID for %s: %s\n", username, cl->uid);
 
                 sqlite3_finalize(stmt);
                 stmt = NULL;
