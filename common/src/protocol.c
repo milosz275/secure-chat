@@ -19,7 +19,10 @@ int create_message(message_t* msg, message_type_t type, char* sender_uid, char* 
         return MESSAGE_CREATION_PAYLOAD_EMPTY;
 
     msg->payload[0] = '\0';
-    snprintf(msg->message_uid, MESSAGE_HASH_LENGTH, "%s", generate_uid(payload, MESSAGE_HASH_LENGTH));
+    char* uid = generate_uid(payload, MESSAGE_HASH_LENGTH);
+    if (uid == NULL)
+        return MESSAGE_CREATION_FAILURE;
+    snprintf(msg->message_uid, MESSAGE_HASH_LENGTH, "%s", uid);
     msg->type = type;
     snprintf(msg->sender_uid, USERNAME_HASH_LENGTH, "%s", sender_uid);
     snprintf(msg->recipient_uid, USERNAME_HASH_LENGTH, "%s", recipient_uid);
@@ -40,9 +43,7 @@ void parse_message(message_t* msg, const char* buffer)
 int send_message(int socket, message_t* msg)
 {
     if (msg == NULL)
-    {
         return MESSAGE_SEND_FAILURE;
-    }
 
     char buffer[BUFFER_SIZE];
     memset(buffer, 0, sizeof(buffer));
@@ -157,43 +158,24 @@ const char* get_formatted_timestamp()
 
 char* generate_uid(const char* text, int hash_length)
 {
-    static char input_str[BUFFER_SIZE];
-    snprintf(input_str, BUFFER_SIZE, "%s%s", text, get_timestamp());
+    if (text == NULL || hash_length == 0)
+        return NULL;
+
+    char input_str[BUFFER_SIZE];
+    char timestamp[TIMESTAMP_LENGTH];
+    get_timestamp(timestamp, sizeof(timestamp));
+
+    snprintf(input_str, BUFFER_SIZE, "%s%s", text, timestamp);
 
     const unsigned char* hash = get_hash(input_str);
     if (hash == NULL || hash_length <= 0 || hash_length > EVP_MAX_MD_SIZE)
         return NULL;
 
-    int actual_hash_len = strlen((const char*)hash);
-
-    if (actual_hash_len < hash_length)
-    {
-        unsigned char* extended_hash = (unsigned char*)malloc(hash_length);
-        if (extended_hash == NULL)
-        {
-            free((void*)hash);
-            return NULL;
-        }
-
-        for (int i = 0; i < hash_length; ++i)
-            extended_hash[i] = hash[i % actual_hash_len];
-
-        free((void*)hash);
-        hash = extended_hash;
-    }
-
     static char uid[BUFFER_SIZE];
-    if (hash_length * 2 + 1 > BUFFER_SIZE)
-    {
-        free((void*)hash);
-        return NULL;
-    }
-
     for (int i = 0; i < hash_length; ++i)
         snprintf(uid + (i * 2), 3, "%02x", hash[i]);
 
     uid[hash_length * 2] = '\0';
-
     free((void*)hash);
 
     return uid;
