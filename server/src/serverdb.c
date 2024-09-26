@@ -5,6 +5,7 @@
 #include <sqlite3.h>
 
 #include "server.h"
+#include "log.h"
 
 int connect_db(sqlite3** db, char* db_name)
 {
@@ -127,5 +128,8 @@ int setup_db(sqlite3** db, char* db_name)
         sqlite3_close(*db);
     }
 
+    char log_msg[256];
+    sprintf(log_msg, "Successfully created tables in database %s", db_name);
+    log_message(LOG_INFO, SERVER_LOG, __FILE__, log_msg);
     return DATABASE_CREATE_SUCCESS;
 }
