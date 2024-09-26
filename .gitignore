@@ -54,6 +54,7 @@ browse.vc.*
 .vs/
 
 # Logs
+logs/
 *.log
 
 # Docs are auto-generated
