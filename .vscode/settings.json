@@ -12,7 +12,9 @@
         "Miłosz",
         "mldxo",
         "Nuklear",
+        "SERVERAUTH",
         "SERVERCLI",
+        "SERVERDB",
         "Styleguides"
     ],
     "files.associations": {
