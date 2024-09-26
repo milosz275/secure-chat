@@ -77,35 +77,56 @@ unsigned char* get_hash(const char* input)
 {
     unsigned char* hash = (unsigned char*)malloc(EVP_MAX_MD_SIZE);
     if (hash == NULL)
-    {
         return NULL;
-    }
 
     unsigned int length = 0;
     EVP_Digest(input, strlen(input), hash, &length, EVP_sha256(), NULL);
+    if (length <= 0)
+    {
+        free((void*)hash);
+        return NULL;
+    }
+    hash[length] = '\0';
 
     return hash;
 }
 
 char* generate_password_hash(const char* password)
 {
+    int hash_length = PASSWORD_HASH_LENGTH;
     const unsigned char* hash = get_hash(password);
-    if (hash == NULL)
-    {
+
+    if (hash == NULL || hash_length <= 0 || hash_length > EVP_MAX_MD_SIZE)
         return NULL;
+
+    int actual_hash_len = strlen((const char*)hash);
+
+    if (actual_hash_len < hash_length)
+    {
+        unsigned char* extended_hash = (unsigned char*)malloc(hash_length);
+        if (extended_hash == NULL)
+        {
+            free((void*)hash);
+            return NULL;
+        }
+
+        for (int i = 0; i < hash_length; ++i)
+            extended_hash[i] = hash[i % actual_hash_len];
+
+        free((void*)hash);
+        hash = extended_hash;
     }
 
-    int hash_length = 32;
     char* hash_str = (char*)malloc((hash_length * 2) + 1);
     if (hash_str == NULL)
     {
+        free((void*)hash);
         return NULL;
     }
 
     for (int i = 0; i < hash_length; ++i)
-    {
         snprintf(hash_str + (i * 2), 3, "%02x", hash[i]);
-    }
+
     hash_str[hash_length * 2] = '\0';
 
     free((void*)hash);
@@ -128,20 +149,14 @@ char* generate_uid(const char* text, int hash_length)
 
     const unsigned char* hash = get_hash(input_str);
     if (hash == NULL)
-    {
         return NULL;
-    }
 
     static char uid[BUFFER_SIZE];
     if (hash_length * 2 + 1 > BUFFER_SIZE)
-    {
         return NULL;
-    }
 
     for (int i = 0; i < hash_length; ++i)
-    {
         snprintf(uid + (i * 2), 3, "%02x", hash[i]);
-    }
     uid[hash_length * 2] = '\0';
 
     free((void*)hash);
