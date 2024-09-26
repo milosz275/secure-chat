@@ -21,9 +21,6 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "runOptions": {
-                "runOn": "folderOpen"
-            },
             "problemMatcher": []
         },
         {
@@ -36,9 +33,6 @@
             "group": {
                 "kind": "build",
                 "isDefault": true
-            },
-            "runOptions": {
-                "runOn": "folderOpen"
             },
             "problemMatcher": []
         },
@@ -53,22 +47,22 @@
                 "kind": "build",
                 "isDefault": true
             },
+            "problemMatcher": []
+        },
+        {
+            "label": "build all",
+            "command": "make",
             "runOptions": {
                 "runOn": "folderOpen"
             },
             "problemMatcher": []
         },
         {
-            "label": "build all",
-            "command": "make",
-            "problemMatcher": []
-        },
-        {
             "label": "run server",
             "type": "shell",
-            "command": "./build/bin/server",
+            "command": "server/build/bin/server",
             "options": {
-                "cwd": "${workspaceFolder}/server"
+                "cwd": "${workspaceFolder}"
             },
             "presentation": {
                 "reveal": "always",
@@ -80,9 +74,9 @@
         {
             "label": "run client",
             "type": "shell",
-            "command": "./build/bin/client",
+            "command": "client/build/bin/client",
             "options": {
-                "cwd": "${workspaceFolder}/client"
+                "cwd": "${workspaceFolder}"
             },
             "problemMatcher": [],
             "isBackground": true,

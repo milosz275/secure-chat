@@ -7,17 +7,25 @@
         "Diffie",
         "Doxygen",
         "hankey",
+        "lineptr",
         "Maculewicz",
         "Miłosz",
         "mldxo",
         "Nuklear",
+        "SERVERAUTH",
+        "SERVERCLI",
+        "SERVERDB",
         "Styleguides"
     ],
     "files.associations": {
         "cassandra.h": "c",
         "stdlib.h": "c",
         "random": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "protocol.h": "c",
+        "evp.h": "c",
+        "server.h": "c",
+        "nuklear.h": "c"
     },
     "task.allowAutomaticTasks": "on",
     "editor.formatOnSave": true,

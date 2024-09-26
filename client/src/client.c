@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <sys/select.h>
@@ -16,8 +17,9 @@
 #define NK_INCLUDE_DEFAULT_ALLOCATOR
 #define MAX_MEMORY 4096 * 1024 // 4MB
 
-int quit_flag = 0;
-int reconnect_flag = 0;
+volatile sig_atomic_t quit_flag = 0;
+volatile sig_atomic_t reconnect_flag = 0;
+
 pthread_t recv_thread;
 int sock = -1;
 
@@ -136,7 +138,6 @@ void run_client()
 
             if (activity < 0 && !quit_flag)
             {
-                perror("select error");
                 reconnect_flag = 1;
                 break;
             }

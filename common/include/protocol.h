@@ -8,9 +8,9 @@
 // The server port and message components size. These are used to define the port and buffer size for the server and client.
 #define PORT 12345
 #define BUFFER_SIZE 4096
-#define MESSAGE_HASH_LENGTH 32
-#define USERNAME_HASH_LENGTH 32
-#define PASSWORD_HASH_LENGTH 32
+#define MESSAGE_HASH_LENGTH 64
+#define USERNAME_HASH_LENGTH 64
+#define PASSWORD_HASH_LENGTH 64
 #define MAX_PAYLOAD_SIZE 2048
 #define MAX_USERNAME_LENGTH 16
 #define MAX_PASSWORD_LENGTH 16
@@ -172,12 +172,5 @@ char* generate_uid(const char* text, int hash_length);
  * @return The unique user ID.
  */
 char* generate_unique_user_id(const char* username);
-
-/**
- * Interrupt handler. This function is used to handle the SIGINT signal and is supposed to be called by the signal function.
- *
- * @param sig The signal number.
- */
-void int_handler(int sig);
 
 #endif
