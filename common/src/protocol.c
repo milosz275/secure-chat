@@ -1,6 +1,7 @@
 #include "protocol.h"
 
 #include <stdio.h>
+#include <stddef.h>
 #include <string.h>
 #include <time.h>
 #include <arpa/inet.h>
@@ -9,9 +10,13 @@
 int create_message(message_t* msg, message_type_t type, char* sender_uid, char* recipient_uid, char* payload)
 {
     if (msg == NULL || sender_uid == NULL || recipient_uid == NULL || payload == NULL)
-    {
         return MESSAGE_CREATION_FAILURE;
-    }
+    if (strlen(payload) > MAX_PAYLOAD_SIZE)
+        return MESSAGE_CREATION_PAYLOAD_SIZE_EXCEEDED;
+    else if (strlen(sender_uid) > USERNAME_HASH_LENGTH || strlen(recipient_uid) > USERNAME_HASH_LENGTH)
+        return MESSAGE_CREATION_USERNAME_SIZE_EXCEEDED;
+    else if (strlen(payload) == 0)
+        return MESSAGE_CREATION_PAYLOAD_EMPTY;
 
     msg->payload[0] = '\0';
     snprintf(msg->message_uid, MESSAGE_HASH_LENGTH, "%s", generate_uid(payload, MESSAGE_HASH_LENGTH));
@@ -142,28 +147,67 @@ const char* get_timestamp()
     return timestamp_str;
 }
 
+const char* get_formatted_timestamp()
+{
+    static char timestamp_str[TIMESTAMP_LENGTH];
+    time_t now = time(NULL);
+    strftime(timestamp_str, sizeof(timestamp_str), "%Y-%m-%d %H:%M:%S", localtime(&now));
+    return timestamp_str;
+}
+
 char* generate_uid(const char* text, int hash_length)
 {
     static char input_str[BUFFER_SIZE];
     snprintf(input_str, BUFFER_SIZE, "%s%s", text, get_timestamp());
 
     const unsigned char* hash = get_hash(input_str);
-    if (hash == NULL)
+    if (hash == NULL || hash_length <= 0 || hash_length > EVP_MAX_MD_SIZE)
         return NULL;
+
+    int actual_hash_len = strlen((const char*)hash);
+
+    if (actual_hash_len < hash_length)
+    {
+        unsigned char* extended_hash = (unsigned char*)malloc(hash_length);
+        if (extended_hash == NULL)
+        {
+            free((void*)hash);
+            return NULL;
+        }
+
+        for (int i = 0; i < hash_length; ++i)
+            extended_hash[i] = hash[i % actual_hash_len];
+
+        free((void*)hash);
+        hash = extended_hash;
+    }
 
     static char uid[BUFFER_SIZE];
     if (hash_length * 2 + 1 > BUFFER_SIZE)
+    {
+        free((void*)hash);
         return NULL;
+    }
 
     for (int i = 0; i < hash_length; ++i)
         snprintf(uid + (i * 2), 3, "%02x", hash[i]);
+
     uid[hash_length * 2] = '\0';
 
     free((void*)hash);
+
     return uid;
 }
 
 char* generate_unique_user_id(const char* username)
 {
     return generate_uid(username, USERNAME_HASH_LENGTH);
+}
+
+void format_uptime(long seconds, char* buffer, size_t buffer_size)
+{
+    int hours = seconds / 3600;
+    int minutes = (seconds % 3600) / 60;
+    int secs = seconds % 60;
+    snprintf(buffer, buffer_size, "%02d:%02d:%02d", hours, minutes, secs);
 }
