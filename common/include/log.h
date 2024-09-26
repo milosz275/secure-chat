@@ -5,6 +5,8 @@
 #include <pthread.h>
 
 #define MAX_LOG_FILES 10
+#define MAX_FILENAME_LENGTH 256
+#define LOGS_DIR "logs"
 
 #define LOCKED_FILE_RETRY_TIME 1000 // in microseconds
 #define LOCKED_FILE_TIMEOUT 5000000 // in microseconds (5 seconds)
@@ -35,7 +37,7 @@ typedef enum
  */
 typedef struct logger_t
 {
-    const char* filename;
+    char* filename;
     FILE* file;
 } logger_t;
 
@@ -62,9 +64,10 @@ void init_logging(const char* filename);
  *
  * @param level The log level.
  * @param log_file The file that the log message is destined for.
+ * @param source_file The source file that the log message is from.
  * @param message The log message.
  */
-void log_message(log_level_t level, const char* filename, const char* message);
+void log_message(log_level_t level, const char* filename, const char* source_file, const char* message);
 
 /**
  * Finish logging. This function is used to finish logging and close the log file.
