@@ -7,9 +7,11 @@
 #include <arpa/inet.h>
 
 #include "serverdb.h"
+#include "log.h"
 
 int user_auth(request_t* req, client_t* cl)
 {
+    char log_msg[256];
     message_t msg;
     char buffer[BUFFER_SIZE];
     int nbytes;
@@ -119,6 +121,8 @@ int user_auth(request_t* req, client_t* cl)
 
                     if (strcmp(password, password_confirmation) == 0)
                     {
+                        snprintf(cl->username, MAX_USERNAME_LENGTH + 1, "%s", username);
+
                         cl->uid = (char*)generate_unique_user_id(username);
                         printf("Generated UID for %s: %s\n", username, cl->uid);
 
@@ -154,7 +158,11 @@ int user_auth(request_t* req, client_t* cl)
                         stmt = NULL;
                         sqlite3_close(db);
                         cl->request = req;
-                        // cl->timestamp = (char*)get_timestamp();
+
+                        log_msg[0] = '\0';
+                        sprintf(log_msg, "Registered user %s with UID %s", username, cl->uid);
+                        log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
+
                         return USER_AUTHENTICATION_SUCCESS;
                     }
                     else
@@ -169,6 +177,9 @@ int user_auth(request_t* req, client_t* cl)
                 }
                 else
                 {
+                    log_msg[0] = '\0';
+                    sprintf(log_msg, "Request from %s:%d failed authentication - invalid choice", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
+                    log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
                     goto cleanup;
                 }
             }
@@ -179,6 +190,9 @@ int user_auth(request_t* req, client_t* cl)
                 {
                     create_message(&msg, MESSAGE_TEXT, "server", "client", "Username does not exist. Out of login attempts.");
                     send_message(req->socket, &msg);
+                    log_msg[0] = '\0';
+                    sprintf(log_msg, "Request from %s:%d failed authentication - out of login attempts", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
+                    log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
                     goto cleanup;
                 }
                 else
@@ -234,13 +248,16 @@ int user_auth(request_t* req, client_t* cl)
                 fprintf(stderr, "Authentication failed for user %s\n", username);
                 attempts++;
                 if (attempts == USER_LOGIN_ATTEMPTS)
-                    create_message(&msg, MESSAGE_TEXT, "server", "client", "Invalid password.");
+                    create_message(&msg, MESSAGE_TEXT, "server", "client", "Invalid password. Out of login attempts.");
                 else
                     create_message(&msg, MESSAGE_TEXT, "server", "client", "Invalid password, try again.");
                 send_message(req->socket, &msg);
 
                 if (attempts >= USER_LOGIN_ATTEMPTS)
                 {
+                    log_msg[0] = '\0';
+                    sprintf(log_msg, "Request from %s:%d failed authentication - out of login attempts", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
+                    log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
                     goto cleanup;
                 }
             }
@@ -249,7 +266,9 @@ int user_auth(request_t* req, client_t* cl)
                 free(password_hash);
                 password_hash = NULL;
 
-                // successful auth, get UID
+                // successful auth, set username, get UID
+                snprintf(cl->username, MAX_USERNAME_LENGTH + 1, "%s", username);
+
                 const char* uid = (const char*)sqlite3_column_text(stmt, 0);
                 cl->uid = (char*)malloc(strlen(uid) + 1);
                 if (!cl->uid)
@@ -261,7 +280,7 @@ int user_auth(request_t* req, client_t* cl)
                     return USER_AUTHENTICATION_MEMORY_ALLOCATION_FAILURE;
                 }
                 strcpy(cl->uid, uid);
-                printf("Authenticated user %s with UID %s\n", username, cl->uid);
+                printf("Obtained UID for %s: %s\n", username, cl->uid);
 
                 sqlite3_finalize(stmt);
                 stmt = NULL;
@@ -285,7 +304,11 @@ int user_auth(request_t* req, client_t* cl)
                 stmt = NULL;
                 sqlite3_close(db);
                 cl->request = req;
-                // cl->timestamp = (char*)get_timestamp();
+
+                log_msg[0] = '\0';
+                sprintf(log_msg, "Authenticated user %s with UID %s", username, cl->uid);
+                log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
+
                 return USER_AUTHENTICATION_SUCCESS;
             }
         }
