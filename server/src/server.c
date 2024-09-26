@@ -21,7 +21,7 @@ volatile sig_atomic_t quit_flag = 0;
 
 static struct clients_t clients = { PTHREAD_MUTEX_INITIALIZER, {NULL} };
 
-static struct server_t server = { 0, {0}, 0, PTHREAD_MUTEX_INITIALIZER, {0} };
+static struct server_t server = { 0, {0}, 0, 0, 0, PTHREAD_MUTEX_INITIALIZER, {0} };
 
 void usleep(unsigned int usec);
 
@@ -64,6 +64,7 @@ void* handle_client(void* arg)
     request_t req = *req_ptr;
     message_t msg;
     client_t cl;
+    server.requests_handled++;
 
     sprintf(log_msg, "Handing request %s:%d", inet_ntoa(req.address.sin_addr), ntohs(req.address.sin_port));
     log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
@@ -90,6 +91,8 @@ void* handle_client(void* arg)
     pthread_mutex_unlock(&clients.mutex);
 
     // from this point log to clients.log
+    server.client_logins_handled++;
+
     log_msg[0] = '\0';
     sprintf(log_msg, "Successful auth of client - id: %d - username: %s - address: %s:%d - uid: %s", cl.id, cl.username, inet_ntoa(req.address.sin_addr), ntohs(req.address.sin_port), cl.uid);
     log_message(LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
@@ -199,10 +202,12 @@ void* handle_info_update(void* arg)
         if (sysinfo(&sys_info) == 0)
         {
             format_uptime(sys_info.uptime, formatted_uptime, sizeof(formatted_uptime));
-            sprintf(log_msg, "Users online: %d, Uptime: %s, Load avg: %.2f, RAM: %lu/%lu MB",
+            sprintf(log_msg, "Online: %d, Req: %d, Auths: %d, Uptime: %s, Load avg: %.2f, RAM: %lu/%lu MB",
                 user_count,
+                server.requests_handled,
+                server.client_logins_handled,
                 formatted_uptime,
-                sys_info.loads[0] / 65536.0, 
+                sys_info.loads[0] / 65536.0,
                 (sys_info.totalram - sys_info.freeram) / 1024 / 1024,
                 sys_info.totalram / 1024 / 1024);
             log_message(LOG_INFO, SERVER_LOG, __FILE__, log_msg);
