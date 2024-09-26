@@ -12,7 +12,7 @@ LIBNAME = libcommon.a
 
 default: all
 
-all: $(MAIN)
+all: $(MAIN) lib
 	@echo "✔️ Common has been compiled"
 
 debug: CFLAGS += -g -DDEBUG -D_DEBUG
