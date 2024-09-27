@@ -29,16 +29,17 @@ int user_auth(request_t* req, client_t* cl)
     while (attempts < USER_LOGIN_ATTEMPTS)
     {
         char start_message[MAX_PAYLOAD_SIZE];
+        start_message[0] = '\0';
         if (attempts == 0)
             sprintf(start_message, "Welcome! You have %d login attempts and you can register on the first one.", USER_LOGIN_ATTEMPTS - attempts);
         else if (USER_LOGIN_ATTEMPTS - attempts == 1)
             sprintf(start_message, "You have 1 login attempt.");
         else
             sprintf(start_message, "You have %d login attempts.", USER_LOGIN_ATTEMPTS - attempts);
-
         create_message(&msg, MESSAGE_TEXT, "server", "client", start_message);
+        sleep(1);
         send_message(req->socket, &msg);
-        sleep(2);
+        sleep(1);
         create_message(&msg, MESSAGE_TEXT, "server", "client", "Enter your username: ");
         send_message(req->socket, &msg);
 
@@ -119,9 +120,36 @@ int user_auth(request_t* req, client_t* cl)
                     {
                         snprintf(cl->username, MAX_USERNAME_LENGTH + 1, "%s", username);
 
-                        cl->uid = (char*)generate_unique_user_id(username);
+                        cl->uid = (char*)malloc(HASH_HEX_OUTPUT_LENGTH);
+                        if (cl->uid == NULL)
+                        {
+                            fprintf(stderr, "Failed to allocate memory for UID\n");
+                            log_msg[0] = '\0';
+                            sprintf(log_msg, "Failed to allocate memory for UID - register request from %s:%d", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
+                            log_message(LOG_WARN, REQUESTS_LOG, __FILE__, log_msg);
+                            log_message(LOG_WARN, SERVER_LOG, __FILE__, log_msg);
+                            goto cleanup;
+                        }
+                        if (get_hash((unsigned char*)username, cl->uid) != 0)
+                        {
+                            fprintf(stderr, "Failed to hash username\n");
+                            log_msg[0] = '\0';
+                            sprintf(log_msg, "Failed to hash username - register request from %s:%d", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
+                            log_message(LOG_WARN, REQUESTS_LOG, __FILE__, log_msg);
+                            log_message(LOG_WARN, SERVER_LOG, __FILE__, log_msg);
+                            goto cleanup;
+                        }
 
-                        char* password_hash = generate_password_hash(password);
+                        char password_hash[HASH_HEX_OUTPUT_LENGTH];
+                        if (get_hash((unsigned char*)password, password_hash) != 0)
+                        {
+                            fprintf(stderr, "Failed to hash password\n");
+                            log_msg[0] = '\0';
+                            sprintf(log_msg, "Failed to hash password - register request from %s:%d", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
+                            log_message(LOG_WARN, REQUESTS_LOG, __FILE__, log_msg);
+                            log_message(LOG_WARN, SERVER_LOG, __FILE__, log_msg);
+                            goto cleanup;
+                        }
 
                         sql = "INSERT INTO users (username, uid, password_hash, last_login) VALUES (?, ?, ?, CURRENT_TIMESTAMP);";
 
@@ -133,11 +161,9 @@ int user_auth(request_t* req, client_t* cl)
 
                         if (sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC) != SQLITE_OK ||
                             sqlite3_bind_text(stmt, 2, cl->uid, -1, SQLITE_STATIC) != SQLITE_OK ||
-                            sqlite3_bind_text(stmt, 3, (char*)password_hash, PASSWORD_HASH_LENGTH, SQLITE_STATIC) != SQLITE_OK)
+                            sqlite3_bind_text(stmt, 3, (char*)password_hash, HASH_HEX_OUTPUT_LENGTH, SQLITE_STATIC) != SQLITE_OK)
                         {
                             fprintf(stderr, "Can't bind query parameters: %s\n", sqlite3_errmsg(db));
-                            free(password_hash);
-                            password_hash = NULL;
                             goto cleanup;
                         }
 
@@ -146,8 +172,6 @@ int user_auth(request_t* req, client_t* cl)
                             fprintf(stderr, "Can't create user: %s\n", sqlite3_errmsg(db));
                             goto cleanup;
                         }
-                        free(password_hash);
-                        password_hash = NULL;
 
                         sqlite3_finalize(stmt);
                         stmt = NULL;
@@ -214,7 +238,16 @@ int user_auth(request_t* req, client_t* cl)
             char password[MAX_PASSWORD_LENGTH];
             snprintf(password, MAX_PASSWORD_LENGTH, "%.*s", MAX_PASSWORD_LENGTH - 1, msg.payload);
 
-            char* password_hash = generate_password_hash(password);
+            char password_hash[HASH_HEX_OUTPUT_LENGTH];
+            if (get_hash((unsigned char*)password, password_hash) != 0)
+            {
+                fprintf(stderr, "Failed to hash password\n");
+                log_msg[0] = '\0';
+                sprintf(log_msg, "Failed to hash password - login request from %s:%d", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
+                log_message(LOG_WARN, REQUESTS_LOG, __FILE__, log_msg);
+                log_message(LOG_WARN, SERVER_LOG, __FILE__, log_msg);
+                goto cleanup;
+            }
 
             sqlite3_finalize(stmt);
             stmt = NULL;
@@ -226,19 +259,14 @@ int user_auth(request_t* req, client_t* cl)
             }
 
             if (sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC) != SQLITE_OK ||
-                sqlite3_bind_text(stmt, 2, (char*)password_hash, PASSWORD_HASH_LENGTH, SQLITE_STATIC) != SQLITE_OK)
+                sqlite3_bind_text(stmt, 2, (char*)password_hash, HASH_HEX_OUTPUT_LENGTH, SQLITE_STATIC) != SQLITE_OK)
             {
                 fprintf(stderr, "Can't bind query parameters: %s\n", sqlite3_errmsg(db));
-                free(password_hash);
-                password_hash = NULL;
                 goto cleanup;
             }
 
             if (sqlite3_step(stmt) != SQLITE_ROW)
             {
-                free(password_hash);
-                password_hash = NULL;
-
                 fprintf(stderr, "Authentication failed for user %s\n", username);
                 attempts++;
                 if (attempts == USER_LOGIN_ATTEMPTS)
@@ -257,9 +285,6 @@ int user_auth(request_t* req, client_t* cl)
             }
             else
             {
-                free(password_hash);
-                password_hash = NULL;
-
                 // successful auth, set username, get UID
                 snprintf(cl->username, MAX_USERNAME_LENGTH + 1, "%s", username);
 
