@@ -121,7 +121,8 @@ void log_message(log_level_t level, const char* filename, const char* source_fil
     default: level_str = "UNKNOWN"; break;
     }
 
-    const char* timestamp = get_formatted_timestamp();
+    char timestamp[TIMESTAMP_LENGTH];
+    get_formatted_timestamp(timestamp, TIMESTAMP_LENGTH);
     fprintf(log, "%s - %s - %s - %s\n", timestamp, level_str, source_file, message);
 
     fflush(log);

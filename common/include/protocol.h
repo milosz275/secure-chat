@@ -9,15 +9,15 @@
 // The server port and message components size. These are used to define the port and buffer size for the server and client.
 #define PORT 12345
 #define BUFFER_SIZE 4096
-#define MESSAGE_HASH_LENGTH 64
-#define USERNAME_HASH_LENGTH 32
-#define PASSWORD_HASH_LENGTH 64
-#define MAX_PAYLOAD_SIZE 2048
+#define HASH_LENGTH 64 // SHA-512 hash (64 bytes)
+#define HASH_HEX_OUTPUT_LENGTH (HASH_LENGTH * 2 + 1) // hex output length (2 chars per byte + \0) for SHA-512 it will be 129 (128 characters)
+#define MAX_PAYLOAD_SIZE 2048 // 2 KB
 #define MAX_USERNAME_LENGTH 16
 #define MAX_PASSWORD_LENGTH 16
 #define MAX_GROUP_NAME_LENGTH 16
 #define MAX_GROUP_MEMBERS 16
 #define MESSAGE_DELIMITER "|"
+#define TIMESTAMP_LENGTH 20
 
 // The message creation result codes. These are used to determine the exit code of the create_message function.
 #define MESSAGE_CREATION_SUCCESS 2100
@@ -32,6 +32,7 @@
 #define MESSAGE_CREATION_PAYLOAD_SIZE_EXCEEDED 2109
 #define MESSAGE_CREATION_USERNAME_SIZE_EXCEEDED 2110
 #define MESSAGE_CREATION_PAYLOAD_EMPTY 2111
+#define MESSAGE_CREATION_HASH_FAILURE 2112
 
 // The message parsing result codes. These are used to determine the exit code of the parse_message function.
 #define MESSAGE_PARSING_SUCCESS 2200
@@ -92,10 +93,10 @@ typedef enum
  */
 typedef struct
 {
-    char message_uid[MESSAGE_HASH_LENGTH];
+    char message_uid[HASH_HEX_OUTPUT_LENGTH];
     message_type_t type;
-    char sender_uid[USERNAME_HASH_LENGTH];
-    char recipient_uid[USERNAME_HASH_LENGTH];
+    char sender_uid[HASH_HEX_OUTPUT_LENGTH];
+    char recipient_uid[HASH_HEX_OUTPUT_LENGTH];
     uint32_t payload_length;
     char payload[MAX_PAYLOAD_SIZE];
 } message_t;
@@ -109,7 +110,7 @@ typedef struct
  * @param payload The message content or control data.
  * @return The message creation result code.
  */
-int create_message(message_t* msg, message_type_t type, char* sender_uid, char* recipient_uid, char* payload);
+int create_message(message_t* msg, message_type_t type, const char* sender_uid, const char* recipient_uid, const char* payload);
 
 /**
  * Parse a message. This function is used to parse a message structure and return the message content.
@@ -138,51 +139,29 @@ int send_message(int socket, message_t* msg);
 const char* message_type_to_string(message_type_t type);
 
 /**
- * Get the hash of an input. This function is used to get the hash of given input using SHA-256 from the OpenSSL library.
+ * Get the hash of an input. Calculates the SHA-512 hash of the input string and converts it to a hex string in a thread-safe manner.
  *
- * @param input The input to hash.
- * @return The hash of the password.
+ * @param input The input string for which the hash will be calculated.
+ * @param output Buffer to store the resulting hex string (must be at least HASH_HEX_OUTPUT_LENGTH).
+ * @returns Exit code of the function.
  */
-unsigned char* get_hash(const char* input);
+int get_hash(const unsigned char* input, char* output);
 
 /**
- * Generate a password hash. This function is used to generate a password hash using SHA-256 from the OpenSSL library.
+ * Get the timestamp. This function is used to get the timestamp in a YYYYMMDDHHMMSS format.
  *
- * @param password The password to hash.
- * @return The password hash.
+ * @param buffer The buffer to store the timestamp.
+ * @param buffer_size The size of the buffer.
  */
-char* generate_password_hash(const char* password);
+void get_timestamp(char* buffer, size_t buffer_size);
 
 /**
- * Get the current timestamp. This function is used to get the current timestamp using time.h.
+ * Get the formatted timestamp. This function is used to get the formatted timestamp in a YYYY-MM-DD HH:MM:SS format.
  *
- * @return The basic "%Y%m%d%H%M%S" current timestamp.
+ * @param buffer The buffer to store the formatted timestamp.
+ * @param buffer_size The size of the buffer.
  */
-const char* get_timestamp();
-
-/**
- * Get the formatted timestamp. This function is used to get the formatted timestamp using time.h.
- *
- * @return The "%Y-%m-%d %H:%M:%S" formatted timestamp.
- */
-const char* get_formatted_timestamp();
-
-/**
- * Generate a unique ID. This function is used to generate a unique ID based on the text and the current timestamp.
- *
- * @param text The text.
- * @param hash_length The length of the hash.
- * @return The unique ID.
- */
-char* generate_uid(const char* text, int hash_length);
-
-/**
- * Generate a unique user ID. This function is used to generate a unique user ID based on the username.
- *
- * @param username The username.
- * @return The unique user ID.
- */
-char* generate_unique_user_id(const char* username);
+void get_formatted_timestamp(char* buffer, size_t buffer_size);
 
 /**
  * Format the uptime. This function is used to format the uptime in a hh:mm:ss format.
