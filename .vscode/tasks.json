@@ -129,6 +129,15 @@
                 "cwd": "${workspaceFolder}/database"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "delete logs",
+            "type": "shell",
+            "command": "rm -rf *.log",
+            "options": {
+                "cwd": "${workspaceFolder}/logs"
+            },
+            "problemMatcher": []
         }
     ]
 }
