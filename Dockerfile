@@ -1,21 +1,35 @@
 FROM debian:latest
 
 RUN apt-get update && apt-get install -y \
-    g++ \
     git \
-    build-essential \
+    g++ \
     gcc \
     make \
     wget \
     cmake \
     sqlite3 \
-    libsqlite3-dev \
     libz-dev \
+    xorg-dev \
     libc6-dev \
+    libxi-dev \
     libssl-dev \
     libuv1-dev \
-    libcurl4-openssl-dev \
-    netcat-openbsd
+    libx11-dev \
+    libxrandr-dev \
+    libsqlite3-dev \
+    netcat-openbsd \
+    libasound2-dev \
+    libwayland-dev \
+    build-essential \
+    mesa-common-dev \
+    libgl1-mesa-dev \
+    libglu1-mesa-dev \
+    libcurl4-openssl-dev
+
+RUN git clone https://github.com/raysan5/raylib.git raylib
+WORKDIR /raylib
+RUN make PLATFORM=PLATFORM_DESKTOP
+RUN make install
 
 WORKDIR /usr/src/app
 

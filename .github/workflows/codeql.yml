@@ -58,16 +58,28 @@ jobs:
         cmake \
         sqlite3 \
         libz-dev \
+        xorg-dev \
         libc6-dev \
+        libxi-dev \
         libssl-dev \
         libuv1-dev \
+        libx11-dev \
+        libxrandr-dev \
         libsqlite3-dev \
-        build-essential
+        netcat-openbsd \
+        libasound2-dev \
+        libwayland-dev \
+        build-essential \
+        mesa-common-dev \
+        libgl1-mesa-dev \
+        libglu1-mesa-dev \
+        libcurl4-openssl-dev
 
-        git submodule update --init --recursive
-        if [ ! -L client/include/nuklear.h ]; then
-          ln -s client/include/Nuklear/nuklear.h client/include/nuklear.h
-        fi
+        git clone https://github.com/raysan5/raylib.git raylib
+        cd raylib/src
+        make PLATFORM=PLATFORM_DESKTOP
+        sudo make install
+        cd ../../
 
         make
         exit 0
