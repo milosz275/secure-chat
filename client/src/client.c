@@ -54,7 +54,73 @@ void* receive_messages(void* socket_desc)
         msg.payload_length = 0;
 
         parse_message(&msg, buffer);
-        printf("%s: %s\n", msg.sender_uid, msg.payload);
+
+        printf("(debug) Received message: type=%s, sender_uid=%s, recipient_uid=%s, payload=\"%s\"\n",
+            message_type_to_string(msg.type), msg.sender_uid, msg.recipient_uid, msg.payload);
+
+        if (msg.type == MESSAGE_PING)
+        {
+            create_message(&msg, MESSAGE_ACK, "client", "server", "ACK");
+            if (send_message(sock, &msg) != MESSAGE_SEND_SUCCESS)
+            {
+                perror("Send failed");
+                close(sock);
+                reconnect_flag = 1;
+                pthread_exit(NULL);
+            }
+        }
+        else if (msg.type == MESSAGE_ACK)
+        {
+            // [ ] handle ACK
+        }
+        else if (msg.type == MESSAGE_SIGNAL)
+        {
+            if (strcmp(msg.payload, "quit") == 0)
+            {
+                quit_flag = 1;
+                break;
+            }
+        }
+        else if (msg.type == MESSAGE_AUTH_ATTEMPS)
+        {
+            switch (atoi(msg.payload))
+            {
+            case 3:
+                printf("(0%d) Server: %s\n", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_THREE, message_code_to_string(MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_THREE));
+                break;
+            case 2:
+                printf("(0%d) Server: %s\n", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_TWO, message_code_to_string(MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_TWO));
+                break;
+            case 1:
+                printf("(0%d) Server: %s\n", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_ONE, message_code_to_string(MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_ONE));
+                break;
+            default:
+                printf("(00000) Server: %s\n", msg.payload); // unknown code
+                break;
+            }
+        }
+        else if (msg.type == MESSAGE_USER_JOIN)
+        {
+            printf("(0%d) Server: %s%s\n", MESSAGE_CODE_USER_JOIN, msg.payload, message_code_to_string(MESSAGE_CODE_USER_JOIN));
+        }
+        else if (msg.type == MESSAGE_USER_LEAVE)
+        {
+            printf("(0%d) Server: %s%s\n", MESSAGE_CODE_USER_LEAVE, msg.payload, message_code_to_string(MESSAGE_CODE_USER_LEAVE));
+        }
+        else
+        {
+            int code = atoi(msg.payload);
+            if (!code)
+            {
+                // this message has no valid code
+                printf("(00000) Server: %s\n", msg.payload); // unknown code
+            }
+            else
+            {
+                const char* text = message_code_to_string(code);
+                printf("(0%s) Server: %s\n", msg.payload, text);
+            }
+        }
     }
 
     pthread_exit(NULL);
@@ -76,6 +142,7 @@ int connect_to_server(struct sockaddr_in* server_addr)
 
         if (connect(sock, (struct sockaddr*)server_addr, sizeof(*server_addr)) < 0)
         {
+            system("clear");
             printf("Connection failed.\nRetrying in %d seconds... (Attempt %d/%d)\n",
                 SERVER_RECONNECTION_INTERVAL, connection_attempts + 1, SERVER_RECONNECTION_ATTEMPTS);
             close(sock);
@@ -155,6 +222,7 @@ void run_client()
 
                 if (strcmp(input, "!exit") == 0)
                 {
+                    reconnect_flag = 0;
                     quit_flag = 1;
                     break;
                 }
@@ -185,8 +253,11 @@ void run_client()
     }
 
     printf("Client is shutting down.\n");
-    close(sock);
-    pthread_cancel(recv_thread);
-    pthread_join(recv_thread, NULL);
+    if (close(sock) == -1)
+        perror("Error closing socket");
+    if (pthread_cancel(recv_thread) != 0)
+        perror("Error cancelling thread");
+    if (pthread_join(recv_thread, NULL) != 0)
+        perror("Error joining thread");
     exit(EXIT_SUCCESS);
 }
