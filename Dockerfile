@@ -27,9 +27,9 @@ RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libxkbcommon-x11-dev
 
-RUN apt-get install software-properties-common \
-    add-apt-repository ppa:texus/raylib \
-    apt-get install libraylib5-dev
+RUN apt-get install software-properties-common -y
+RUN add-apt-repository ppa:texus/raylib
+RUN apt-get install libraylib5-dev
 
 WORKDIR /usr/src/app
 
