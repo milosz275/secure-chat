@@ -11,12 +11,6 @@
 
 #include "protocol.h"
 
-#define NK_IMPLEMENTATION
-#include "nuklear.h"
-
-#define NK_INCLUDE_DEFAULT_ALLOCATOR
-#define MAX_MEMORY 4096 * 1024 // 4MB
-
 volatile sig_atomic_t quit_flag = 0;
 volatile sig_atomic_t reconnect_flag = 0;
 

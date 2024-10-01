@@ -1,8 +1,6 @@
 #ifndef __CLIENT_H
 #define __CLIENT_H
 
-#include "nuklear.h"
-
 #define SERVER_RECONNECTION_INTERVAL 1
 #define SERVER_RECONNECTION_ATTEMPTS 120
 
