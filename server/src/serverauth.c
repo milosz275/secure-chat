@@ -9,6 +9,8 @@
 #include "serverdb.h"
 #include "log.h"
 
+void usleep(unsigned int usec);
+
 int user_auth(request_t* req, client_t* cl)
 {
     char log_msg[256];
@@ -28,19 +30,34 @@ int user_auth(request_t* req, client_t* cl)
     int attempts = 0;
     while (attempts < USER_LOGIN_ATTEMPTS)
     {
-        char start_message[MAX_PAYLOAD_SIZE];
-        start_message[0] = '\0';
+        char send_msg[MAX_PAYLOAD_SIZE];
+        send_msg[0] = '\0';
         if (attempts == 0)
-            sprintf(start_message, "Welcome! You have %d login attempts and you can register on the first one.", USER_LOGIN_ATTEMPTS - attempts);
-        else if (USER_LOGIN_ATTEMPTS - attempts == 1)
-            sprintf(start_message, "You have 1 login attempt.");
+        {
+            sprintf(send_msg, "%d", MESSAGE_CODE_WELCOME);
+            create_message(&msg, MESSAGE_TOAST, "server", "client", send_msg);
+            send_message(req->socket, &msg);
+            send_msg[0] = '\0';
+            sprintf(send_msg, "%d", USER_LOGIN_ATTEMPTS - attempts);
+            create_message(&msg, MESSAGE_AUTH_ATTEMPS, "server", "client", send_msg);
+            sleep(1);
+            send_message(req->socket, &msg);
+            send_msg[0] = '\0';
+            sprintf(send_msg, "%d", MESSAGE_CODE_USER_REGISTER_INFO);
+            create_message(&msg, MESSAGE_SYSTEM, "server", "client", send_msg);
+            sleep(1);
+            send_message(req->socket, &msg);
+        }
         else
-            sprintf(start_message, "You have %d login attempts.", USER_LOGIN_ATTEMPTS - attempts);
-        create_message(&msg, MESSAGE_TEXT, "server", "client", start_message);
-        sleep(1);
-        send_message(req->socket, &msg);
-        sleep(1);
-        create_message(&msg, MESSAGE_TEXT, "server", "client", "Enter your username: ");
+        {
+            sprintf(send_msg, "%d", USER_LOGIN_ATTEMPTS - attempts);
+            create_message(&msg, MESSAGE_AUTH_ATTEMPS, "server", "client", send_msg);
+            send_message(req->socket, &msg);
+        }
+        send_msg[0] = '\0';
+        sprintf(send_msg, "%d", MESSAGE_CODE_ENTER_USERNAME);
+        create_message(&msg, MESSAGE_AUTH, "server", "client", send_msg);
+        usleep(100000); // 100 ms
         send_message(req->socket, &msg);
 
         nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
@@ -75,7 +92,14 @@ int user_auth(request_t* req, client_t* cl)
             if (!attempts)
             {
                 // register
-                create_message(&msg, MESSAGE_TEXT, "server", "client", "Username does not exist. Would you like to register? [y/n]: ");
+                send_msg[0] = '\0';
+                sprintf(send_msg, "%d", MESSAGE_CODE_USER_DOES_NOT_EXIST);
+                create_message(&msg, MESSAGE_AUTH, "server", "client", send_msg);
+                send_message(req->socket, &msg);
+                send_msg[0] = '\0';
+                sprintf(send_msg, "%d", MESSAGE_CODE_USER_REGISTER_CHOICE);
+                create_message(&msg, MESSAGE_CHOICE, "server", "client", send_msg);
+                usleep(100000); // 100 ms
                 send_message(req->socket, &msg);
 
                 nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
@@ -88,7 +112,9 @@ int user_auth(request_t* req, client_t* cl)
 
                 if (strcmp(msg.payload, "y") == 0 || strcmp(msg.payload, "Y") == 0)
                 {
-                    create_message(&msg, MESSAGE_TEXT, "server", "client", "Enter your password: ");
+                    send_msg[0] = '\0';
+                    sprintf(send_msg, "%d", MESSAGE_CODE_ENTER_PASSWORD);
+                    create_message(&msg, MESSAGE_AUTH, "server", "client", send_msg);
                     send_message(req->socket, &msg);
 
                     nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
@@ -102,7 +128,9 @@ int user_auth(request_t* req, client_t* cl)
                     char password[MAX_PASSWORD_LENGTH];
                     snprintf(password, MAX_PASSWORD_LENGTH, "%.*s", MAX_PASSWORD_LENGTH - 1, msg.payload);
 
-                    create_message(&msg, MESSAGE_TEXT, "server", "client", "Confirm your password: ");
+                    send_msg[0] = '\0';
+                    sprintf(send_msg, "%d", MESSAGE_CODE_ENTER_PASSWORD_CONFIRMATION);
+                    create_message(&msg, MESSAGE_AUTH, "server", "client", send_msg);
                     send_message(req->socket, &msg);
 
                     nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
@@ -182,11 +210,24 @@ int user_auth(request_t* req, client_t* cl)
                         sprintf(log_msg, "Registered user %s with UID %s", username, cl->uid);
                         log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
 
+                        send_msg[0] = '\0';
+                        sprintf(send_msg, "%d", MESSAGE_CODE_USER_CREATED);
+                        create_message(&msg, MESSAGE_AUTH, "server", "client", send_msg);
+                        send_message(req->socket, &msg);
+
                         return USER_AUTHENTICATION_SUCCESS;
                     }
                     else
                     {
-                        create_message(&msg, MESSAGE_TEXT, "server", "client", "Passwords do not match, please try again.");
+                        send_msg[0] = '\0';
+                        sprintf(send_msg, "%d", MESSAGE_CODE_PASSWORDS_DO_NOT_MATCH);
+                        create_message(&msg, MESSAGE_AUTH, "server", "client", send_msg);
+                        send_message(req->socket, &msg);
+                        send_msg[0] = '\0';
+                        sprintf(send_msg, "%d", MESSAGE_CODE_TRY_AGAIN);
+                        create_message(&msg, MESSAGE_TEXT, "server", "client", send_msg);
+                        usleep(100000); // 100 ms
+                        send_message(req->socket, &msg);
                         attempts++;
                     }
                 }
@@ -207,8 +248,16 @@ int user_auth(request_t* req, client_t* cl)
                 attempts++;
                 if (attempts == USER_LOGIN_ATTEMPTS)
                 {
-                    create_message(&msg, MESSAGE_TEXT, "server", "client", "Username does not exist. Out of login attempts.");
+                    send_msg[0] = '\0';
+                    sprintf(send_msg, "%d", MESSAGE_CODE_USER_DOES_NOT_EXIST);
+                    create_message(&msg, MESSAGE_AUTH, "server", "client", send_msg);
                     send_message(req->socket, &msg);
+                    send_msg[0] = '\0';
+                    sprintf(send_msg, "%d", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED);
+                    create_message(&msg, MESSAGE_ERROR, "server", "client", send_msg);
+                    usleep(100000); // 100 ms
+                    send_message(req->socket, &msg);
+
                     log_msg[0] = '\0';
                     sprintf(log_msg, "Request from %s:%d failed authentication - out of login attempts", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
                     log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
@@ -216,7 +265,14 @@ int user_auth(request_t* req, client_t* cl)
                 }
                 else
                 {
-                    create_message(&msg, MESSAGE_TEXT, "server", "client", "Username does not exist. Please try again.");
+                    send_msg[0] = '\0';
+                    sprintf(send_msg, "%d", MESSAGE_CODE_USER_DOES_NOT_EXIST);
+                    create_message(&msg, MESSAGE_AUTH, "server", "client", send_msg);
+                    send_message(req->socket, &msg);
+                    send_msg[0] = '\0';
+                    sprintf(send_msg, "%d", MESSAGE_CODE_TRY_AGAIN);
+                    create_message(&msg, MESSAGE_TEXT, "server", "client", send_msg);
+                    usleep(100000); // 100 ms
                     send_message(req->socket, &msg);
                 }
             }
@@ -224,7 +280,9 @@ int user_auth(request_t* req, client_t* cl)
         else
         {
             // username exists, authenticate credentials
-            create_message(&msg, MESSAGE_TEXT, "server", "client", "Enter your password: ");
+            send_msg[0] = '\0';
+            sprintf(send_msg, "%d", MESSAGE_CODE_ENTER_PASSWORD);
+            create_message(&msg, MESSAGE_AUTH, "server", "client", send_msg);
             send_message(req->socket, &msg);
 
             nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
@@ -270,10 +328,29 @@ int user_auth(request_t* req, client_t* cl)
                 fprintf(stderr, "Authentication failed for user %s\n", username);
                 attempts++;
                 if (attempts == USER_LOGIN_ATTEMPTS)
-                    create_message(&msg, MESSAGE_TEXT, "server", "client", "Invalid password. Out of login attempts.");
+                {
+                    send_msg[0] = '\0';
+                    sprintf(send_msg, "%d", MESSAGE_CODE_INVALID_PASSWORD);
+                    create_message(&msg, MESSAGE_AUTH, "server", "client", send_msg);
+                    send_message(req->socket, &msg);
+                    send_msg[0] = '\0';
+                    sprintf(send_msg, "%d", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED);
+                    create_message(&msg, MESSAGE_ERROR, "server", "client", send_msg);
+                    usleep(100000); // 100 ms
+                    send_message(req->socket, &msg);
+                }
                 else
-                    create_message(&msg, MESSAGE_TEXT, "server", "client", "Invalid password, try again.");
-                send_message(req->socket, &msg);
+                {
+                    send_msg[0] = '\0';
+                    sprintf(send_msg, "%d", MESSAGE_CODE_ENTER_PASSWORD);
+                    create_message(&msg, MESSAGE_AUTH, "server", "client", send_msg);
+                    send_message(req->socket, &msg);
+                    send_msg[0] = '\0';
+                    sprintf(send_msg, "%d", MESSAGE_CODE_TRY_AGAIN);
+                    create_message(&msg, MESSAGE_TEXT, "server", "client", send_msg);
+                    usleep(100000); // 100 ms
+                    send_message(req->socket, &msg);
+                }
 
                 if (attempts >= USER_LOGIN_ATTEMPTS)
                 {
@@ -326,6 +403,11 @@ int user_auth(request_t* req, client_t* cl)
                 log_msg[0] = '\0';
                 sprintf(log_msg, "Authenticated user %s with UID %s", username, cl->uid);
                 log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
+
+                send_msg[0] = '\0';
+                sprintf(send_msg, "%d", MESSAGE_CODE_USER_AUTHENTICATED);
+                create_message(&msg, MESSAGE_AUTH, "server", "client", send_msg);
+                send_message(req->socket, &msg);
 
                 return USER_AUTHENTICATION_SUCCESS;
             }

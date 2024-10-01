@@ -65,6 +65,7 @@ void* handle_client(void* arg)
     message_t msg;
     client_t cl;
     server.requests_handled++;
+    cl.is_ready = 0;
 
     sprintf(log_msg, "Handing request %s:%d", inet_ntoa(req.address.sin_addr), ntohs(req.address.sin_port));
     log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
@@ -97,27 +98,21 @@ void* handle_client(void* arg)
     sprintf(log_msg, "Successful auth of client - id: %d - username: %s - address: %s:%d - uid: %s", cl.id, cl.username, inet_ntoa(req.address.sin_addr), ntohs(req.address.sin_port), cl.uid);
     log_message(LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
 
-    pthread_mutex_lock(&clients.mutex);
-    char welcome_message[MAX_PAYLOAD_SIZE];
-    sprintf(welcome_message, "Welcome to the chat server, your ID is %d\n", cl.id);
-    create_message(&msg, MESSAGE_TEXT, "server", "client", welcome_message);
-    send_message(cl.request->socket, &msg);
-
-    char join_message[MAX_PAYLOAD_SIZE];
-    sprintf(join_message, "Client %d has joined the chat\n", cl.id);
-    create_message(&msg, MESSAGE_TEXT, "server", "client", join_message);
-
     // simplified message router for join messages
+    pthread_mutex_lock(&clients.mutex);
     for (int i = 0; i < MAX_CLIENTS; ++i)
     {
         if (clients.array[i] && clients.array[i] != &cl)
         {
-            create_message(&msg, MESSAGE_TEXT, "server", "client", join_message);
+            create_message(&msg, MESSAGE_USER_JOIN, "server", "client", cl.username);
             send_message(clients.array[i]->request->socket, &msg);
         }
     }
     pthread_mutex_unlock(&clients.mutex);
 
+    cl.is_ready = 1;
+    create_message(&msg, MESSAGE_PING, "server", "client", "PING");
+    send_message(cl.request->socket, &msg);
     while ((nbytes = recv(cl.request->socket, buffer, sizeof(buffer), 0)) > 0)
     {
         if (quit_flag)
@@ -130,23 +125,35 @@ void* handle_client(void* arg)
             sprintf(log_buf, "Received message from client %d, %s: %s", cl.id, msg.sender_uid, msg.payload);
             log_message(LOG_INFO, CLIENTS_LOG, __FILE__, log_buf);
 
-            char payload[MAX_PAYLOAD_SIZE];
-            strncpy(payload, msg.payload, MAX_PAYLOAD_SIZE);
-            payload[MAX_PAYLOAD_SIZE - 1] = '\0';
-
-            // simplified broadcast message router for text messages
-            pthread_mutex_lock(&clients.mutex);
-            for (int i = 0; i < MAX_CLIENTS; ++i)
+            if (msg.type == MESSAGE_PING)
             {
-                if (clients.array[i] && clients.array[i] != &cl)
-                {
-                    char id_str[20];
-                    snprintf(id_str, sizeof(id_str), "%d", cl.id);
-                    create_message(&msg, MESSAGE_TEXT, id_str, "client", payload);
-                    send_message(clients.array[i]->request->socket, &msg);
-                }
+                create_message(&msg, MESSAGE_ACK, "server", msg.sender_uid, "ACK");
+                send_message(cl.request->socket, &msg);
             }
-            pthread_mutex_unlock(&clients.mutex);
+            else if (msg.type == MESSAGE_ACK)
+            {
+                // do nothing
+            }
+            else
+            {
+                // simplified broadcast message router for text messages
+                char payload[MAX_PAYLOAD_SIZE];
+                strncpy(payload, msg.payload, MAX_PAYLOAD_SIZE);
+                payload[MAX_PAYLOAD_SIZE - 1] = '\0';
+
+                pthread_mutex_lock(&clients.mutex);
+                for (int i = 0; i < MAX_CLIENTS; ++i)
+                {
+                    if (clients.array[i] && clients.array[i] != &cl)
+                    {
+                        char id_str[20];
+                        snprintf(id_str, sizeof(id_str), "%d", cl.id);
+                        create_message(&msg, MESSAGE_TEXT, id_str, "client", payload);
+                        send_message(clients.array[i]->request->socket, &msg);
+                    }
+                }
+                pthread_mutex_unlock(&clients.mutex);
+            }
         }
         else
         {
@@ -224,6 +231,16 @@ void* handle_info_update(void* arg)
 
 int run_server()
 {
+    if (get_nprocs() == 2)
+    {
+        log_message(LOG_WARN, SERVER_LOG, __FILE__, "Server running on a dual core system");
+    }
+    else if (get_nprocs() == 1)
+    {
+        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Tried to run server on a single core system");
+        return SINGLE_CORE_SYSTEM;
+    }
+
     int server_socket, client_socket;
     struct sockaddr_in server_addr, client_addr;
     socklen_t client_len = sizeof(client_addr);
@@ -265,6 +282,7 @@ int run_server()
     {
         if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
         {
+            system("clear");
             perror("Bind failed");
             printf("Retrying in %d seconds... (Attempt %d/%d)\n",
                 PORT_BIND_INTERVAL, attempts + 1, PORT_BIND_ATTEMPTS);
@@ -322,6 +340,7 @@ int run_server()
         log_message(LOG_WARN, SERVER_LOG, __FILE__, log_msg);
     }
     log_message(LOG_INFO, SERVER_LOG, __FILE__, "CLI thread started");
+    server.thread_count++;
 
     pthread_t info_update_thread;
     if (pthread_create(&info_update_thread, NULL, handle_info_update, (void*)NULL) != 0)
@@ -331,11 +350,20 @@ int run_server()
         log_message(LOG_WARN, SERVER_LOG, __FILE__, log_msg);
     }
     log_message(LOG_INFO, SERVER_LOG, __FILE__, "Info update thread started");
+    server.thread_count++;
 
     init_logging(REQUESTS_LOG);
     init_logging(CLIENTS_LOG);
+    log_message(LOG_INFO, REQUESTS_LOG, __FILE__, "Server started");
+    log_message(LOG_INFO, CLIENTS_LOG, __FILE__, "Server started");
     while (!quit_flag)
     {
+        if (server.thread_count >= MAX_CLIENTS || server.thread_count >= MAX_THREADS)
+        {
+            usleep(200000); // 200 ms
+            continue;
+        }
+
         client_socket = accept(server_socket, (struct sockaddr*)&client_addr, &client_len);
         if (client_socket < 0)
         {
@@ -369,6 +397,7 @@ int run_server()
         if (server.thread_count < MAX_CLIENTS)
         {
             server.threads[server.thread_count++] = tid;
+            server.thread_count++;
         }
         pthread_mutex_unlock(&server.thread_count_mutex);
 

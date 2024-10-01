@@ -11,13 +11,15 @@ struct tm* localtime_r(const time_t* timer, struct tm* buf);
 
 int create_message(message_t* msg, message_type_t type, const char* sender_uid, const char* recipient_uid, const char* payload)
 {
-    if (msg == NULL || sender_uid == NULL || recipient_uid == NULL || payload == NULL)
+    if (payload == NULL)
+        payload = "";
+    if (msg == NULL || sender_uid == NULL || recipient_uid == NULL)
         return MESSAGE_CREATION_FAILURE;
-    if (strlen(payload) > MAX_PAYLOAD_SIZE)
+    else if (strlen(payload) > MAX_PAYLOAD_SIZE)
         return MESSAGE_CREATION_PAYLOAD_SIZE_EXCEEDED;
     else if (strlen(sender_uid) > HASH_HEX_OUTPUT_LENGTH || strlen(recipient_uid) > HASH_HEX_OUTPUT_LENGTH)
         return MESSAGE_CREATION_USERNAME_SIZE_EXCEEDED;
-    else if (strlen(payload) == 0)
+    else if (strlen(payload) == 0 && (type != MESSAGE_PING || type != MESSAGE_ACK))
         return MESSAGE_CREATION_PAYLOAD_EMPTY;
 
     // clear message structure
@@ -27,13 +29,15 @@ int create_message(message_t* msg, message_type_t type, const char* sender_uid, 
     msg->payload[0] = '\0';
 
     // message uid is hash of the timestamp and payload
-    char uid[HASH_HEX_OUTPUT_LENGTH];
     char timestamp[TIMESTAMP_LENGTH];
     get_timestamp(timestamp, TIMESTAMP_LENGTH);
-    snprintf(uid, HASH_HEX_OUTPUT_LENGTH, "%s%s", timestamp, payload);
-    if (get_hash((unsigned char*)uid, msg->message_uid) != 0)
+    char uid_before_hash[HASH_HEX_OUTPUT_LENGTH + MAX_PAYLOAD_SIZE];
+    snprintf(uid_before_hash, HASH_HEX_OUTPUT_LENGTH + MAX_PAYLOAD_SIZE, "%s%s", timestamp, payload);
+    char uid[HASH_HEX_OUTPUT_LENGTH];
+    if (get_hash((unsigned char*)uid_before_hash, uid) != 0)
         return MESSAGE_CREATION_HASH_FAILURE;
     snprintf(msg->message_uid, HASH_HEX_OUTPUT_LENGTH, "%s", uid);
+
     msg->type = type;
     snprintf(msg->sender_uid, HASH_HEX_OUTPUT_LENGTH, "%s", sender_uid);
     snprintf(msg->recipient_uid, HASH_HEX_OUTPUT_LENGTH, "%s", recipient_uid);
@@ -80,16 +84,52 @@ const char* message_type_to_string(message_type_t type)
     switch (type)
     {
     case MESSAGE_TEXT: return "MESSAGE_TEXT";
+    case MESSAGE_TOAST: return "MESSAGE_TOAST";
+    case MESSAGE_CHOICE: return "MESSAGE_CHOICE";
+    case MESSAGE_NOTIFICATION: return "MESSAGE_NOTIFICATION";
+    case MESSAGE_BROADCAST: return "MESSAGE_BROADCAST";
+    case MESSAGE_TEXT_RSA_ENCRYPTED: return "MESSAGE_TEXT_RSA_ENCRYPTED";
+    case MESSAGE_TEXT_AES_ENCRYPTED: return "MESSAGE_TEXT_AES_ENCRYPTED";
     case MESSAGE_PING: return "MESSAGE_PING";
+    case MESSAGE_ACK: return "MESSAGE_ACK";
     case MESSAGE_SIGNAL: return "MESSAGE_SIGNAL";
     case MESSAGE_AUTH: return "MESSAGE_AUTH";
-    case MESSAGE_ACK: return "MESSAGE_ACK";
+    case MESSAGE_AUTH_ATTEMPS: return "MESSAGE_AUTH_ATTEMPS";
     case MESSAGE_ERROR: return "MESSAGE_ERROR";
     case MESSAGE_USER_JOIN: return "MESSAGE_USER_JOIN";
     case MESSAGE_USER_LEAVE: return "MESSAGE_USER_LEAVE";
-    case MESSAGE_GROUP: return "MESSAGE_GROUP";
     case MESSAGE_SYSTEM: return "MESSAGE_SYSTEM";
-    default: return "UNKNOWN";
+    default: return MESSAGE_TYPE_UNKNOWN;
+    }
+}
+
+const char* message_code_to_string(message_code_t code)
+{
+    // this function is temporarily used for CLI client application and will be removed for codes to be handled in GUI
+    switch (code)
+    {
+    case MESSAGE_CODE_WELCOME: return "Welcome!";
+    case MESSAGE_CODE_ENTER_USERNAME: return "Enter your username: ";
+    case MESSAGE_CODE_ENTER_PASSWORD: return "Enter your password: ";
+    case MESSAGE_CODE_ENTER_PASSWORD_CONFIRMATION: return "Confirm your password: ";
+    case MESSAGE_CODE_INVALID_USERNAME: return "Invalid username.";
+    case MESSAGE_CODE_INVALID_PASSWORD: return "Invalid password.";
+    case MESSAGE_CODE_PASSWORDS_DO_NOT_MATCH: return "Passwords do not match.";
+    case MESSAGE_CODE_TRY_AGAIN: return "Try again.";
+    case MESSAGE_CODE_USER_JOIN: return " has joined the chat.";
+    case MESSAGE_CODE_USER_LEAVE: return " has left the chat.";
+    case MESSAGE_CODE_USER_DOES_NOT_EXIST: return "User does not exist.";
+    case MESSAGE_CODE_USER_REGISTER_INFO: return "You can register at your first attempt.";
+    case MESSAGE_CODE_USER_REGISTER_CHOICE: return "Would you like to register? [y/n] ";
+    case MESSAGE_CODE_USER_CREATED: return "User created.";
+    case MESSAGE_CODE_USER_AUTHENTICATED: return "User authenticated.";
+    case MESSAGE_CODE_USER_AUTHENTICATION_FAILURE: return "User authentication failed.";
+    case MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_THREE: return "You have 3 attempts left.";
+    case MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_TWO: return "You have 2 attempts left.";
+    case MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_ONE: return "You have 1 attempt left.";
+    case MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED: return "User authentication attempts exceeded.";
+    case MESSAGE_CODE_USER_AUTHENTICATION_SUCCESS: return "User authentication success.";
+    default: return MESSAGE_CODE_UNKNOWN;
     }
 }
 
