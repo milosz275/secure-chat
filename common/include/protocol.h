@@ -51,34 +51,100 @@
 #define MESSAGE_SEND_SUCCESS 2300
 #define MESSAGE_SEND_FAILURE 2301
 
+#define MESSAGE_TYPE_UNKNOWN "UNKNOWN"
+#define MESSAGE_CODE_UNKNOWN "UNKNOWN"
+
 /**
  * The message type enumeration. This enumeration is used to define the type of message that is being sent.
  *
- * @param MESSAGE_TEXT Regular chat message
+ * @param MESSAGE_TEXT Regular chat plaintext message
+ * @param MESSAGE_TOAST Toast message, a full-screen notification message
+ * @param MESSAGE_CHOICE User choice message
+ * @param MESSAGE_NOTIFICATION Notification message
+ * @param MESSAGE_BROADCAST Broadcast message, system-wide message
+ * @param MESSAGE_TEXT_RSA_ENCRYPTED Encrypted chat message (RSA)
+ * @param MESSAGE_TEXT_AES_ENCRYPTED Encrypted chat message (AES)
  * @param MESSAGE_PING Ping message (check if client/server is alive)
- * @param MESSAGE_SIGNAL Control signal (server sending commands like shutdown or poll database)
+ * @param MESSAGE_ACK Acknowledgment of a message
+ * @param MESSAGE_SIGNAL Control signal (server sending commands like shutdown or to poll database)
  * @param MESSAGE_AUTH Authentication request/response
- * @param MESSAGE_ACK Acknowledgment of message receipt
+ * @param MESSAGE_AUTH_ATTEMPS Current authentication attempts count
  * @param MESSAGE_ERROR Error response
- * @param MESSAGE_USER_JOIN User joined a group or session
- * @param MESSAGE_USER_LEAVE User left a group or session
- * @param MESSAGE_GROUP Group-related message (create, join, leave)
- * @param MESSAGE_SYSTEM Server maintenance or system-wide messages
+ * @param MESSAGE_USER_JOIN User joined server
+ * @param MESSAGE_USER_LEAVE User left server
+ * @param MESSAGE_SYSTEM Server maintenance message
  * @return The message type enumeration.
  */
 typedef enum
 {
-    MESSAGE_TEXT,
+    MESSAGE_TEXT = 1234,
+    MESSAGE_TOAST,
+    MESSAGE_CHOICE,
+    MESSAGE_NOTIFICATION,
+    MESSAGE_BROADCAST,
+    MESSAGE_TEXT_RSA_ENCRYPTED,
+    MESSAGE_TEXT_AES_ENCRYPTED,
     MESSAGE_PING,
+    MESSAGE_ACK,
     MESSAGE_SIGNAL,
     MESSAGE_AUTH,
-    MESSAGE_ACK,
+    MESSAGE_AUTH_ATTEMPS,
     MESSAGE_ERROR,
     MESSAGE_USER_JOIN,
     MESSAGE_USER_LEAVE,
-    MESSAGE_GROUP,
     MESSAGE_SYSTEM,
 } message_type_t;
+
+/**
+ * The message code enumeration. This enumeration is used to define the message codes that are used for message specification and control.
+ *
+ * @param MESSAGE_CODE_WELCOME Welcome message
+ * @param MESSAGE_CODE_ENTER_USERNAME Enter your username
+ * @param MESSAGE_CODE_ENTER_PASSWORD Enter your password
+ * @param MESSAGE_CODE_ENTER_PASSWORD_CONFIRMATION Confirm your password
+ * @param MESSAGE_CODE_INVALID_USERNAME Invalid username
+ * @param MESSAGE_CODE_INVALID_PASSWORD Invalid password
+ * @param MESSAGE_CODE_PASSWORDS_DO_NOT_MATCH Passwords do not match
+ * @param MESSAGE_CODE_TRY_AGAIN Try again
+ * @param MESSAGE_CODE_USER_JOIN User joined
+ * @param MESSAGE_CODE_USER_LEAVE User left
+ * @param MESSAGE_CODE_USER_DOES_NOT_EXIST User does not exist
+ * @param MESSAGE_CODE_USER_REGISTER_INFO User registration information
+ * @param MESSAGE_CODE_USER_REGISTER_CHOICE User registration choice
+ * @param MESSAGE_CODE_USER_CREATED User created
+ * @param MESSAGE_CODE_USER_AUTHENTICATED User authenticated
+ * @param MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_THREE User authentication 3 attempts left
+ * @param MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_TWO User authentication 2 attempts left
+ * @param MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_ONE User authentication 1 attempt left
+ * @param MESSAGE_CODE_USER_AUTHENTICATION_FAILURE User authentication failed
+ * @param MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED User authentication attempts exceeded
+ * @param MESSAGE_CODE_USER_AUTHENTICATION_SUCCESS User authentication success
+ * @param MESSAGE_CODE_UNKNOWN Unknown message code
+ */
+typedef enum
+{
+    MESSAGE_CODE_WELCOME = 2345,
+    MESSAGE_CODE_ENTER_USERNAME,
+    MESSAGE_CODE_ENTER_PASSWORD,
+    MESSAGE_CODE_ENTER_PASSWORD_CONFIRMATION,
+    MESSAGE_CODE_INVALID_USERNAME,
+    MESSAGE_CODE_INVALID_PASSWORD,
+    MESSAGE_CODE_PASSWORDS_DO_NOT_MATCH,
+    MESSAGE_CODE_TRY_AGAIN,
+    MESSAGE_CODE_USER_JOIN,
+    MESSAGE_CODE_USER_LEAVE,
+    MESSAGE_CODE_USER_DOES_NOT_EXIST,
+    MESSAGE_CODE_USER_REGISTER_INFO,
+    MESSAGE_CODE_USER_REGISTER_CHOICE,
+    MESSAGE_CODE_USER_CREATED,
+    MESSAGE_CODE_USER_AUTHENTICATED,
+    MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_THREE,
+    MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_TWO,
+    MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_ONE,
+    MESSAGE_CODE_USER_AUTHENTICATION_FAILURE,
+    MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED,
+    MESSAGE_CODE_USER_AUTHENTICATION_SUCCESS,
+} message_code_t;
 
 /**
  * The message structure. This structure is used to store message data.
@@ -137,6 +203,14 @@ int send_message(int socket, message_t* msg);
  * @return The message type as a string.
  */
 const char* message_type_to_string(message_type_t type);
+
+/**
+ * Get the message code as a string. This function is used to get the message code as a string.
+ *
+ * @param code The message code.
+ * @return The message code as a string.
+ */
+const char* message_code_to_string(message_code_t code);
 
 /**
  * Get the hash of an input. Calculates the SHA-512 hash of the input string and converts it to a hex string in a thread-safe manner.
