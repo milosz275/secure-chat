@@ -1,3 +1,0 @@
-[submodule "client/include/Nuklear"]
-	path = client/include/Nuklear
-	url = https://github.com/Immediate-Mode-UI/Nuklear.git
