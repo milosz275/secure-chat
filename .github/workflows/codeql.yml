@@ -75,11 +75,8 @@ jobs:
         libglu1-mesa-dev \
         libcurl4-openssl-dev
 
-        git clone https://github.com/raysan5/raylib.git raylib
-        cd raylib/src
-        make PLATFORM=PLATFORM_DESKTOP
-        sudo make install
-        cd ../../
+        sudo add-apt-repository ppa:texus/raylib
+        sudo apt install libraylib5-dev
 
         make
         exit 0
