@@ -7,13 +7,14 @@
 #include "protocol.h"
 
 #define MAX_CLIENTS 100
+#define MAX_THREADS 100 // overrides max clients
 
 #define DB_NAME "sqlite.db"
 #define DB_PATH_LENGTH 256
-#define USER_LOGIN_ATTEMPTS 3
+#define USER_LOGIN_ATTEMPTS 3 // if you want to increase this number, you should add message codes for each attempt
 
-#define PORT_BIND_INTERVAL 2
-#define PORT_BIND_ATTEMPTS 60
+#define PORT_BIND_INTERVAL 1
+#define PORT_BIND_ATTEMPTS 120
 
 #define DATABASE_CONNECTION_INTERVAL 5 
 #define DATABASE_CONNECTION_ATTEMPTS 10 
@@ -53,6 +54,8 @@
 #define USER_AUTHENTICATION_MEMORY_ALLOCATION_FAILURE 1418
 #define USER_AUTHENTICATION_LAST_LOGIN_UPDATE_FAILURE 1419
 
+# define SINGLE_CORE_SYSTEM 1500
+
 /**
  * The singular request structure. This structure is used to store server connection data.
  *
@@ -72,6 +75,7 @@ typedef struct
  * @param id The ID of the client.
  * @param uid The unique ID of the client.
  * @param username The username of the client.
+ * @param is_ready The client readiness status.
  */
 typedef struct
 {
@@ -79,6 +83,7 @@ typedef struct
     int id;
     char* uid;
     char username[MAX_USERNAME_LENGTH + 1];
+    int is_ready;
 } client_t;
 
 /**
@@ -100,7 +105,7 @@ struct clients_t
  * @param address The server address.
  * @param requests_handled The number of requests handled.
  * @param client_logins_handled The number of client logins handled.
- * @param thread_count The number of allocated threads.
+ * @param thread_count The number of all allocated threads.
  * @param thread_count_mutex The mutex to lock the thread count.
  * @param threads The array of threads.
  */
