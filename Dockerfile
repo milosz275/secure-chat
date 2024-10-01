@@ -24,12 +24,11 @@ RUN apt-get update && apt-get install -y \
     mesa-common-dev \
     libgl1-mesa-dev \
     libglu1-mesa-dev \
-    libcurl4-openssl-dev
+    libcurl4-openssl-dev \
+    libxkbcommon-x11-dev
 
-RUN git clone https://github.com/raysan5/raylib.git raylib
-WORKDIR /raylib/src
-RUN make PLATFORM=PLATFORM_DESKTOP
-RUN make install
+RUN add-apt-repository ppa:texus/raylib \
+    apt-get install libraylib5-dev
 
 WORKDIR /usr/src/app
 

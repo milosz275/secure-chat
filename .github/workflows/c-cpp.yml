@@ -40,12 +40,13 @@ jobs:
         mesa-common-dev \
         libgl1-mesa-dev \
         libglu1-mesa-dev \
-        libcurl4-openssl-dev
+        libcurl4-openssl-dev \
+        libxkbcommon-x11-dev
 
     - name: Setup Raylib
       run: |
         sudo add-apt-repository ppa:texus/raylib
-        sudo apt install libraylib5-dev
+        sudo apt-get install libraylib5-dev
 
     - name: make
       run: make
