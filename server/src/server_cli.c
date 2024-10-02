@@ -1,4 +1,4 @@
-#include "servercli.h"
+#include "server_cli.h"
 
 //Server command array
 static srv_command_t srv_commands[] =

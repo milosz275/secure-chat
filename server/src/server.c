@@ -12,9 +12,9 @@
 #include <sys/sysinfo.h>
 
 #include "protocol.h"
-#include "servercli.h"
-#include "serverdb.h"
-#include "serverauth.h"
+#include "server_cli.h"
+#include "server_db.h"
+#include "server_auth.h"
 #include "log.h"
 
 volatile sig_atomic_t quit_flag = 0;

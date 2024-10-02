@@ -1,4 +1,4 @@
-#include "serverauth.h"
+#include "server_auth.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-#include "serverdb.h"
+#include "server_db.h"
 #include "log.h"
 
 void usleep(unsigned int usec);
