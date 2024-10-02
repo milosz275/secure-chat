@@ -1,20 +1,25 @@
 #include "server_cli.h"
 
+#include "log.h"
+
 //Server command array
 static srv_command_t srv_commands[] =
 {
-    {.srv_command = &srv_exit, .srv_command_name = "!exit", .srv_command_description = "Exit" },
-    {.srv_command = &srv_ban, .srv_command_name = "!ban", .srv_command_description = "Bans user" },
-    {.srv_command = &srv_kick, .srv_command_name = "!kick", .srv_command_description = "Kicks user" },
-    {.srv_command = &srv_mute, .srv_command_name = "!mute", .srv_command_description = "Mutes user" },
-    {.srv_command = &srv_help, .srv_command_name = "!help", .srv_command_description = "Prints command descriptions" },
+    {.srv_command = &srv_exit, .srv_command_name = "!exit", .srv_command_description = "Stops the server." },
+    {.srv_command = &srv_exit, .srv_command_name = "!quit", .srv_command_description = "Exit command alias." },
+    {.srv_command = &srv_exit, .srv_command_name = "!stop", .srv_command_description = "Exit command alias." },
+    {.srv_command = &srv_exit, .srv_command_name = "!shutdown", .srv_command_description = "Exit command alias." },
+    {.srv_command = &srv_ban, .srv_command_name = "!ban", .srv_command_description = "Bans given user (arg: user ID or UID)." },
+    {.srv_command = &srv_kick, .srv_command_name = "!kick", .srv_command_description = "Kicks given user (arg: user ID or UID)." },
+    {.srv_command = &srv_mute, .srv_command_name = "!mute", .srv_command_description = "Mutes given user (arg: user ID or UID)." },
+    {.srv_command = &srv_help, .srv_command_name = "!help", .srv_command_description = "Prints command descriptions." },
 };
 
 int srv_help(char** args)
 {
     for (int i = 0; i < SRV_COMMANDS_NUM; ++i)
     {
-        printf("%s\t-\t%s\n", srv_commands[i].srv_command_name, srv_commands[i].srv_command_description);
+        printf("%-10s- %s\n", srv_commands[i].srv_command_name, srv_commands[i].srv_command_description);
     }
     if (args[0] != NULL) {}
     return 1;
@@ -129,6 +134,9 @@ int srv_exec_line(char* line)
         }
     }
     printf("Command not found!\n");
+    char log_msg[256];
+    sprintf(log_msg, "Command not found: %s", command);
+    log_message(LOG_INFO, SERVER_LOG, __FILE__, log_msg);
     free(tokens);
     return 1;
 }
