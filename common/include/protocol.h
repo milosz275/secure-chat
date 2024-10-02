@@ -89,6 +89,7 @@ typedef enum
     MESSAGE_SIGNAL,
     MESSAGE_AUTH,
     MESSAGE_AUTH_ATTEMPS,
+    MESSAGE_UID,
     MESSAGE_ERROR,
     MESSAGE_USER_JOIN,
     MESSAGE_USER_LEAVE,
@@ -119,6 +120,7 @@ typedef enum
  * @param MESSAGE_CODE_USER_AUTHENTICATION_FAILURE User authentication failed
  * @param MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED User authentication attempts exceeded
  * @param MESSAGE_CODE_USER_AUTHENTICATION_SUCCESS User authentication success
+ * @param MESSAGE_CODE_UID Unique message ID
  * @param MESSAGE_CODE_UNKNOWN Unknown message code
  */
 typedef enum
@@ -144,6 +146,7 @@ typedef enum
     MESSAGE_CODE_USER_AUTHENTICATION_FAILURE,
     MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED,
     MESSAGE_CODE_USER_AUTHENTICATION_SUCCESS,
+    MESSAGE_CODE_UID,
 } message_code_t;
 
 /**
