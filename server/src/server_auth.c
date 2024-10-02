@@ -325,7 +325,9 @@ int user_auth(request_t* req, client_t* cl)
 
             if (sqlite3_step(stmt) != SQLITE_ROW)
             {
-                fprintf(stderr, "Authentication failed for user %s\n", username);
+                log_msg[0] = '\0';
+                sprintf(log_msg, "Request from %s:%d failed authentication - invalid password", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
+                log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
                 attempts++;
                 if (attempts == USER_LOGIN_ATTEMPTS)
                 {
