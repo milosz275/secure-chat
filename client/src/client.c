@@ -13,13 +13,12 @@
 
 volatile sig_atomic_t quit_flag = 0;
 volatile sig_atomic_t reconnect_flag = 0;
+static struct client_t client = { -1, NULL, "", 0 };
+int is_entering_username = 0; // [ ] Create client_state_t
 
-pthread_t recv_thread;
-int sock = -1;
-
-void* receive_messages(void* socket_desc)
+void* receive_messages(void* arg)
 {
-    int sock = *(int*)socket_desc;
+    int sock = *(int*)arg;
     char buffer[BUFFER_SIZE];
     message_t msg;
     int nbytes;
@@ -30,14 +29,10 @@ void* receive_messages(void* socket_desc)
         nbytes = recv(sock, buffer, sizeof(buffer), 0);
         if (nbytes <= 0)
         {
-            if (nbytes == 0)
-            {
+            if (!nbytes)
                 printf("Server disconnected.\n");
-            }
             else
-            {
                 perror("Receive failed");
-            }
             close(sock);
             reconnect_flag = 1;
             pthread_exit(NULL);
@@ -52,6 +47,11 @@ void* receive_messages(void* socket_desc)
         printf("(debug) Received message: type=%s, sender_uid=%s, recipient_uid=%s, payload=\"%s\"\n",
             message_type_to_string(msg.type), msg.sender_uid, msg.recipient_uid, msg.payload);
 
+        char enter_username_code_str[12];
+        sprintf(enter_username_code_str, "%d", MESSAGE_CODE_ENTER_USERNAME);
+        char user_authenticated_code_str[12];
+        sprintf(user_authenticated_code_str, "%d", MESSAGE_CODE_USER_AUTHENTICATED);
+
         if (msg.type == MESSAGE_PING)
         {
             create_message(&msg, MESSAGE_ACK, "client", "server", "ACK");
@@ -63,16 +63,35 @@ void* receive_messages(void* socket_desc)
                 pthread_exit(NULL);
             }
         }
+        else if (msg.type == MESSAGE_AUTH && !strcmp(msg.payload, enter_username_code_str))
+        {
+            is_entering_username = 1;
+            int code = atoi(msg.payload);
+            const char* text = message_code_to_string(code);
+            printf("(0%s) Server: %s\n", msg.payload, text);
+        }
+        else if (msg.type == MESSAGE_AUTH && !strcmp(msg.payload, user_authenticated_code_str))
+        {
+            client.is_authenticated = 1;
+        }
+        else if (msg.type == MESSAGE_UID)
+        {
+            printf("(0%d) Server: %s%s\n", MESSAGE_CODE_UID, message_code_to_string(MESSAGE_CODE_UID), msg.payload);
+            client.uid = malloc(strlen(msg.payload) + 1);
+            if (client.uid != NULL)
+                strcpy(client.uid, msg.payload);
+        }
         else if (msg.type == MESSAGE_ACK)
         {
             // [ ] handle ACK
         }
         else if (msg.type == MESSAGE_SIGNAL)
         {
-            if (strcmp(msg.payload, "quit") == 0)
+            if ((!strcmp(msg.payload, "quit")) || (!strcmp(msg.payload, "exit")))
             {
+                reconnect_flag = 0;
                 quit_flag = 1;
-                break;
+                exit(EXIT_SUCCESS);
             }
         }
         else if (msg.type == MESSAGE_AUTH_ATTEMPS)
@@ -169,10 +188,11 @@ void run_client()
         exit(EXIT_FAILURE);
     }
 
+    pthread_t recv_thread;
     while (!quit_flag)
     {
-        sock = connect_to_server(&server_addr);
-        if (sock < 0)
+        client.socket = connect_to_server(&server_addr);
+        if (client.socket < 0)
         {
             printf("Failed to connect to server after %d attempts. Exiting.\n", SERVER_RECONNECTION_ATTEMPTS);
             exit(EXIT_FAILURE);
@@ -180,10 +200,10 @@ void run_client()
         reconnect_flag = 0;
         sleep(1);
 
-        if (pthread_create(&recv_thread, NULL, receive_messages, (void*)&sock) != 0)
+        if (pthread_create(&recv_thread, NULL, receive_messages, (void*)&client.socket) != 0)
         {
             perror("Thread creation failed");
-            close(sock);
+            close(client.socket);
             exit(EXIT_FAILURE);
         }
 
@@ -191,9 +211,9 @@ void run_client()
         {
             FD_ZERO(&read_fds);
             FD_SET(STDIN_FILENO, &read_fds);
-            FD_SET(sock, &read_fds);
+            FD_SET(client.socket, &read_fds);
 
-            max_fd = sock;
+            max_fd = client.socket;
 
             int activity = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
 
@@ -205,25 +225,42 @@ void run_client()
 
             if (FD_ISSET(STDIN_FILENO, &read_fds))
             {
+                if (client.is_authenticated)
+                {
+                    printf("%s> ", client.username);
+                    fflush(stdout);
+                }
+                else
+                {
+                    printf("client> ");
+                    fflush(stdout);
+                }
+
                 memset(input, 0, sizeof(input));
                 fgets(input, sizeof(input), stdin);
                 input[strcspn(input, "\n")] = '\0';
 
-                if (strlen(input) == 0)
+                if (!strlen(input))
                 {
                     continue;
                 }
 
-                if (strcmp(input, "!exit") == 0)
+                if (!strcmp(input, "!exit") || !strcmp(input, "!quit"))
                 {
                     reconnect_flag = 0;
                     quit_flag = 1;
-                    break;
+                    exit(EXIT_SUCCESS);
                 }
 
+                if (is_entering_username)
+                {
+                    is_entering_username = 0;
+                    strncpy(client.username, input, MAX_USERNAME_LENGTH);
+                    client.username[MAX_USERNAME_LENGTH] = '\0';
+                }
                 create_message(&msg, MESSAGE_TEXT, "client", "server", input);
 
-                if (send_message(sock, &msg) != MESSAGE_SEND_SUCCESS)
+                if (send_message(client.socket, &msg) != MESSAGE_SEND_SUCCESS)
                 {
                     perror("Send failed. Server might be disconnected.");
                     reconnect_flag = 1;
@@ -231,7 +268,7 @@ void run_client()
                 }
             }
 
-            if (FD_ISSET(sock, &read_fds))
+            if (FD_ISSET(client.socket, &read_fds))
             {
                 continue;
             }
@@ -240,14 +277,23 @@ void run_client()
         if (reconnect_flag)
         {
             printf("Attempting to reconnect...\n");
-            close(sock);
+            client.is_authenticated = 0;
+            client.username[0] = '\0';
+            if (client.uid != NULL)
+            {
+                free(client.uid);
+                client.uid = NULL;
+            }
+            close(client.socket);
             pthread_cancel(recv_thread);
             pthread_join(recv_thread, NULL);
         }
     }
 
     printf("Client is shutting down.\n");
-    if (close(sock) == -1)
+    if (client.uid != NULL)
+        free(client.uid);
+    if (close(client.socket) == -1)
         perror("Error closing socket");
     if (pthread_cancel(recv_thread) != 0)
         perror("Error cancelling thread");
