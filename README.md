@@ -227,3 +227,7 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 # Contributing
 
 Please refer to [CONTRIBUTING.md](https://github.com/mldxo/secure-chat/blob/main/CONTRIBUTING.md). We appreciate your help!
+
+# Acknowledgments
+
+- [Thread-safe queue](https://github.com/petercrona/StsQueue)
