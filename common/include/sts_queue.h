@@ -5,12 +5,18 @@
 
 #include "protocol.h"
 
+/**
+ * The STS queue element structure. This structure is used to define the STS queue element.
+ */
 typedef struct sts_element
 {
     void* next;
     message_t* value;
 } sts_element;
 
+/**
+ * The STS queue header structure. This structure is used to define the STS queue header.
+ */
 typedef struct sts_header
 {
     sts_element* head;
