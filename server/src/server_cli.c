@@ -1,14 +1,16 @@
 #include "server_cli.h"
 
+#include "protocol.h"
 #include "log.h"
 
-//Server command array
+// Server command array
 static srv_command_t srv_commands[] =
 {
     {.srv_command = &srv_exit, .srv_command_name = "!exit", .srv_command_description = "Stops the server." },
     {.srv_command = &srv_exit, .srv_command_name = "!quit", .srv_command_description = "Exit command alias." },
     {.srv_command = &srv_exit, .srv_command_name = "!stop", .srv_command_description = "Exit command alias." },
     {.srv_command = &srv_exit, .srv_command_name = "!shutdown", .srv_command_description = "Exit command alias." },
+    {.srv_command = &srv_clear, .srv_command_name = "!clear", .srv_command_description = "Clear CLI screen." },
     {.srv_command = &srv_ban, .srv_command_name = "!ban", .srv_command_description = "Bans given user (arg: user ID or UID)." },
     {.srv_command = &srv_kick, .srv_command_name = "!kick", .srv_command_description = "Kicks given user (arg: user ID or UID)." },
     {.srv_command = &srv_mute, .srv_command_name = "!mute", .srv_command_description = "Mutes given user (arg: user ID or UID)." },
@@ -21,6 +23,13 @@ int srv_help(char** args)
     {
         printf("%-10s- %s\n", srv_commands[i].srv_command_name, srv_commands[i].srv_command_description);
     }
+    if (args[0] != NULL) {}
+    return 1;
+}
+
+int srv_clear(char** args)
+{
+    clear_cli();
     if (args[0] != NULL) {}
     return 1;
 }

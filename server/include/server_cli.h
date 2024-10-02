@@ -35,6 +35,14 @@ typedef struct
 extern int srv_exit(char** args);
 
 /**
+ * Clear CLI. This function is used to clear the CLI.
+ *
+ * @param args The arguments passed to the function should be empty.
+ * @return The exit code.
+ */
+extern int srv_clear(char** args);
+
+/**
  * Ban user. This function is used to ban a specified user.
  *
  * @param args The arguments passed to this function should contain the username to ban.
