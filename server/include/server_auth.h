@@ -9,6 +9,6 @@
  * @param req The request to authenticate.
  * @param uid The obtained unique ID of the client.
  */
-int user_auth(request_t* req, client_t* cl);
+int user_auth(request_t* req, client_connection_t* cl);
 
 #endif

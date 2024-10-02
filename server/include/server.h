@@ -79,14 +79,14 @@ typedef struct
  * @param username The username of the client.
  * @param is_ready The client readiness status.
  */
-typedef struct
+typedef struct client_connection_t
 {
     request_t* request;
     int id;
     char* uid;
     char username[MAX_USERNAME_LENGTH + 1];
     int is_ready;
-} client_t;
+} client_connection_t;
 
 /**
  * The clients base structure. This structure is used to store information about all clients connected to the server.
@@ -94,10 +94,10 @@ typedef struct
  * @param mutex The mutex to lock the clients array.
  * @param array The array of clients.
  */
-struct clients_t
+struct client_connections_t
 {
     pthread_mutex_t mutex;
-    client_t* array[MAX_CLIENTS];
+    client_connection_t* array[MAX_CLIENTS];
 };
 
 /**

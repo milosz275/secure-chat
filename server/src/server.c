@@ -19,15 +19,10 @@
 #include "sts_queue.h"
 
 volatile sig_atomic_t quit_flag = 0;
-
 extern _sts_queue const sts_queue;
-
 extern sts_header* create();
-
-static struct clients_t clients = { PTHREAD_MUTEX_INITIALIZER, {NULL} };
-
+static struct client_connections_t clients = { PTHREAD_MUTEX_INITIALIZER, {NULL} };
 static struct server_t server = { 0, {0}, 0, 0, 0, PTHREAD_MUTEX_INITIALIZER, {0}, NULL };
-
 void usleep(unsigned int usec);
 
 int srv_exit(char** args)
@@ -67,13 +62,13 @@ int srv_mute(char** args)
 void* handle_client(void* arg)
 {
     // before authentication log to requests.log
-    char log_msg[256];
+    char log_msg[MAX_LOG_LENGTH];
     char buffer[BUFFER_SIZE];
     int nbytes;
     request_t* req_ptr = ((request_t*)arg);
     request_t req = *req_ptr;
     message_t msg;
-    client_t cl;
+    client_connection_t cl;
     server.requests_handled++;
     cl.is_ready = 0;
 
@@ -218,7 +213,7 @@ void* handle_msg_queue(void* arg)
 void* handle_info_update(void* arg)
 {
     struct sysinfo sys_info;
-    char log_msg[256];
+    char log_msg[MAX_LOG_LENGTH];
     char formatted_uptime[9];
     while (!quit_flag)
     {
@@ -229,7 +224,7 @@ void* handle_info_update(void* arg)
                 user_count++;
         pthread_mutex_unlock(&clients.mutex);
 
-        if (sysinfo(&sys_info) == 0)
+        if (!sysinfo(&sys_info))
         {
             format_uptime(sys_info.uptime, formatted_uptime, sizeof(formatted_uptime));
             sprintf(log_msg, "Online: %d, Req: %d, Auths: %d, Uptime: %s, Load avg: %.2f, RAM: %lu/%lu MB",
@@ -291,7 +286,7 @@ int run_server()
     server.address.sin_port = htons(PORT);
     server.message_queue = sts_queue.create();
 
-    char log_msg[256];
+    char log_msg[MAX_LOG_LENGTH];
     if (server.address.sin_family == AF_INET)
         sprintf(log_msg, "IPv4 socket created with address %s and port %d", inet_ntoa(server.address.sin_addr), PORT);
     else if (server.address.sin_family == AF_INET6)

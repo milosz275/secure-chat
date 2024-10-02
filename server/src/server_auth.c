@@ -11,9 +11,9 @@
 
 void usleep(unsigned int usec);
 
-int user_auth(request_t* req, client_t* cl)
+int user_auth(request_t* req, client_connection_t* cl)
 {
-    char log_msg[256];
+    char log_msg[MAX_LOG_LENGTH];
     message_t msg;
     char buffer[BUFFER_SIZE];
     int nbytes;
@@ -32,7 +32,7 @@ int user_auth(request_t* req, client_t* cl)
     {
         char send_msg[MAX_PAYLOAD_SIZE];
         send_msg[0] = '\0';
-        if (attempts == 0)
+        if (!attempts)
         {
             sprintf(send_msg, "%d", MESSAGE_CODE_WELCOME);
             create_message(&msg, MESSAGE_TOAST, "server", "client", send_msg);
@@ -110,7 +110,7 @@ int user_auth(request_t* req, client_t* cl)
 
                 parse_message(&msg, buffer);
 
-                if (strcmp(msg.payload, "y") == 0 || strcmp(msg.payload, "Y") == 0)
+                if (!strcmp(msg.payload, "y") || !strcmp(msg.payload, "Y"))
                 {
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_ENTER_PASSWORD);
@@ -144,7 +144,7 @@ int user_auth(request_t* req, client_t* cl)
                     char password_confirmation[MAX_PASSWORD_LENGTH];
                     snprintf(password_confirmation, MAX_PASSWORD_LENGTH, "%.*s", MAX_PASSWORD_LENGTH - 1, msg.payload);
 
-                    if (strcmp(password, password_confirmation) == 0)
+                    if (!strcmp(password, password_confirmation))
                     {
                         snprintf(cl->username, MAX_USERNAME_LENGTH + 1, "%s", username);
 
@@ -231,7 +231,7 @@ int user_auth(request_t* req, client_t* cl)
                         attempts++;
                     }
                 }
-                else if (strcmp(msg.payload, "n") == 0 || strcmp(msg.payload, "N") == 0)
+                else if (!strcmp(msg.payload, "n") || !strcmp(msg.payload, "N"))
                 {
                     attempts++;
                 }
@@ -409,6 +409,12 @@ int user_auth(request_t* req, client_t* cl)
                 send_msg[0] = '\0';
                 sprintf(send_msg, "%d", MESSAGE_CODE_USER_AUTHENTICATED);
                 create_message(&msg, MESSAGE_AUTH, "server", "client", send_msg);
+                send_message(req->socket, &msg);
+
+                char send_uid[HASH_HEX_OUTPUT_LENGTH];
+                snprintf(send_uid, HASH_HEX_OUTPUT_LENGTH, "%s", cl->uid);
+                create_message(&msg, MESSAGE_UID, "server", "client", send_uid);
+                usleep(100000); // 100 ms
                 send_message(req->socket, &msg);
 
                 return USER_AUTHENTICATION_SUCCESS;
