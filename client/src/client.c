@@ -13,7 +13,7 @@
 
 volatile sig_atomic_t quit_flag = 0;
 volatile sig_atomic_t reconnect_flag = 0;
-static struct client_t client = { -1, NULL, "", 0 };
+static struct client_t client = { -1, NULL, "client", 0 };
 int is_entering_username = 0; // [ ] Create client_state_t
 
 void* receive_messages(void* arg)
@@ -43,10 +43,10 @@ void* receive_messages(void* arg)
         msg.payload_length = 0;
 
         parse_message(&msg, buffer);
-
+#ifdef _DEBUG
         printf("(debug) Received message: type=%s, sender_uid=%s, recipient_uid=%s, payload=\"%s\"\n",
             message_type_to_string(msg.type), msg.sender_uid, msg.recipient_uid, msg.payload);
-
+#endif
         char enter_username_code_str[12];
         sprintf(enter_username_code_str, "%d", MESSAGE_CODE_ENTER_USERNAME);
         char user_authenticated_code_str[12];
@@ -55,6 +55,9 @@ void* receive_messages(void* arg)
         if (msg.type == MESSAGE_PING)
         {
             create_message(&msg, MESSAGE_ACK, "client", "server", "ACK");
+#ifdef _DEBUG
+            printf("(debug) %s: %s\n", client.username, "ACK");
+#endif
             if (send_message(sock, &msg) != MESSAGE_SEND_SUCCESS)
             {
                 perror("Send failed");
@@ -155,7 +158,7 @@ int connect_to_server(struct sockaddr_in* server_addr)
 
         if (connect(sock, (struct sockaddr*)server_addr, sizeof(*server_addr)) < 0)
         {
-            system("clear");
+            clear_cli();
             printf("Connection failed.\nRetrying in %d seconds... (Attempt %d/%d)\n",
                 SERVER_RECONNECTION_INTERVAL, connection_attempts + 1, SERVER_RECONNECTION_ATTEMPTS);
             close(sock);
@@ -225,17 +228,6 @@ void run_client()
 
             if (FD_ISSET(STDIN_FILENO, &read_fds))
             {
-                if (client.is_authenticated)
-                {
-                    printf("%s> ", client.username);
-                    fflush(stdout);
-                }
-                else
-                {
-                    printf("client> ");
-                    fflush(stdout);
-                }
-
                 memset(input, 0, sizeof(input));
                 fgets(input, sizeof(input), stdin);
                 input[strcspn(input, "\n")] = '\0';
@@ -255,11 +247,14 @@ void run_client()
                 if (is_entering_username)
                 {
                     is_entering_username = 0;
+                    client.username[0] = '\0';
                     strncpy(client.username, input, MAX_USERNAME_LENGTH);
                     client.username[MAX_USERNAME_LENGTH] = '\0';
                 }
                 create_message(&msg, MESSAGE_TEXT, "client", "server", input);
-
+#ifdef _DEBUG
+                printf("(debug) %s: %s\n", client.username, input);
+#endif
                 if (send_message(client.socket, &msg) != MESSAGE_SEND_SUCCESS)
                 {
                     perror("Send failed. Server might be disconnected.");
