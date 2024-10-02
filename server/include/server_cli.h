@@ -8,6 +8,7 @@
 
 #define SRV_BUFSIZE 64
 #define SRV_DELIM " "
+#define MAX_LINE_LENGTH 256
 
 #define SRV_COMMANDS_NUM (int) (sizeof(srv_commands) / sizeof(srv_command_t))
 

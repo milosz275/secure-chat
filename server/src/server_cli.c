@@ -27,7 +27,7 @@ int srv_help(char** args)
 
 int getline(char** lineptr, size_t* n, FILE* stream)
 {
-    static char line[256];
+    static char line[MAX_LINE_LENGTH];
     char* ptr;
     unsigned int len;
 
@@ -126,7 +126,7 @@ int srv_exec_line(char* line)
 
     for (i = 0; i < SRV_COMMANDS_NUM; ++i)
     {
-        if (strcmp(command, srv_commands[i].srv_command_name) == 0)
+        if (!strcmp(command, srv_commands[i].srv_command_name))
         {
             int result = (srv_commands[i].srv_command)(args);
             free(tokens);
@@ -134,7 +134,7 @@ int srv_exec_line(char* line)
         }
     }
     printf("Command not found!\n");
-    char log_msg[256];
+    char log_msg[MAX_LOG_LENGTH];
     sprintf(log_msg, "Command not found: %s", command);
     log_message(LOG_INFO, SERVER_LOG, __FILE__, log_msg);
     free(tokens);
