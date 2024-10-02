@@ -147,6 +147,8 @@ void* handle_msg_queue(void* arg);
 
 /**
  * Information update handler. This thread is used to update the server information and log it.
+ *
+ * @param arg Not used.
  */
 void* handle_info_update(void* arg);
 
