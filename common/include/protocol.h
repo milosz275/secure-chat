@@ -75,7 +75,8 @@
  * @param MESSAGE_SYSTEM Server maintenance message
  * @return The message type enumeration.
  */
-typedef enum
+typedef int32_t message_type_t;
+enum
 {
     MESSAGE_TEXT = 1234,
     MESSAGE_TOAST,
@@ -94,7 +95,7 @@ typedef enum
     MESSAGE_USER_JOIN,
     MESSAGE_USER_LEAVE,
     MESSAGE_SYSTEM,
-} message_type_t;
+};
 
 /**
  * The message code enumeration. This enumeration is used to define the message codes that are used for message specification and control.
@@ -123,7 +124,8 @@ typedef enum
  * @param MESSAGE_CODE_UID Unique message ID
  * @param MESSAGE_CODE_UNKNOWN Unknown message code
  */
-typedef enum
+typedef int32_t message_code_t;
+enum
 {
     MESSAGE_CODE_WELCOME = 2345,
     MESSAGE_CODE_ENTER_USERNAME,
@@ -147,7 +149,7 @@ typedef enum
     MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED,
     MESSAGE_CODE_USER_AUTHENTICATION_SUCCESS,
     MESSAGE_CODE_UID,
-} message_code_t;
+};
 
 /**
  * The message structure. This structure is used to store message data.
@@ -248,5 +250,10 @@ void get_formatted_timestamp(char* buffer, size_t buffer_size);
  * @param buffer_size The size of the buffer.
  */
 void format_uptime(long seconds, char* buffer, size_t buffer_size);
+
+/**
+ * Clear the command line interface. This function is used to clear the command line interface.
+ */
+void clear_cli();
 
 #endif

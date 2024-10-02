@@ -203,3 +203,8 @@ void format_uptime(long seconds, char* buffer, size_t buffer_size)
     int secs = seconds % 60;
     snprintf(buffer, buffer_size, "%02d:%02d:%02d", hours, minutes, secs);
 }
+
+void clear_cli()
+{
+    printf("\033[H\033[J");
+}
