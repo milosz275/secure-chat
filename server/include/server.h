@@ -4,7 +4,9 @@
 #include <pthread.h>
 #include <arpa/inet.h>
 #include <sqlite3.h>
+
 #include "protocol.h"
+#include "sts_queue.h"
 
 #define MAX_CLIENTS 100
 #define MAX_THREADS 100 // overrides max clients
@@ -108,6 +110,7 @@ struct clients_t
  * @param thread_count The number of all allocated threads.
  * @param thread_count_mutex The mutex to lock the thread count.
  * @param threads The array of threads.
+ * @param message_queue The message queue.
  */
 struct server_t
 {
@@ -118,14 +121,34 @@ struct server_t
     int thread_count;
     pthread_mutex_t thread_count_mutex;
     pthread_t threads[MAX_CLIENTS];
+    sts_header* message_queue;
 };
 
 /**
- * Client handler. This function is used to handle a client connected to the server and is supposed to run in a separate thread.
+ * Client handler. This thread is used to handle a request, create and connect user to the server.
  *
- * @param arg The client structure.
+ * @param arg The request structure.
  */
 void* handle_client(void* arg);
+
+/**
+ * Command line interface handler. This thread is used to handle the server command line interface.
+ *
+ * @param arg Not used.
+ */
+void* handle_cli(void* arg);
+
+/**
+ * Message queue handler. This thread is used to handle the message queue.
+ *
+ * @param arg Not used.
+ */
+void* handle_msg_queue(void* arg);
+
+/**
+ * Information update handler. This thread is used to update the server information and log it.
+ */
+void* handle_info_update(void* arg);
 
 /**
  * Runs the server. This function is meant to be called by the main function of the server program.
