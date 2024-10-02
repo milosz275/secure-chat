@@ -19,7 +19,7 @@ int create_message(message_t* msg, message_type_t type, const char* sender_uid, 
         return MESSAGE_CREATION_PAYLOAD_SIZE_EXCEEDED;
     else if (strlen(sender_uid) > HASH_HEX_OUTPUT_LENGTH || strlen(recipient_uid) > HASH_HEX_OUTPUT_LENGTH)
         return MESSAGE_CREATION_USERNAME_SIZE_EXCEEDED;
-    else if (strlen(payload) == 0 && (type != MESSAGE_PING || type != MESSAGE_ACK))
+    else if (!strlen(payload) && (type != MESSAGE_PING || type != MESSAGE_ACK))
         return MESSAGE_CREATION_PAYLOAD_EMPTY;
 
     // clear message structure
@@ -95,6 +95,7 @@ const char* message_type_to_string(message_type_t type)
     case MESSAGE_SIGNAL: return "MESSAGE_SIGNAL";
     case MESSAGE_AUTH: return "MESSAGE_AUTH";
     case MESSAGE_AUTH_ATTEMPS: return "MESSAGE_AUTH_ATTEMPS";
+    case MESSAGE_UID: return "MESSAGE_UID";
     case MESSAGE_ERROR: return "MESSAGE_ERROR";
     case MESSAGE_USER_JOIN: return "MESSAGE_USER_JOIN";
     case MESSAGE_USER_LEAVE: return "MESSAGE_USER_LEAVE";
@@ -129,6 +130,7 @@ const char* message_code_to_string(message_code_t code)
     case MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_ONE: return "You have 1 attempt left.";
     case MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED: return "User authentication attempts exceeded.";
     case MESSAGE_CODE_USER_AUTHENTICATION_SUCCESS: return "User authentication success.";
+    case MESSAGE_CODE_UID: return "Your UID is ";
     default: return MESSAGE_CODE_UNKNOWN;
     }
 }
