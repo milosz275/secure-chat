@@ -1,9 +1,22 @@
 #ifndef __STS_QUEUE_H
 #define __STS_QUEUE_H
 
+#include <pthread.h>
+
 #include "protocol.h"
 
-typedef struct sts_header sts_header;
+typedef struct sts_element
+{
+    void* next;
+    message_t* value;
+} sts_element;
+
+typedef struct sts_header
+{
+    sts_element* head;
+    sts_element* tail;
+    pthread_mutex_t* mutex;
+} sts_header;
 
 /**
  * The STS queue structure. This structure is used to define the STS queue and its operations.
@@ -23,6 +36,6 @@ typedef struct
     message_t* (* const pop)(sts_header* handle);
 } _sts_queue;
 
-extern _sts_queue const StsQueue;
+extern _sts_queue const sts_queue;
 
 #endif

@@ -5,19 +5,6 @@
 
 #include "protocol.h"
 
-typedef struct sts_element
-{
-    void* next;
-    message_t* value;
-} sts_element;
-
-struct sts_header
-{
-    sts_element* head;
-    sts_element* tail;
-    pthread_mutex_t* mutex;
-};
-
 static sts_header* create();
 static void destroy(sts_header* header);
 static void push(sts_header* header, message_t* elem);
