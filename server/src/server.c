@@ -16,17 +16,27 @@
 #include "server_db.h"
 #include "server_auth.h"
 #include "log.h"
+#include "sts_queue.h"
 
 volatile sig_atomic_t quit_flag = 0;
 
+extern _sts_queue const sts_queue;
+
+extern sts_header* create();
+
 static struct clients_t clients = { PTHREAD_MUTEX_INITIALIZER, {NULL} };
 
-static struct server_t server = { 0, {0}, 0, 0, 0, PTHREAD_MUTEX_INITIALIZER, {0} };
+static struct server_t server = { 0, {0}, 0, 0, 0, PTHREAD_MUTEX_INITIALIZER, {0}, NULL };
 
 void usleep(unsigned int usec);
 
 int srv_exit(char** args)
 {
+    if (setsockopt(server.socket, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) == -1)
+        perror("setsockopt failed");
+    if (close(server.socket) == -1)
+        perror("close failed");
+    server.socket = -1;
     quit_flag = 1;
     exit(0);
     if (args[0] != NULL) {}
@@ -170,23 +180,36 @@ void* handle_client(void* arg)
 void* handle_cli(void* arg)
 {
     char* line = NULL;
-    int status;
 
     usleep(100000); // 100 ms
     while (!quit_flag)
     {
         printf("server> ");
         line = srv_read_line();
-        status = srv_exec_line(line);
+        srv_exec_line(line);
         if (line)
         {
             free(line);
             line = NULL;
         }
-        if (status == 1)
+    }
+    if (arg) {}
+    pthread_exit(NULL);
+}
+
+void* handle_msg_queue(void* arg)
+{
+    // approach: use condition variable to signal new message in queue
+    while (!quit_flag)
+    {
+        // messages from queue must be malloced, e.g. message_t* msg = (message_t*)malloc(sizeof(message_t));
+        message_t* msg = sts_queue.pop(server.message_queue);
+        if (msg)
         {
-            break;
+            // [ ] Implement message handling
+            free(msg);
         }
+        usleep(100000); // 100 ms
     }
     if (arg) {}
     pthread_exit(NULL);
@@ -241,8 +264,8 @@ int run_server()
         return SINGLE_CORE_SYSTEM;
     }
 
-    int server_socket, client_socket;
-    struct sockaddr_in server_addr, client_addr;
+    int client_socket;
+    struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
     request_t req;
     init_logging(SERVER_LOG);
@@ -255,23 +278,24 @@ int run_server()
     }
     log_message(LOG_INFO, SERVER_LOG, __FILE__, "Database setup successful");
 
-    server_socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_socket < 0)
+    server.socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (server.socket < 0)
     {
         perror("Socket creation failed");
         log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Socket creation failed. Server shutting down");
         finish_logging();
         exit(EXIT_FAILURE);
     }
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(PORT);
+    server.address.sin_family = AF_INET;
+    server.address.sin_addr.s_addr = INADDR_ANY;
+    server.address.sin_port = htons(PORT);
+    server.message_queue = sts_queue.create();
 
     char log_msg[256];
-    if (server_addr.sin_family == AF_INET)
-        sprintf(log_msg, "IPv4 socket created with address %s and port %d", inet_ntoa(server_addr.sin_addr), PORT);
-    else if (server_addr.sin_family == AF_INET6)
-        sprintf(log_msg, "IPv6 socket created with address %s and port %d", inet_ntoa(server_addr.sin_addr), PORT);
+    if (server.address.sin_family == AF_INET)
+        sprintf(log_msg, "IPv4 socket created with address %s and port %d", inet_ntoa(server.address.sin_addr), PORT);
+    else if (server.address.sin_family == AF_INET6)
+        sprintf(log_msg, "IPv6 socket created with address %s and port %d", inet_ntoa(server.address.sin_addr), PORT);
     else
         sprintf(log_msg, "Socket created with unknown address family and port %d", PORT);
     log_message(LOG_INFO, SERVER_LOG, __FILE__, log_msg);
@@ -280,7 +304,7 @@ int run_server()
     int bind_success = 0;
     while (attempts < PORT_BIND_ATTEMPTS)
     {
-        if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
+        if (bind(server.socket, (struct sockaddr*)&server.address, sizeof(server.address)) < 0)
         {
             system("clear");
             perror("Bind failed");
@@ -291,7 +315,7 @@ int run_server()
             {
                 if (quit_flag)
                 {
-                    close(server_socket);
+                    close(server.socket);
                     log_message(LOG_INFO, SERVER_LOG, __FILE__, "Server shutting down");
                     finish_logging();
                     exit(EXIT_SUCCESS);
@@ -300,7 +324,7 @@ int run_server()
             }
             else
             {
-                close(server_socket);
+                close(server.socket);
                 log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Could not bind to the server address. Server shutting down");
                 finish_logging();
                 exit(EXIT_FAILURE);
@@ -314,16 +338,16 @@ int run_server()
     }
     if (!bind_success)
     {
-        close(server_socket);
+        close(server.socket);
         log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Could not bind to the server address");
         finish_logging();
         exit(EXIT_FAILURE);
     }
 
-    if (listen(server_socket, 10) < 0)
+    if (listen(server.socket, 10) < 0)
     {
         perror("Listen failed");
-        close(server_socket);
+        close(server.socket);
         log_message(LOG_INFO, SERVER_LOG, __FILE__, "Listen failed. Server shutting down");
         finish_logging();
         exit(EXIT_FAILURE);
@@ -352,10 +376,21 @@ int run_server()
     log_message(LOG_INFO, SERVER_LOG, __FILE__, "Info update thread started");
     server.thread_count++;
 
+    pthread_t msg_queue_thread;
+    if (pthread_create(&msg_queue_thread, NULL, handle_msg_queue, (void*)NULL) != 0)
+    {
+        log_msg[0] = '\0';
+        snprintf(log_msg, sizeof(log_msg), "Message queue handler thread creation failed: %s", strerror(errno));
+        log_message(LOG_WARN, SERVER_LOG, __FILE__, log_msg);
+    }
+    log_message(LOG_INFO, SERVER_LOG, __FILE__, "Message queue handler thread started");
+    server.thread_count++;
+
     init_logging(REQUESTS_LOG);
     init_logging(CLIENTS_LOG);
     log_message(LOG_INFO, REQUESTS_LOG, __FILE__, "Server started");
     log_message(LOG_INFO, CLIENTS_LOG, __FILE__, "Server started");
+
     while (!quit_flag)
     {
         if (server.thread_count >= MAX_CLIENTS || server.thread_count >= MAX_THREADS)
@@ -364,12 +399,12 @@ int run_server()
             continue;
         }
 
-        client_socket = accept(server_socket, (struct sockaddr*)&client_addr, &client_len);
+        client_socket = accept(server.socket, (struct sockaddr*)&client_addr, &client_len);
         if (client_socket < 0)
         {
             if (quit_flag)
             {
-                close(server_socket);
+                close(server.socket);
                 log_message(LOG_INFO, SERVER_LOG, __FILE__, "Server shutting down");
                 finish_logging();
                 exit(EXIT_SUCCESS);
@@ -409,9 +444,11 @@ int run_server()
         pthread_join(server.threads[i], NULL);
     }
 
-    close(server_socket);
+    sts_queue.destroy(server.message_queue);
+    close(server.socket);
     pthread_join(cli_thread, NULL);
     pthread_join(info_update_thread, NULL);
+    pthread_join(msg_queue_thread, NULL);
     log_message(LOG_INFO, SERVER_LOG, __FILE__, "Server shutting down");
     finish_logging();
     exit(EXIT_SUCCESS);
