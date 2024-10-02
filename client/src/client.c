@@ -56,7 +56,7 @@ void* receive_messages(void* arg)
         {
             create_message(&msg, MESSAGE_ACK, "client", "server", "ACK");
 #ifdef _DEBUG
-            printf("(debug) %s: %s\n", client.username, "ACK");
+            printf("(debug) %s: %s\n", client.username, "ACK sent to server");
 #endif
             if (send_message(sock, &msg) != MESSAGE_SEND_SUCCESS)
             {
