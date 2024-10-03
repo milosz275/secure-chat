@@ -231,3 +231,4 @@ Please refer to [CONTRIBUTING.md](https://github.com/mldxo/secure-chat/blob/main
 # Acknowledgments
 
 - [Thread-safe queue](https://github.com/petercrona/StsQueue)
+- [Thread-safe hash map](https://github.com/kshk123/hashMap)
