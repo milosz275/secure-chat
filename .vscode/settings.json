@@ -54,16 +54,9 @@
     "C_Cpp.default.browse.databaseFilename": "${workspaceFolder}/.vscode/browse.vc.db",
     "C_Cpp.vcFormat.space.pointerReferenceAlignment": "left",
     "C_Cpp.clang_format_style": "file",
+    "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, IndentWidth: 4, ColumnLimit: 0}",
     "[cpp]": {
         "editor.formatOnType": true,
         "editor.formatOnSave": true
-    },
-    "clang-format.fallbackStyle": "LLVM",
-    "clang-format.style": {
-        "BasedOnStyle": "LLVM",
-        "SpacesBeforeTrailingComments": 0,
-        "AlignTrailingComments": false,
-        "SpaceBeforeParens": "ControlStatements",
-        "ColumnLimit": 0
     }
 }
