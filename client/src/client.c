@@ -13,8 +13,8 @@
 
 volatile sig_atomic_t quit_flag = 0;
 volatile sig_atomic_t reconnect_flag = 0;
-static struct client_t client = { -1, NULL, "client", 0 };
-int is_entering_username = 0; // [ ] Create client_state_t
+static struct client_t client = { -1, NULL, CLIENT_BASE_STRING };
+static struct client_state_t client_state = { 0, 0, 0 };
 
 void* receive_messages(void* arg)
 {
@@ -47,14 +47,30 @@ void* receive_messages(void* arg)
         printf("(debug) Received message: type=%s, sender_uid=%s, recipient_uid=%s, payload=\"%s\"\n",
             message_type_to_string(msg.type), msg.sender_uid, msg.recipient_uid, msg.payload);
 #endif
+        // dropping messages addressed to other users
+        if (!client_state.is_authenticated && strcmp(client.uid, CLIENT_BASE_STRING))
+        {
+            // unauthenticated user should be addressed as CLIENT_BASE_STRING
+            printf("(11111) Server: %s\n", msg.payload);
+            continue;
+        }
+        else if (client_state.is_authenticated && strncmp((char*)msg.recipient_uid, client.uid, HASH_HEX_OUTPUT_LENGTH - 1) && msg.type != MESSAGE_UID)
+        {
+            // authenticated user should be addressed by their UID
+            printf("(11112) Server: %s\n", msg.payload);
+            continue;
+        }
+
         char enter_username_code_str[12];
         sprintf(enter_username_code_str, "%d", MESSAGE_CODE_ENTER_USERNAME);
+        char user_created_code_str[12];
+        sprintf(user_created_code_str, "%d", MESSAGE_CODE_USER_CREATED);
         char user_authenticated_code_str[12];
         sprintf(user_authenticated_code_str, "%d", MESSAGE_CODE_USER_AUTHENTICATED);
 
         if (msg.type == MESSAGE_PING)
         {
-            create_message(&msg, MESSAGE_ACK, "client", "server", "ACK");
+            create_message(&msg, MESSAGE_ACK, client.uid, "server", "ACK");
 #ifdef _DEBUG
             printf("(debug) %s: %s\n", client.username, "ACK sent to server");
 #endif
@@ -68,21 +84,30 @@ void* receive_messages(void* arg)
         }
         else if (msg.type == MESSAGE_AUTH && !strcmp(msg.payload, enter_username_code_str))
         {
-            is_entering_username = 1;
+            client_state.is_entering_username = 1;
             int code = atoi(msg.payload);
             const char* text = message_code_to_string(code);
             printf("(0%s) Server: %s\n", msg.payload, text);
         }
-        else if (msg.type == MESSAGE_AUTH && !strcmp(msg.payload, user_authenticated_code_str))
+        else if (msg.type == MESSAGE_AUTH && (!strcmp(msg.payload, user_authenticated_code_str) || !strcmp(msg.payload, user_created_code_str)))
         {
-            client.is_authenticated = 1;
+            client_state.is_authenticated = 1;
         }
         else if (msg.type == MESSAGE_UID)
         {
+            if (strlen(msg.payload) != HASH_HEX_OUTPUT_LENGTH - 1)
+            {
+                printf("Invalid UID received from server\n");
+                continue;
+            }
             printf("(0%d) Server: %s%s\n", MESSAGE_CODE_UID, message_code_to_string(MESSAGE_CODE_UID), msg.payload);
-            client.uid = malloc(strlen(msg.payload) + 1);
             if (client.uid != NULL)
                 strcpy(client.uid, msg.payload);
+            else
+            {
+                client.uid = malloc(strlen(msg.payload) + 1);
+                strcpy(client.uid, msg.payload);
+            }
         }
         else if (msg.type == MESSAGE_ACK)
         {
@@ -111,7 +136,7 @@ void* receive_messages(void* arg)
                 printf("(0%d) Server: %s\n", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_ONE, message_code_to_string(MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_ONE));
                 break;
             default:
-                printf("(00000) Server: %s\n", msg.payload); // unknown code
+                printf("(00001) Server: %s\n", msg.payload); // unknown code
                 break;
             }
         }
@@ -127,10 +152,7 @@ void* receive_messages(void* arg)
         {
             int code = atoi(msg.payload);
             if (!code)
-            {
-                // this message has no valid code
                 printf("(00000) Server: %s\n", msg.payload); // unknown code
-            }
             else
             {
                 const char* text = message_code_to_string(code);
@@ -201,6 +223,14 @@ void run_client()
             exit(EXIT_FAILURE);
         }
         reconnect_flag = 0;
+        client.uid = (char*)malloc(HASH_HEX_OUTPUT_LENGTH);
+        if (client.uid == NULL)
+        {
+            perror("Memory allocation failed");
+            close(client.socket);
+            exit(EXIT_FAILURE);
+        }
+        strcpy(client.uid, CLIENT_BASE_STRING);
         sleep(1);
 
         if (pthread_create(&recv_thread, NULL, receive_messages, (void*)&client.socket) != 0)
@@ -244,14 +274,14 @@ void run_client()
                     exit(EXIT_SUCCESS);
                 }
 
-                if (is_entering_username)
+                if (client_state.is_entering_username)
                 {
-                    is_entering_username = 0;
+                    client_state.is_entering_username = 0;
                     client.username[0] = '\0';
                     strncpy(client.username, input, MAX_USERNAME_LENGTH);
                     client.username[MAX_USERNAME_LENGTH] = '\0';
                 }
-                create_message(&msg, MESSAGE_TEXT, "client", "server", input);
+                create_message(&msg, MESSAGE_TEXT, client.uid, "server", input);
 #ifdef _DEBUG
                 printf("(debug) %s: %s\n", client.username, input);
 #endif
@@ -272,9 +302,9 @@ void run_client()
         if (reconnect_flag)
         {
             printf("Attempting to reconnect...\n");
-            client.is_authenticated = 0;
+            client_state.is_authenticated = 0;
             client.username[0] = '\0';
-            if (client.uid != NULL)
+            if (client.uid)
             {
                 free(client.uid);
                 client.uid = NULL;
@@ -286,7 +316,7 @@ void run_client()
     }
 
     printf("Client is shutting down.\n");
-    if (client.uid != NULL)
+    if (client.uid)
         free(client.uid);
     if (close(client.socket) == -1)
         perror("Error closing socket");
