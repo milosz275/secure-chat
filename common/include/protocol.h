@@ -54,6 +54,8 @@
 #define MESSAGE_TYPE_UNKNOWN "UNKNOWN"
 #define MESSAGE_CODE_UNKNOWN "UNKNOWN"
 
+#define CLIENT_DEFAULT_NAME "client"
+
 /**
  * The message type enumeration. This enumeration is used to define the type of message that is being sent.
  *
