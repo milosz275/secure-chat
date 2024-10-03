@@ -6,11 +6,12 @@
 
 #define MAX_LOG_FILES 10
 #define MAX_FILENAME_LENGTH 256
-#define MAX_LOG_LENGTH 256
+#define MAX_LOG_LENGTH 4096
 #define LOGS_DIR "logs"
 #define SERVER_LOG "server.log"
 #define CLIENTS_LOG "clients.log"
 #define REQUESTS_LOG "requests.log"
+#define SYSTEM_LOG "system.log"
 
 #define LOCKED_FILE_RETRY_TIME 1000 // in microseconds
 #define LOCKED_FILE_TIMEOUT 5000000 // in microseconds (5 seconds)
