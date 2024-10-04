@@ -34,7 +34,8 @@
         "evp.h": "c",
         "server.h": "c",
         "nuklear.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "sts_queue.h": "c"
     },
     "task.allowAutomaticTasks": "on",
     "editor.formatOnSave": true,
