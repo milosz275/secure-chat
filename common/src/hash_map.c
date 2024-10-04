@@ -1,8 +1,10 @@
 #include "hash_map.h"
 
+#include <stdio.h>
+#include <string.h>
 #include <pthread.h>
 
-hash_map* hash_map_create(size_t hash_size, size_t(*hash_fn)(const void*))
+hash_map* hash_map_create(size_t hash_size, size_t(*hash_fn)(const char*))
 {
     hash_map* map = (hash_map*)malloc(sizeof(hash_map));
     if (!map)
@@ -18,12 +20,10 @@ hash_map* hash_map_create(size_t hash_size, size_t(*hash_fn)(const void*))
 
     map->hash_fn = hash_fn;
 
-    // Initialize mutexes for each bucket
     for (size_t i = 0; i < hash_size; ++i)
     {
         if (pthread_mutex_init(&map->hash_table[i].mutex, NULL) != 0)
         {
-            // Cleanup on failure
             for (size_t j = 0; j < i; ++j)
                 pthread_mutex_destroy(&map->hash_table[j].mutex);
             free(map->hash_table);
@@ -36,20 +36,18 @@ hash_map* hash_map_create(size_t hash_size, size_t(*hash_fn)(const void*))
     return map;
 }
 
-// Function to destroy a hash map and free allocated memory
 void hash_map_destroy(hash_map* map)
 {
     if (!map) return;
 
-    // Free each bucket's linked list
     for (size_t i = 0; i < map->hash_size; ++i)
     {
         hash_node* node = map->hash_table[i].head;
         while (node)
         {
             hash_node* next = node->next;
-            free(node->key);
-            free(node->value);
+            free(node->key);  // Free the key (uid)
+            free(node->value);  // Free the client connection struct
             free(node);
             node = next;
         }
@@ -60,7 +58,7 @@ void hash_map_destroy(hash_map* map)
     free(map);
 }
 
-bool hash_map_find(hash_map* map, const void* key, void** value)
+bool hash_map_find(hash_map* map, const char* key, client_connection_t** value)
 {
     size_t hash_value = map->hash_fn(key) % map->hash_size;
 
@@ -69,7 +67,7 @@ bool hash_map_find(hash_map* map, const void* key, void** value)
 
     while (node)
     {
-        if (memcmp(node->key, key, strlen(key)) == 0)
+        if (strcmp(node->key, key) == 0)
         {
             *value = node->value;
             pthread_mutex_unlock(&map->hash_table[hash_value].mutex);
@@ -82,7 +80,7 @@ bool hash_map_find(hash_map* map, const void* key, void** value)
     return false;
 }
 
-void hash_map_insert(hash_map* map, const void* key, const void* value)
+void hash_map_insert(hash_map* map, const char* key, client_connection_t* value)
 {
     size_t hash_value = map->hash_fn(key) % map->hash_size;
 
@@ -90,7 +88,7 @@ void hash_map_insert(hash_map* map, const void* key, const void* value)
     hash_node* prev = NULL;
     hash_node* node = map->hash_table[hash_value].head;
 
-    while (node && memcmp(node->key, key, strlen(key)) != 0)
+    while (node && strcmp(node->key, key) != 0)
     {
         prev = node;
         node = node->next;
@@ -99,12 +97,13 @@ void hash_map_insert(hash_map* map, const void* key, const void* value)
     if (!node)
     {  // New entry
         hash_node* new_node = (hash_node*)malloc(sizeof(hash_node));
-        new_node->key = malloc(strlen(key) + 1);  // Allocate memory based on the actual size of key
-        memcpy(new_node->key, key, strlen(key) + 1);  // Copy key (include null terminator for strings)
+        new_node->key = malloc(strlen(key) + 1);  // Allocate memory for the key
+        if (new_node->key != NULL)
+            strcpy(new_node->key, key);  // Copy the key
+        else
+            fprintf(stderr, "Failed to allocate memory for key\n");
 
-        new_node->value = malloc(strlen(value) + 1);  // Allocate memory for the value
-        memcpy(new_node->value, value, strlen(value) + 1);  // Copy value
-
+        new_node->value = value;  // Store the client connection pointer
         new_node->next = NULL;
 
         if (!map->hash_table[hash_value].head)
@@ -114,15 +113,13 @@ void hash_map_insert(hash_map* map, const void* key, const void* value)
     }
     else // Update existing entry
     {
-        free(node->value);  // Free the old value
-        node->value = malloc(strlen(value) + 1);
-        memcpy(node->value, value, strlen(value) + 1);  // Update value
+        node->value = value;  // Update the client connection
     }
 
     pthread_mutex_unlock(&map->hash_table[hash_value].mutex);
 }
 
-void hash_map_erase(hash_map* map, const void* key)
+void hash_map_erase(hash_map* map, const char* key)
 {
     size_t hash_value = map->hash_fn(key) % map->hash_size;
 
@@ -130,7 +127,7 @@ void hash_map_erase(hash_map* map, const void* key)
     hash_node* prev = NULL;
     hash_node* node = map->hash_table[hash_value].head;
 
-    while (node && memcmp(node->key, key, strlen(key)) != 0)
+    while (node && strcmp(node->key, key) != 0)
     {
         prev = node;
         node = node->next;
@@ -143,8 +140,8 @@ void hash_map_erase(hash_map* map, const void* key)
         else
             prev->next = node->next;
 
-        free(node->key);
-        free(node->value);
+        free(node->key);  // Free the key
+        free(node->value);  // Free the client connection
         free(node);
     }
 
@@ -160,8 +157,8 @@ void hash_map_clear(hash_map* map)
         while (node)
         {
             hash_node* next = node->next;
-            free(node->key);
-            free(node->value);
+            free(node->key);  // Free the uid
+            free(node->value);  // Free the client connection
             free(node);
             node = next;
         }
