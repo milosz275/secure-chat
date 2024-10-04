@@ -147,10 +147,21 @@ If Client A sends a message to Client B, and Client B is either **offline** or n
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
+## Prerequisites
+
+For a Debian-based system, you can install the following packages:
+
+```bash
+sudo apt install git gcc make sqlite3 libz-dev xorg-dev libc6-dev libxi-dev libssl-dev libuv1-dev libx11-dev libxrandr-dev libsqlite3-dev netcat-openbsd libasound2-dev libwayland-dev build-essential mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libcurl4-openssl-dev libxkbcommon-x11-dev libxkbcommon-dev
+```
+
+This should also work with Ubuntu and Linux Mint.
+
+## Build
+
 ```bash
 git clone https://github.com/mldxo/secure-chat
 cd secure-chat
-git submodule update --init --recursive
 make
 ```
 
@@ -203,14 +214,15 @@ Navigate to [database](https://github.com/mldxo/secure-chat/tree/main/database) 
 
 - [ ] Graphical user interface
 - [ ] Direct message E2EE encryption
-- [ ] Group chat and broadcast message support
+- [ ] Group chat support
+- [x] Broadcast message support
 - [ ] Database message save and synchronization
 - [ ] Message history loading
 - [ ] Server instances connection and synchronization
-- [ ] User activity tracking and polling (kick afk, statistics)
-- [ ] Server command line interface for system administration (!exit, !ban, !kick, !mute, !shutdown)
-- [ ] Protocol signal codes ("User is typing...", "User has read the message", "User has joined the chat")
-- [ ] Server logging (requests, client connections, errors)
+- [x] User activity tracking and polling (kick afk, statistics)
+- [x] Server command line interface for system administration (!exit, !ban, !kick, !mute, !shutdown)
+- [x] Protocol signal codes ("User is typing...", "User has read the message", "User has joined the chat")
+- [x] Server logging (requests, client connections, errors)
 - [ ] IP banning and rate limiting
 - [ ] Server start arguments using argv[], argc and/or configuration file (port, database, log level)
 - [ ] Interpreter for server automation
