@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <arpa/inet.h>
 
 #define TIMESTAMP_LENGTH 20
 
@@ -113,6 +114,7 @@ enum
  * @param MESSAGE_CODE_USER_JOIN User joined
  * @param MESSAGE_CODE_USER_LEAVE User left
  * @param MESSAGE_CODE_USER_DOES_NOT_EXIST User does not exist
+ * @param MESSAGE_CODE_USER_ALREADY_ONLINE User already online
  * @param MESSAGE_CODE_USER_REGISTER_INFO User registration information
  * @param MESSAGE_CODE_USER_REGISTER_CHOICE User registration choice
  * @param MESSAGE_CODE_USER_CREATED User created
@@ -140,6 +142,7 @@ enum
     MESSAGE_CODE_USER_JOIN,
     MESSAGE_CODE_USER_LEAVE,
     MESSAGE_CODE_USER_DOES_NOT_EXIST,
+    MESSAGE_CODE_USER_ALREADY_ONLINE,
     MESSAGE_CODE_USER_REGISTER_INFO,
     MESSAGE_CODE_USER_REGISTER_CHOICE,
     MESSAGE_CODE_USER_CREATED,
@@ -173,6 +176,36 @@ typedef struct
     uint32_t payload_length;
     char payload[MAX_PAYLOAD_SIZE];
 } message_t;
+
+/**
+ * The singular request structure. This structure is used to store server connection data.
+ *
+ * @param address The request address.
+ * @param socket The server returned socket.
+ */
+typedef struct
+{
+    struct sockaddr_in address;
+    int socket;
+} request_t;
+
+/**
+ * The singular client structure. This structure is used to store information about a client connected to the server.
+ *
+ * @param request The client request.
+ * @param id The ID of the client.
+ * @param uid The unique ID of the client.
+ * @param username The username of the client.
+ * @param is_ready The client readiness status.
+ */
+typedef struct client_connection_t
+{
+    request_t* request;
+    int id;
+    char* uid;
+    char username[MAX_USERNAME_LENGTH + 1];
+    int is_ready;
+} client_connection_t;
 
 /**
  * Create a message. This function is used to create a message structure based on the message type, sender, recipient, and payload.
