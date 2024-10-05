@@ -21,12 +21,12 @@
 volatile sig_atomic_t quit_flag = 0;
 extern _sts_queue const sts_queue;
 extern sts_header* create();
-static struct client_connections_t clients = { PTHREAD_MUTEX_INITIALIZER, {NULL} };
-static struct server_t server = { 0, {0}, 0, 0, 0, PTHREAD_MUTEX_INITIALIZER, {0}, NULL };
+static struct server_t server = { 0, {0}, 0, 0, 0, PTHREAD_MUTEX_INITIALIZER, {0}, NULL, NULL };
 void usleep(unsigned int usec);
 
 int srv_exit(char** args)
 {
+    log_message(LOG_INFO, SERVER_LOG, __FILE__, "Server shutdown requested");
     if (setsockopt(server.socket, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) == -1)
         perror("setsockopt failed");
     if (close(server.socket) == -1)
@@ -34,6 +34,13 @@ int srv_exit(char** args)
     server.socket = -1;
     quit_flag = 1;
     exit(0);
+    if (args[0] != NULL) {}
+    return 1;
+}
+
+int srv_list(char** args)
+{
+    // [ ] Implement list command
     if (args[0] != NULL) {}
     return 1;
 }
@@ -52,11 +59,90 @@ int srv_kick(char** args)
     return 1;
 }
 
+int srv_kick_all(char** args)
+{
+    // [ ] Implement kickall command
+    if (args[0] != NULL) {}
+    return 1;
+}
+
 int srv_mute(char** args)
 {
     // [ ] Implement mute command
     if (args[0] != NULL) {}
     return 1;
+}
+
+int srv_broadcast(char** args)
+{
+    if (args[0] == NULL)
+    {
+        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "No message provided for broadcast command");
+        return -1;
+    }
+    int total_length = 1;
+    for (int i = 0; args[i] != NULL; ++i)
+        total_length += strlen(args[i]) + 1;
+
+    char* concatenated_args = (char*)malloc(total_length);
+    if (concatenated_args == NULL)
+        return -1;
+
+    concatenated_args[0] = '\0';
+    for (int i = 0; args[i] != NULL; ++i)
+    {
+        strcat(concatenated_args, args[i]);
+        if (args[i + 1] != NULL)
+            strcat(concatenated_args, " ");
+    }
+
+    hash_map_iterate2(server.client_map, send_broadcast, concatenated_args);
+
+    free(concatenated_args);
+    return 1;
+}
+
+void send_ping(void* arg)
+{
+    client_connection_t* cl = (client_connection_t*)arg;
+    if (cl->is_ready)
+    {
+        char log_msg[MAX_LOG_LENGTH];
+        sprintf(log_msg, "Sending PING to client %d", cl->id);
+        log_message(LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
+        message_t* msg = (message_t*)malloc(sizeof(message_t));
+        create_message(msg, MESSAGE_PING, "server", cl->uid, "PING");
+        sts_queue.push(server.message_queue, msg);
+    }
+}
+
+void send_broadcast(client_connection_t* cl, void* arg)
+{
+    char* message = (char*)arg;
+    if (cl->is_ready)
+    {
+        char log_msg[MAX_LOG_LENGTH];
+        sprintf(log_msg, "Broadcasting message to client %d: %s", cl->id, message);
+        log_message(LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
+
+        message_t* msg = (message_t*)malloc(sizeof(message_t));
+        create_message(msg, MESSAGE_TEXT, "server", cl->uid, message);
+        sts_queue.push(server.message_queue, msg);
+    }
+}
+
+void send_join_message(client_connection_t* cl, void* arg)
+{
+    client_connection_t* new_cl = (client_connection_t*)arg;
+    if (cl->is_ready && cl != new_cl)
+    {
+        char log_msg[MAX_LOG_LENGTH];
+        sprintf(log_msg, "Sending JOIN message to client %d", cl->id);
+        log_message(LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
+        message_t* msg = (message_t*)malloc(sizeof(message_t));
+        create_message(msg, MESSAGE_USER_JOIN, "server", cl->uid, new_cl->username);
+        sts_queue.push(server.message_queue, msg);
+    }
 }
 
 void* handle_client(void* arg)
@@ -75,48 +161,34 @@ void* handle_client(void* arg)
     sprintf(log_msg, "Handing request %s:%d", inet_ntoa(req.address.sin_addr), ntohs(req.address.sin_port));
     log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
 
-    if (user_auth(&req, &cl) != USER_AUTHENTICATION_SUCCESS)
+    if (user_auth(&req, &cl, server.client_map) != USER_AUTHENTICATION_SUCCESS)
     {
         close(req.socket);
         pthread_exit(NULL);
     }
 
-    pthread_mutex_lock(&clients.mutex);
-    for (int i = 0; i < MAX_CLIENTS; ++i)
+    if (!hash_map_insert(server.client_map, &cl))
     {
-        if (!clients.array[i])
-        {
-            cl.id = i;
-            log_msg[0] = '\0';
-            sprintf(log_msg, "Client %d added to client array", cl.id);
-            log_message(LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
-            clients.array[i] = &cl;
-            break;
-        }
+        log_message(LOG_ERROR, CLIENTS_LOG, __FILE__, "Failed to insert client into client map");
+        close(req.socket);
+        pthread_exit(NULL);
     }
-    pthread_mutex_unlock(&clients.mutex);
+    log_msg[0] = '\0';
+    sprintf(log_msg, "%s added to client array", cl.username);
+    log_message(LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
 
-    // from this point log to clients.log
+    // from this point log to client_connections.log
     server.client_logins_handled++;
 
     log_msg[0] = '\0';
     sprintf(log_msg, "Successful auth of client - id: %d - username: %s - address: %s:%d - uid: %s", cl.id, cl.username, inet_ntoa(req.address.sin_addr), ntohs(req.address.sin_port), cl.uid);
     log_message(LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
 
-    // simplified message router for join messages
-    pthread_mutex_lock(&clients.mutex);
-    for (int i = 0; i < MAX_CLIENTS; ++i)
-    {
-        if (clients.array[i] && clients.array[i] != &cl)
-        {
-            create_message(&msg, MESSAGE_USER_JOIN, "server", "client", cl.username);
-            send_message(clients.array[i]->request->socket, &msg);
-        }
-    }
-    pthread_mutex_unlock(&clients.mutex);
+    // send join message to all clients except the new one
+    hash_map_iterate2(server.client_map, send_join_message, &cl);
 
     cl.is_ready = 1;
-    create_message(&msg, MESSAGE_PING, "server", "client", "PING");
+    create_message(&msg, MESSAGE_PING, "server", cl.uid, "PING");
     send_message(cl.request->socket, &msg);
     while ((nbytes = recv(cl.request->socket, buffer, sizeof(buffer), 0)) > 0)
     {
@@ -137,27 +209,15 @@ void* handle_client(void* arg)
             }
             else if (msg.type == MESSAGE_ACK)
             {
-                // do nothing
+                log_msg[0] = '\0';
+                sprintf(log_msg, "Received ACK from client %d", cl.id);
+                log_message(LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
             }
             else
             {
-                // simplified broadcast message router for text messages
-                char payload[MAX_PAYLOAD_SIZE];
-                strncpy(payload, msg.payload, MAX_PAYLOAD_SIZE);
-                payload[MAX_PAYLOAD_SIZE - 1] = '\0';
-
-                pthread_mutex_lock(&clients.mutex);
-                for (int i = 0; i < MAX_CLIENTS; ++i)
-                {
-                    if (clients.array[i] && clients.array[i] != &cl)
-                    {
-                        char id_str[20];
-                        snprintf(id_str, sizeof(id_str), "%d", cl.id);
-                        create_message(&msg, MESSAGE_TEXT, id_str, "client", payload);
-                        send_message(clients.array[i]->request->socket, &msg);
-                    }
-                }
-                pthread_mutex_unlock(&clients.mutex);
+                message_t* new_msg = (message_t*)malloc(sizeof(message_t));
+                memcpy(new_msg, &msg, sizeof(message_t));
+                sts_queue.push(server.message_queue, new_msg);
             }
         }
         else
@@ -194,14 +254,20 @@ void* handle_cli(void* arg)
 
 void* handle_msg_queue(void* arg)
 {
-    // approach: use condition variable to signal new message in queue
+    // approach: pop one message at the time and sleep briefly
+    // NOTE: use only for authenticated users with UID. router will not handle messages with "client" sender or recipient
     while (!quit_flag)
     {
-        // messages from queue must be malloced, e.g. message_t* msg = (message_t*)malloc(sizeof(message_t));
         message_t* msg = sts_queue.pop(server.message_queue);
         if (msg)
         {
-            // [ ] Implement message handling
+            char log_msg[MAX_LOG_LENGTH];
+            snprintf(log_msg, MAX_LOG_LENGTH, "Message from %s to %s: %s", msg->sender_uid, msg->recipient_uid, msg->payload);
+            log_message(LOG_INFO, SERVER_LOG, __FILE__, log_msg);
+            client_connection_t* cl = (client_connection_t*)malloc(sizeof(client_connection_t));
+            int recipient_found = hash_map_find(server.client_map, msg->recipient_uid, &cl);
+            if (recipient_found)
+                send_message(cl->request->socket, msg);
             free(msg);
         }
         usleep(100000); // 100 ms
@@ -217,12 +283,7 @@ void* handle_info_update(void* arg)
     char formatted_uptime[9];
     while (!quit_flag)
     {
-        int user_count = 0;
-        pthread_mutex_lock(&clients.mutex);
-        for (int i = 0; i < MAX_CLIENTS; ++i)
-            if (clients.array[i])
-                user_count++;
-        pthread_mutex_unlock(&clients.mutex);
+        int user_count = server.client_map->current_elements;
 
         if (!sysinfo(&sys_info))
         {
@@ -235,12 +296,10 @@ void* handle_info_update(void* arg)
                 sys_info.loads[0] / 65536.0,
                 (sys_info.totalram - sys_info.freeram) / 1024 / 1024,
                 sys_info.totalram / 1024 / 1024);
-            log_message(LOG_INFO, SERVER_LOG, __FILE__, log_msg);
+            log_message(LOG_INFO, SYSTEM_LOG, __FILE__, log_msg);
         }
         else
-        {
-            log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Failed to get system info");
-        }
+            log_message(LOG_ERROR, SYSTEM_LOG, __FILE__, "Failed to get system info");
         sleep(10);
     }
     if (arg) {}
@@ -285,6 +344,7 @@ int run_server()
     server.address.sin_addr.s_addr = INADDR_ANY;
     server.address.sin_port = htons(PORT);
     server.message_queue = sts_queue.create();
+    server.client_map = hash_map_create(MAX_CLIENTS);
 
     char log_msg[MAX_LOG_LENGTH];
     if (server.address.sin_family == AF_INET)
@@ -301,7 +361,7 @@ int run_server()
     {
         if (bind(server.socket, (struct sockaddr*)&server.address, sizeof(server.address)) < 0)
         {
-            system("clear");
+            clear_cli();
             perror("Bind failed");
             printf("Retrying in %d seconds... (Attempt %d/%d)\n",
                 PORT_BIND_INTERVAL, attempts + 1, PORT_BIND_ATTEMPTS);
@@ -361,6 +421,8 @@ int run_server()
     log_message(LOG_INFO, SERVER_LOG, __FILE__, "CLI thread started");
     server.thread_count++;
 
+    init_logging(SYSTEM_LOG);
+    log_message(LOG_INFO, SYSTEM_LOG, __FILE__, "Server started");
     pthread_t info_update_thread;
     if (pthread_create(&info_update_thread, NULL, handle_info_update, (void*)NULL) != 0)
     {
@@ -435,9 +497,7 @@ int run_server()
     }
 
     for (int i = 0; i < server.thread_count; ++i)
-    {
         pthread_join(server.threads[i], NULL);
-    }
 
     sts_queue.destroy(server.message_queue);
     close(server.socket);
