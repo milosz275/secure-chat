@@ -7,6 +7,7 @@
 
 #include "protocol.h"
 #include "sts_queue.h"
+#include "hash_map.h"
 
 #define MAX_CLIENTS 100
 #define MAX_THREADS 100 // overrides max clients
@@ -59,48 +60,6 @@
 # define SINGLE_CORE_SYSTEM 1500
 
 /**
- * The singular request structure. This structure is used to store server connection data.
- *
- * @param address The request address.
- * @param socket The server returned socket.
- */
-typedef struct
-{
-    struct sockaddr_in address;
-    int socket;
-} request_t;
-
-/**
- * The singular client structure. This structure is used to store information about a client connected to the server.
- *
- * @param request The client request.
- * @param id The ID of the client.
- * @param uid The unique ID of the client.
- * @param username The username of the client.
- * @param is_ready The client readiness status.
- */
-typedef struct client_connection_t
-{
-    request_t* request;
-    int id;
-    char* uid;
-    char username[MAX_USERNAME_LENGTH + 1];
-    int is_ready;
-} client_connection_t;
-
-/**
- * The clients base structure. This structure is used to store information about all clients connected to the server.
- *
- * @param mutex The mutex to lock the clients array.
- * @param array The array of clients.
- */
-struct client_connections_t
-{
-    pthread_mutex_t mutex;
-    client_connection_t* array[MAX_CLIENTS];
-};
-
-/**
  * The server structure. This structure is used to store information about the server.
  *
  * @param socket The server socket.
@@ -111,6 +70,7 @@ struct client_connections_t
  * @param thread_count_mutex The mutex to lock the thread count.
  * @param threads The array of threads.
  * @param message_queue The message queue.
+ * @param client_map The client hash map.
  */
 struct server_t
 {
@@ -122,31 +82,60 @@ struct server_t
     pthread_mutex_t thread_count_mutex;
     pthread_t threads[MAX_CLIENTS];
     sts_header* message_queue;
+    hash_map* client_map;
 };
 
 /**
- * Client handler. This thread is used to handle a request, create and connect user to the server.
+ * Send ping message. This function is used to send a ping message to a client.
+ * The function is meant to be used with the hash map.
+ */
+void send_ping(void* arg);
+
+/**
+ * Send broadcast message. This function is used to send a broadcast message to a client.
+ * The function is meant to be used with the hash map.
+ *
+ * @param cl The client connection pointer.
+ * @param arg The message to send.
+ */
+void send_broadcast(client_connection_t* cl, void* arg);
+
+/**
+ * Send join message. This function is used to send a join message to a client, as long as it is not the new client.
+ * The function is meant to be used with the hash map.
+ *
+ * @param cl The client connection pointer.
+ * @param arg The new client connection pointer.
+ */
+void send_join_message(client_connection_t* cl, void* arg);
+
+/**
+ * Client handler. This function is used to handle a request, create and connect user to the server.
+ * The function is meant to be run in a separate thread.
  *
  * @param arg The request structure.
  */
 void* handle_client(void* arg);
 
 /**
- * Command line interface handler. This thread is used to handle the server command line interface.
+ * Command line interface handler. This function is used to handle the server command line interface.
+ * The function is meant to be run in a separate thread.
  *
  * @param arg Not used.
  */
 void* handle_cli(void* arg);
 
 /**
- * Message queue handler. This thread is used to handle the message queue.
+ * Message queue handler. This function is used to handle the message queue.
+ * The function is meant to be run in a separate thread.
  *
  * @param arg Not used.
  */
 void* handle_msg_queue(void* arg);
 
 /**
- * Information update handler. This thread is used to update the server information and log it.
+ * Information update handler. This function is used to update the server information and log it.
+ * The function is meant to be run in a separate thread.
  *
  * @param arg Not used.
  */
