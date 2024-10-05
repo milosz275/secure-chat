@@ -13,7 +13,7 @@
 
 volatile sig_atomic_t quit_flag = 0;
 volatile sig_atomic_t reconnect_flag = 0;
-static struct client_t client = { -1, NULL, CLIENT_BASE_STRING };
+static struct client_t client = { -1, NULL, CLIENT_DEFAULT_NAME };
 static struct client_state_t client_state = { 0, 0, 0 };
 
 void* receive_messages(void* arg)
@@ -48,9 +48,9 @@ void* receive_messages(void* arg)
             message_type_to_string(msg.type), msg.sender_uid, msg.recipient_uid, msg.payload);
 #endif
         // dropping messages addressed to other users
-        if (!client_state.is_authenticated && strcmp(client.uid, CLIENT_BASE_STRING))
+        if (!client_state.is_authenticated && strcmp(client.uid, CLIENT_DEFAULT_NAME))
         {
-            // unauthenticated user should be addressed as CLIENT_BASE_STRING
+            // unauthenticated user should be addressed as CLIENT_DEFAULT_NAME
             printf("(11111) Server: %s\n", msg.payload);
             continue;
         }
@@ -230,7 +230,7 @@ void run_client()
             close(client.socket);
             exit(EXIT_FAILURE);
         }
-        strcpy(client.uid, CLIENT_BASE_STRING);
+        strcpy(client.uid, CLIENT_DEFAULT_NAME);
         sleep(1);
 
         if (pthread_create(&recv_thread, NULL, receive_messages, (void*)&client.socket) != 0)
