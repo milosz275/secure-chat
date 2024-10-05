@@ -120,6 +120,7 @@ const char* message_code_to_string(message_code_t code)
     case MESSAGE_CODE_USER_JOIN: return " has joined the chat.";
     case MESSAGE_CODE_USER_LEAVE: return " has left the chat.";
     case MESSAGE_CODE_USER_DOES_NOT_EXIST: return "User does not exist.";
+    case MESSAGE_CODE_USER_ALREADY_ONLINE: return "User is already online.";
     case MESSAGE_CODE_USER_REGISTER_INFO: return "You can register at your first attempt.";
     case MESSAGE_CODE_USER_REGISTER_CHOICE: return "Would you like to register? [y/n] ";
     case MESSAGE_CODE_USER_CREATED: return "User created.";
