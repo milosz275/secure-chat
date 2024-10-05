@@ -4,7 +4,9 @@
 #include <string.h>
 #include <pthread.h>
 
-hash_map* hash_map_create(size_t hash_size, size_t(*hash_fn)(const char*))
+#include "protocol.h"
+
+hash_map* hash_map_create(size_t hash_size)
 {
     hash_map* map = (hash_map*)malloc(sizeof(hash_map));
     if (!map)
@@ -17,8 +19,7 @@ hash_map* hash_map_create(size_t hash_size, size_t(*hash_fn)(const char*))
         free(map);
         return NULL;
     }
-
-    map->hash_fn = hash_fn;
+    map->current_elements = 0;
 
     for (size_t i = 0; i < hash_size; ++i)
     {
@@ -46,8 +47,7 @@ void hash_map_destroy(hash_map* map)
         while (node)
         {
             hash_node* next = node->next;
-            free(node->key);  // Free the key (uid)
-            free(node->value);  // Free the client connection struct
+            free(node->cl);
             free(node);
             node = next;
         }
@@ -58,18 +58,19 @@ void hash_map_destroy(hash_map* map)
     free(map);
 }
 
-bool hash_map_find(hash_map* map, const char* key, client_connection_t** value)
+bool hash_map_find(hash_map* map, const char* uid, client_connection_t** cl)
 {
-    size_t hash_value = map->hash_fn(key) % map->hash_size;
+    // Directly use the uid to compute the index (uid is already hashed)
+    size_t hash_value = strtoul(uid, NULL, 16) % map->hash_size;
 
     pthread_mutex_lock(&map->hash_table[hash_value].mutex);
     hash_node* node = map->hash_table[hash_value].head;
 
     while (node)
     {
-        if (strcmp(node->key, key) == 0)
+        if (strcmp(node->cl->uid, uid) == 0)
         {
-            *value = node->value;
+            *cl = node->cl;
             pthread_mutex_unlock(&map->hash_table[hash_value].mutex);
             return true;
         }
@@ -80,15 +81,19 @@ bool hash_map_find(hash_map* map, const char* key, client_connection_t** value)
     return false;
 }
 
-void hash_map_insert(hash_map* map, const char* key, client_connection_t* value)
+int hash_map_insert(hash_map* map, client_connection_t* cl)
 {
-    size_t hash_value = map->hash_fn(key) % map->hash_size;
+    int insert_success = 0;
+    const char* uid = cl->uid;
+    
+    // Directly use the uid to compute the index (uid is already hashed)
+    size_t hash_value = strtoul(uid, NULL, 16) % map->hash_size;
 
     pthread_mutex_lock(&map->hash_table[hash_value].mutex);
     hash_node* prev = NULL;
     hash_node* node = map->hash_table[hash_value].head;
 
-    while (node && strcmp(node->key, key) != 0)
+    while (node && strcmp(node->cl->uid, uid) != 0)
     {
         prev = node;
         node = node->next;
@@ -97,37 +102,32 @@ void hash_map_insert(hash_map* map, const char* key, client_connection_t* value)
     if (!node)
     {  // New entry
         hash_node* new_node = (hash_node*)malloc(sizeof(hash_node));
-        new_node->key = malloc(strlen(key) + 1);  // Allocate memory for the key
-        if (new_node->key != NULL)
-            strcpy(new_node->key, key);  // Copy the key
-        else
-            fprintf(stderr, "Failed to allocate memory for key\n");
-
-        new_node->value = value;  // Store the client connection pointer
+        new_node->cl = cl;  // Use client connection pointer directly
         new_node->next = NULL;
 
         if (!map->hash_table[hash_value].head)
             map->hash_table[hash_value].head = new_node;
         else
             prev->next = new_node;
+        map->current_elements++;
+        insert_success = 1;
     }
-    else // Update existing entry
-    {
-        node->value = value;  // Update the client connection
-    }
+    // else: Entry already exists (do nothing)
 
     pthread_mutex_unlock(&map->hash_table[hash_value].mutex);
+    return insert_success;
 }
 
-void hash_map_erase(hash_map* map, const char* key)
+void hash_map_erase(hash_map* map, const char* uid)
 {
-    size_t hash_value = map->hash_fn(key) % map->hash_size;
+    // Directly use the uid to compute the index (uid is already hashed)
+    size_t hash_value = strtoul(uid, NULL, 16) % map->hash_size;
 
     pthread_mutex_lock(&map->hash_table[hash_value].mutex);
     hash_node* prev = NULL;
     hash_node* node = map->hash_table[hash_value].head;
 
-    while (node && strcmp(node->key, key) != 0)
+    while (node && strcmp(node->cl->uid, uid) != 0)
     {
         prev = node;
         node = node->next;
@@ -140,8 +140,8 @@ void hash_map_erase(hash_map* map, const char* key)
         else
             prev->next = node->next;
 
-        free(node->key);  // Free the key
-        free(node->value);  // Free the client connection
+        map->current_elements--;
+        free(node->cl);  // Free the client connection
         free(node);
     }
 
@@ -157,12 +157,41 @@ void hash_map_clear(hash_map* map)
         while (node)
         {
             hash_node* next = node->next;
-            free(node->key);  // Free the uid
-            free(node->value);  // Free the client connection
+            free(node->cl);  // Free the client connection
             free(node);
             node = next;
         }
         map->hash_table[i].head = NULL;
         pthread_mutex_unlock(&map->hash_table[i].mutex);
+    }
+}
+
+void hash_map_iterate(hash_map* map, void (*callback)(client_connection_t*))
+{
+    for (size_t i = 0; i < map->hash_size; ++i)
+    {
+        pthread_mutex_lock(&map->hash_table[i].mutex);  // Lock the bucket
+        hash_node* node = map->hash_table[i].head;
+        while (node)
+        {
+            callback(node->cl);  // Perform operation on the client connection
+            node = node->next;
+        }
+        pthread_mutex_unlock(&map->hash_table[i].mutex);  // Unlock the bucket
+    }
+}
+
+void hash_map_iterate2(hash_map* map, void (*callback)(client_connection_t*, void*), void* param)
+{
+    for (size_t i = 0; i < map->hash_size; ++i)
+    {
+        pthread_mutex_lock(&map->hash_table[i].mutex);  // Lock the bucket
+        hash_node* node = map->hash_table[i].head;
+        while (node)
+        {
+            callback(node->cl, param);  // Pass the client additional parameter
+            node = node->next;
+        }
+        pthread_mutex_unlock(&map->hash_table[i].mutex);  // Unlock the bucket
     }
 }
