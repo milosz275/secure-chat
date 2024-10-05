@@ -40,7 +40,15 @@ extern int srv_exit(char** args);
  * @param args The arguments passed to the function should be empty.
  * @return The exit code.
  */
-extern int srv_clear(char** args);
+int srv_clear(char** args);
+
+/**
+ * List users. This function is used to list all authenticated users.
+ *
+ * @param args The arguments passed to the function should be empty.
+ * @return The exit code.
+ */
+extern int srv_list(char** args);
 
 /**
  * Ban user. This function is used to ban a specified user.
@@ -59,12 +67,28 @@ extern int srv_ban(char** args);
 extern int srv_kick(char** args);
 
 /**
+ * Kick all users. This function is used to kick all users.
+ *
+ * @param args The arguments passed to this function should be empty.
+ * @return The exit code.
+ */
+extern int srv_kick_all(char** args);
+
+/**
  * Mute user. This function is used to mute a specified user.
  *
  * @param args The arguments passed to this function should contain the username to mute.
  * @return The exit code.
  */
 extern int srv_mute(char** args);
+
+/**
+ * Broadcast message. This function is used to broadcast a message to all users.
+ *
+ * @param args The arguments passed to this function should contain the message to broadcast.
+ * @return The exit code.
+ */
+extern int srv_broadcast(char** args);
 
 /**
  * Print help. This function prints all available commands.
