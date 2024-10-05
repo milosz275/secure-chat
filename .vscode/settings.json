@@ -35,7 +35,12 @@
         "server.h": "c",
         "nuklear.h": "c",
         "stdio.h": "c",
-        "sts_queue.h": "c"
+        "sts_queue.h": "c",
+        "array": "c",
+        "functional": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c"
     },
     "task.allowAutomaticTasks": "on",
     "editor.formatOnSave": true,
