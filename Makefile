@@ -9,6 +9,7 @@ CLIENT_BIN = $(CLIENT)/build/bin/$(CLIENT)
 
 .PHONY: all common server client
 all: common server client
+debug: common server-debug client-debug
 
 common:
 	$(MAKE) -C $(COMMON) lib
@@ -18,6 +19,12 @@ server: common
 
 client: server
 	$(MAKE) -C $(CLIENT)
+
+server-debug: common
+	$(MAKE) -C $(SERVER) debug
+
+client-debug: server-debug
+	$(MAKE) -C $(CLIENT) debug
 
 clean:
 	find $(SERVER)/build/src -name '*.o' -delete

@@ -1,4 +1,4 @@
-#include "serverdb.h"
+#include "server_db.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -128,7 +128,7 @@ int setup_db(sqlite3** db, char* db_name)
         sqlite3_close(*db);
     }
 
-    char log_msg[256];
+    char log_msg[MAX_LOG_LENGTH];
     sprintf(log_msg, "Successfully created tables in database %s", db_name);
     log_message(LOG_INFO, SERVER_LOG, __FILE__, log_msg);
     return DATABASE_CREATE_SUCCESS;

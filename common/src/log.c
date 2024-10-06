@@ -13,9 +13,7 @@
 #include "protocol.h"
 
 static struct loggers_t loggers = { PTHREAD_MUTEX_INITIALIZER, {NULL} };
-
 int fileno(FILE* __stream);
-
 void usleep(unsigned int usec);
 
 void init_logging(const char* filename)
@@ -76,7 +74,7 @@ void log_message(log_level_t level, const char* filename, const char* source_fil
     FILE* log = NULL;
     for (int i = 0; i < MAX_LOG_FILES; i++)
     {
-        if (loggers.array[i] != NULL && strcmp(loggers.array[i]->filename, full_path) == 0)
+        if (loggers.array[i] != NULL && !strcmp(loggers.array[i]->filename, full_path))
         {
             log = loggers.array[i]->file;
             break;

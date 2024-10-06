@@ -11,6 +11,7 @@
         "Doxygen",
         "freeram",
         "hankey",
+        "kickall",
         "lineptr",
         "Maculewicz",
         "Miłosz",
@@ -33,7 +34,13 @@
         "evp.h": "c",
         "server.h": "c",
         "nuklear.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "sts_queue.h": "c",
+        "array": "c",
+        "functional": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c"
     },
     "task.allowAutomaticTasks": "on",
     "editor.formatOnSave": true,
@@ -53,16 +60,9 @@
     "C_Cpp.default.browse.databaseFilename": "${workspaceFolder}/.vscode/browse.vc.db",
     "C_Cpp.vcFormat.space.pointerReferenceAlignment": "left",
     "C_Cpp.clang_format_style": "file",
+    "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, IndentWidth: 4, ColumnLimit: 0}",
     "[cpp]": {
         "editor.formatOnType": true,
         "editor.formatOnSave": true
-    },
-    "clang-format.fallbackStyle": "LLVM",
-    "clang-format.style": {
-        "BasedOnStyle": "LLVM",
-        "SpacesBeforeTrailingComments": 0,
-        "AlignTrailingComments": false,
-        "SpaceBeforeParens": "ControlStatements",
-        "ColumnLimit": 0
     }
 }

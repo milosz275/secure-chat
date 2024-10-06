@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <arpa/inet.h>
 
 #define TIMESTAMP_LENGTH 20
 
@@ -54,6 +55,8 @@
 #define MESSAGE_TYPE_UNKNOWN "UNKNOWN"
 #define MESSAGE_CODE_UNKNOWN "UNKNOWN"
 
+#define CLIENT_DEFAULT_NAME "client"
+
 /**
  * The message type enumeration. This enumeration is used to define the type of message that is being sent.
  *
@@ -75,7 +78,8 @@
  * @param MESSAGE_SYSTEM Server maintenance message
  * @return The message type enumeration.
  */
-typedef enum
+typedef int32_t message_type_t;
+enum
 {
     MESSAGE_TEXT = 1234,
     MESSAGE_TOAST,
@@ -89,11 +93,12 @@ typedef enum
     MESSAGE_SIGNAL,
     MESSAGE_AUTH,
     MESSAGE_AUTH_ATTEMPS,
+    MESSAGE_UID,
     MESSAGE_ERROR,
     MESSAGE_USER_JOIN,
     MESSAGE_USER_LEAVE,
     MESSAGE_SYSTEM,
-} message_type_t;
+};
 
 /**
  * The message code enumeration. This enumeration is used to define the message codes that are used for message specification and control.
@@ -109,6 +114,7 @@ typedef enum
  * @param MESSAGE_CODE_USER_JOIN User joined
  * @param MESSAGE_CODE_USER_LEAVE User left
  * @param MESSAGE_CODE_USER_DOES_NOT_EXIST User does not exist
+ * @param MESSAGE_CODE_USER_ALREADY_ONLINE User already online
  * @param MESSAGE_CODE_USER_REGISTER_INFO User registration information
  * @param MESSAGE_CODE_USER_REGISTER_CHOICE User registration choice
  * @param MESSAGE_CODE_USER_CREATED User created
@@ -119,9 +125,11 @@ typedef enum
  * @param MESSAGE_CODE_USER_AUTHENTICATION_FAILURE User authentication failed
  * @param MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED User authentication attempts exceeded
  * @param MESSAGE_CODE_USER_AUTHENTICATION_SUCCESS User authentication success
+ * @param MESSAGE_CODE_UID Unique message ID
  * @param MESSAGE_CODE_UNKNOWN Unknown message code
  */
-typedef enum
+typedef int32_t message_code_t;
+enum
 {
     MESSAGE_CODE_WELCOME = 2345,
     MESSAGE_CODE_ENTER_USERNAME,
@@ -134,6 +142,7 @@ typedef enum
     MESSAGE_CODE_USER_JOIN,
     MESSAGE_CODE_USER_LEAVE,
     MESSAGE_CODE_USER_DOES_NOT_EXIST,
+    MESSAGE_CODE_USER_ALREADY_ONLINE,
     MESSAGE_CODE_USER_REGISTER_INFO,
     MESSAGE_CODE_USER_REGISTER_CHOICE,
     MESSAGE_CODE_USER_CREATED,
@@ -144,7 +153,8 @@ typedef enum
     MESSAGE_CODE_USER_AUTHENTICATION_FAILURE,
     MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED,
     MESSAGE_CODE_USER_AUTHENTICATION_SUCCESS,
-} message_code_t;
+    MESSAGE_CODE_UID,
+};
 
 /**
  * The message structure. This structure is used to store message data.
@@ -166,6 +176,36 @@ typedef struct
     uint32_t payload_length;
     char payload[MAX_PAYLOAD_SIZE];
 } message_t;
+
+/**
+ * The singular request structure. This structure is used to store server connection data.
+ *
+ * @param address The request address.
+ * @param socket The server returned socket.
+ */
+typedef struct
+{
+    struct sockaddr_in address;
+    int socket;
+} request_t;
+
+/**
+ * The singular client structure. This structure is used to store information about a client connected to the server.
+ *
+ * @param request The client request.
+ * @param id The ID of the client.
+ * @param uid The unique ID of the client.
+ * @param username The username of the client.
+ * @param is_ready The client readiness status.
+ */
+typedef struct client_connection_t
+{
+    request_t* request;
+    int id;
+    char* uid;
+    char username[MAX_USERNAME_LENGTH + 1];
+    int is_ready;
+} client_connection_t;
 
 /**
  * Create a message. This function is used to create a message structure based on the message type, sender, recipient, and payload.
@@ -245,5 +285,10 @@ void get_formatted_timestamp(char* buffer, size_t buffer_size);
  * @param buffer_size The size of the buffer.
  */
 void format_uptime(long seconds, char* buffer, size_t buffer_size);
+
+/**
+ * Clear the command line interface. This function is used to clear the command line interface.
+ */
+void clear_cli();
 
 #endif
