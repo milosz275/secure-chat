@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <arpa/inet.h>
+#include <openssl/ssl.h>
 
 #define TIMESTAMP_LENGTH 20
 
@@ -182,11 +183,13 @@ typedef struct
  *
  * @param address The request address.
  * @param socket The server returned socket.
+ * @param ssl The SSL object for the connection.
  */
 typedef struct
 {
     struct sockaddr_in address;
     int socket;
+    SSL* ssl;
 } request_t;
 
 /**
