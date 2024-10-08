@@ -4,6 +4,8 @@
 #include <pthread.h>
 #include <arpa/inet.h>
 #include <sqlite3.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 #include "protocol.h"
 #include "sts_queue.h"
@@ -57,6 +59,7 @@
 #define USER_AUTHENTICATION_MEMORY_ALLOCATION_FAILURE 1418
 #define USER_AUTHENTICATION_LAST_LOGIN_UPDATE_FAILURE 1419
 
+// Other
 # define SINGLE_CORE_SYSTEM 1500
 
 /**
@@ -71,6 +74,8 @@
  * @param threads The array of threads.
  * @param message_queue The message queue.
  * @param client_map The client hash map.
+ * @param ssl_ctx The SSL context.
+ * @param ssl The SSL object.
  */
 struct server_t
 {
@@ -83,6 +88,8 @@ struct server_t
     pthread_t threads[MAX_CLIENTS];
     sts_header* message_queue;
     hash_map* client_map;
+    SSL_CTX* ssl_ctx;
+    SSL* ssl;
 };
 
 /**
