@@ -4,6 +4,7 @@
         "antk",
         "Auths",
         "AUTOINCREMENT",
+        "BIGNUM",
         "ciphertext",
         "ciphertexts",
         "codespace",
@@ -19,6 +20,7 @@
         "Nuklear",
         "onboarded",
         "passcode",
+        "pubkey",
         "SERVERAUTH",
         "SERVERCLI",
         "SERVERDB",
@@ -40,7 +42,8 @@
         "functional": "c",
         "tuple": "c",
         "type_traits": "c",
-        "utility": "c"
+        "utility": "c",
+        "server_auth.h": "c"
     },
     "task.allowAutomaticTasks": "on",
     "editor.formatOnSave": true,
