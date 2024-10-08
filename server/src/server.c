@@ -10,18 +10,21 @@
 #include <errno.h>
 #include <ctype.h>
 #include <sys/sysinfo.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 #include "protocol.h"
 #include "server_cli.h"
 #include "server_db.h"
 #include "server_auth.h"
+#include "server_openssl.h"
 #include "log.h"
 #include "sts_queue.h"
 
 volatile sig_atomic_t quit_flag = 0;
 extern _sts_queue const sts_queue;
 extern sts_header* create();
-static struct server_t server = { 0, {0}, 0, 0, 0, PTHREAD_MUTEX_INITIALIZER, {0}, NULL, NULL };
+static struct server_t server = { 0, {0}, 0, 0, 0, PTHREAD_MUTEX_INITIALIZER, {0}, NULL, NULL, NULL, NULL };
 void usleep(unsigned int usec);
 
 int srv_exit(char** args)
@@ -321,13 +324,13 @@ int run_server()
     int client_socket;
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
-    request_t req;
     init_logging(SERVER_LOG);
     log_message(LOG_INFO, SERVER_LOG, __FILE__, "Server started");
 
     sqlite3* db;
     if (setup_db(&db, DB_NAME) != DATABASE_CREATE_SUCCESS)
     {
+        finish_logging();
         return DATABASE_SETUP_FAILURE;
     }
     log_message(LOG_INFO, SERVER_LOG, __FILE__, "Database setup successful");
@@ -343,6 +346,12 @@ int run_server()
     server.address.sin_family = AF_INET;
     server.address.sin_addr.s_addr = INADDR_ANY;
     server.address.sin_port = htons(PORT);
+    if (init_ssl(&server) != OPENSSL_INIT_SUCCESS)
+    {
+        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "SSL initialization failed. Server shutting down");
+        finish_logging();
+        exit(EXIT_FAILURE);
+    }
     server.message_queue = sts_queue.create();
     server.client_map = hash_map_create(MAX_CLIENTS);
 
@@ -470,8 +479,25 @@ int run_server()
             continue;
         }
 
+        SSL* client_ssl = SSL_new(server.ssl_ctx);
+        if (!client_ssl)
+        {
+            log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Failed to create SSL object for client");
+            close(client_socket);
+            continue;
+        }
+        SSL_set_fd(client_ssl, client_socket);
+        if (SSL_accept(client_ssl) <= 0)
+        {
+            log_message(LOG_ERROR, SERVER_LOG, __FILE__, "SSL handshake failed");
+            SSL_free(client_ssl);
+            close(client_socket);
+            continue;
+        }
+        request_t req;
         req.socket = client_socket;
         req.address = client_addr;
+        req.ssl = client_ssl;
 
         pthread_t tid;
         if (pthread_create(&tid, NULL, handle_client, (void*)&req) != 0)
@@ -500,6 +526,8 @@ int run_server()
         pthread_join(server.threads[i], NULL);
 
     sts_queue.destroy(server.message_queue);
+    hash_map_destroy(server.client_map);
+    destroy_ssl(&server);
     close(server.socket);
     pthread_join(cli_thread, NULL);
     pthread_join(info_update_thread, NULL);
