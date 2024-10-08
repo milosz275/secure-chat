@@ -67,3 +67,9 @@ docs/
 *.sqlite
 *.db
 *.db-*
+
+# SSL
+*.pem
+*.key
+*.csr
+*.crt
