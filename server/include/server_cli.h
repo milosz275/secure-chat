@@ -1,5 +1,5 @@
-#ifndef __SERVERCLI_H
-#define __SERVERCLI_H
+#ifndef __SERVER_CLI_H
+#define __SERVER_CLI_H
 
 #include <stdlib.h>
 #include <stdio.h>

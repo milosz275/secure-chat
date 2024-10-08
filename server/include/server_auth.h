@@ -1,5 +1,5 @@
-#ifndef __SERVERAUTH_H
-#define __SERVERAUTH_H
+#ifndef __SERVER_AUTH_H
+#define __SERVER_AUTH_H
 
 #include "server.h"
 #include "hash_map.h"
