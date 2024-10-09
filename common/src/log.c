@@ -114,11 +114,11 @@ void log_message(log_level_t level, const char* filename, const char* source_fil
     const char* level_str;
     switch (level)
     {
-    case LOG_DEBUG: level_str = "DEBUG"; break;
-    case LOG_INFO: level_str = "INFO"; break;
-    case LOG_WARN: level_str = "WARN"; break;
-    case LOG_ERROR: level_str = "ERROR"; break;
-    case LOG_FATAL: level_str = "FATAL"; break;
+    case T_LOG_DEBUG: level_str = "DEBUG"; break;
+    case T_LOG_INFO: level_str = "INFO"; break;
+    case T_LOG_WARN: level_str = "WARN"; break;
+    case T_LOG_ERROR: level_str = "ERROR"; break;
+    case T_LOG_FATAL: level_str = "FATAL"; break;
     default: level_str = "UNKNOWN"; break;
     }
 

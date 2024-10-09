@@ -20,21 +20,21 @@
 #define LOCKED_FILE_TIMEOUT 5000000 // in microseconds (5 seconds)
 
 /**
- * The log level enumeration. This enumeration is used to define the level of logging that is being used.
+ * The log level enumeration. This enumeration is used to define the level of logging that is being used. Regular log enums are used by Raylib.
  *
- * @param LOG_DEBUG Debug level logging
- * @param LOG_INFO Information level logging
- * @param LOG_WARN Warning level logging
- * @param LOG_ERROR Error level logging
- * @param LOG_FATAL Fatal level logging
+ * @param T_LOG_DEBUG Debug level logging
+ * @param T_LOG_INFO Information level logging
+ * @param T_LOG_WARN Warning level logging
+ * @param T_LOG_ERROR Error level logging
+ * @param T_LOG_FATAL Fatal level logging
  */
 typedef enum
 {
-    LOG_DEBUG,
-    LOG_INFO,
-    LOG_WARN,
-    LOG_ERROR,
-    LOG_FATAL
+    T_LOG_DEBUG,
+    T_LOG_INFO,
+    T_LOG_WARN,
+    T_LOG_ERROR,
+    T_LOG_FATAL
 } log_level_t;
 
 /**
