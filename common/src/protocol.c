@@ -6,6 +6,7 @@
 #include <time.h>
 #include <arpa/inet.h>
 #include <openssl/evp.h>
+#include <openssl/err.h>
 
 struct tm* localtime_r(const time_t* timer, struct tm* buf);
 
@@ -58,7 +59,7 @@ void parse_message(message_t* msg, const char* buffer)
     msg->payload[msg->payload_length] = '\0';
 }
 
-int send_message(int socket, message_t* msg)
+int send_message(SSL* ssl, message_t* msg)
 {
     if (msg == NULL)
         return MESSAGE_SEND_FAILURE;
@@ -72,12 +73,25 @@ int send_message(int socket, message_t* msg)
         msg->recipient_uid, MESSAGE_DELIMITER,
         msg->payload_length, MESSAGE_DELIMITER,
         msg->payload);
-    send(socket, buffer, strlen(buffer), 0);
+
+    int bytes_sent = SSL_write(ssl, buffer, strlen(buffer));
+    if (bytes_sent <= 0)
+    {
+        int ssl_error = SSL_get_error(ssl, bytes_sent);
+        if (ssl_error == SSL_ERROR_WANT_WRITE || ssl_error == SSL_ERROR_WANT_READ)
+            return MESSAGE_SEND_RETRY;
+        else
+        {
+            ERR_print_errors_fp(stderr);
+            return MESSAGE_SEND_FAILURE;
+        }
+    }
     msg->payload[0] = '\0';
     msg->payload_length = 0;
 
     return MESSAGE_SEND_SUCCESS;
 }
+
 
 const char* message_type_to_string(message_type_t type)
 {
