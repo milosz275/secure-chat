@@ -244,15 +244,23 @@ void parse_message(message_t* msg, const char* buffer);
 int send_message(SSL* ssl, message_t* msg);
 
 /**
- * Get the message type as a string. This function is used to get the message type as a string.
+ * Get the message type as a text string. This function is used to get the message type as a text string, for example "MESSAGE_TOAST".
  *
  * @param type The message type.
- * @return The message type as a string.
+ * @return The message type as a text string.
  */
-const char* message_type_to_string(message_type_t type);
+const char* message_type_to_text(message_type_t type);
 
 /**
- * Get the message code as a string. This function is used to get the message code as a string.
+ * Get the message code as a text string. This function is used to get the message code as a text string, for example "Welcome!".
+ *
+ * @param code The message code.
+ * @return The message code as a text string.
+ */
+const char* message_code_to_text(message_code_t code);
+
+/**
+ * Get the message code as a string. This function is used to get the message code as a string, for example "1234".
  *
  * @param code The message code.
  * @return The message code as a string.
