@@ -56,6 +56,8 @@ browse.vc.*
 # Logs
 logs/
 *.log
+*history
+*history.txt
 
 # Docs are auto-generated
 docs/
