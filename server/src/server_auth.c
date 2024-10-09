@@ -76,7 +76,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
 
         log_msg[0] = '\0';
         sprintf(log_msg, "Request from %s:%d for username %s", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port), username);
-        log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
+        log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
 
         char* sql = "SELECT uid FROM users WHERE username = ?;";
 
@@ -159,8 +159,8 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                             fprintf(stderr, "Failed to allocate memory for UID\n");
                             log_msg[0] = '\0';
                             sprintf(log_msg, "Failed to allocate memory for UID - register request from %s:%d", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
-                            log_message(LOG_WARN, REQUESTS_LOG, __FILE__, log_msg);
-                            log_message(LOG_WARN, SERVER_LOG, __FILE__, log_msg);
+                            log_message(T_LOG_WARN, REQUESTS_LOG, __FILE__, log_msg);
+                            log_message(T_LOG_WARN, SERVER_LOG, __FILE__, log_msg);
                             goto cleanup;
                         }
                         if (get_hash((unsigned char*)username, cl->uid) != 0)
@@ -168,8 +168,8 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                             fprintf(stderr, "Failed to hash username\n");
                             log_msg[0] = '\0';
                             sprintf(log_msg, "Failed to hash username - register request from %s:%d", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
-                            log_message(LOG_WARN, REQUESTS_LOG, __FILE__, log_msg);
-                            log_message(LOG_WARN, SERVER_LOG, __FILE__, log_msg);
+                            log_message(T_LOG_WARN, REQUESTS_LOG, __FILE__, log_msg);
+                            log_message(T_LOG_WARN, SERVER_LOG, __FILE__, log_msg);
                             goto cleanup;
                         }
 
@@ -179,8 +179,8 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                             fprintf(stderr, "Failed to hash password\n");
                             log_msg[0] = '\0';
                             sprintf(log_msg, "Failed to hash password - register request from %s:%d", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
-                            log_message(LOG_WARN, REQUESTS_LOG, __FILE__, log_msg);
-                            log_message(LOG_WARN, SERVER_LOG, __FILE__, log_msg);
+                            log_message(T_LOG_WARN, REQUESTS_LOG, __FILE__, log_msg);
+                            log_message(T_LOG_WARN, SERVER_LOG, __FILE__, log_msg);
                             goto cleanup;
                         }
 
@@ -213,7 +213,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
 
                         log_msg[0] = '\0';
                         sprintf(log_msg, "Registered user %s with UID %s", username, cl->uid);
-                        log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
+                        log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
 
                         // send auth success message without UID specified as recipient parameter. user should be reading UID from next message now on
                         send_msg[0] = '\0';
@@ -253,7 +253,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                     char choice_truncated[4];
                     snprintf(choice_truncated, 4, "%.*s", 3, msg.payload);
                     sprintf(log_msg, "Request from %s:%d failed authentication - invalid choice: %s", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port), choice_truncated);
-                    log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
+                    log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
                     goto cleanup;
                 }
             }
@@ -274,7 +274,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
 
                     log_msg[0] = '\0';
                     sprintf(log_msg, "Request from %s:%d failed authentication - out of login attempts", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
-                    log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
+                    log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
                     goto cleanup;
                 }
                 else
@@ -300,7 +300,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
             {
                 log_msg[0] = '\0';
                 sprintf(log_msg, "Request from %s:%d failed authentication - user already online", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
-                log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
+                log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
                 send_msg[0] = '\0';
                 sprintf(send_msg, "%d", MESSAGE_CODE_USER_ALREADY_ONLINE);
                 create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
@@ -334,8 +334,8 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                 fprintf(stderr, "Failed to hash password\n");
                 log_msg[0] = '\0';
                 sprintf(log_msg, "Failed to hash password - login request from %s:%d", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
-                log_message(LOG_WARN, REQUESTS_LOG, __FILE__, log_msg);
-                log_message(LOG_WARN, SERVER_LOG, __FILE__, log_msg);
+                log_message(T_LOG_WARN, REQUESTS_LOG, __FILE__, log_msg);
+                log_message(T_LOG_WARN, SERVER_LOG, __FILE__, log_msg);
                 goto cleanup;
             }
 
@@ -359,7 +359,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
             {
                 log_msg[0] = '\0';
                 sprintf(log_msg, "Request from %s:%d failed authentication - invalid password", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
-                log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
+                log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
                 attempts++;
                 if (attempts == USER_LOGIN_ATTEMPTS)
                 {
@@ -390,7 +390,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                 {
                     log_msg[0] = '\0';
                     sprintf(log_msg, "Request from %s:%d failed authentication - out of login attempts", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
-                    log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
+                    log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
                     goto cleanup;
                 }
             }
@@ -436,7 +436,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
 
                 log_msg[0] = '\0';
                 sprintf(log_msg, "Authenticated user %s with UID %s", username, cl->uid);
-                log_message(LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
+                log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
 
                 // send auth success message without UID specified as recipient parameter. user should be reading UID from next message now on
                 send_msg[0] = '\0';

@@ -20,21 +20,21 @@ int init_ssl(server_t* server)
     server->ssl_ctx = SSL_CTX_new(TLS_server_method());
     if (!server->ssl_ctx)
     {
-        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Failed to create SSL context");
+        log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Failed to create SSL context");
         finish_logging();
         return OPENSSL_SSL_CTX_CREATION_FAILURE;
     }
     check_and_generate_key_cert();
     if (SSL_CTX_use_certificate_file(server->ssl_ctx, SERVER_CERT_FILE, SSL_FILETYPE_PEM) <= 0)
     {
-        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Failed to load server certificate");
+        log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Failed to load server certificate");
         finish_logging();
         destroy_ssl(server);
         return OPENSSL_CERTIFICATE_LOAD_FAILURE;
     }
     if (SSL_CTX_use_PrivateKey_file(server->ssl_ctx, SERVER_KEY_FILE, SSL_FILETYPE_PEM) <= 0)
     {
-        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Failed to load server private key");
+        log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Failed to load server private key");
         finish_logging();
         destroy_ssl(server);
         return OPENSSL_PRIVATE_KEY_LOAD_FAILURE;
@@ -42,13 +42,13 @@ int init_ssl(server_t* server)
     server->ssl = SSL_new(server->ssl_ctx);
     if (!server->ssl)
     {
-        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Failed to create SSL object");
+        log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Failed to create SSL object");
         finish_logging();
         destroy_ssl(server);
         return OPENSSL_SSL_OBJECT_FAILURE;
     }
     SSL_set_fd(server->ssl, server->socket);
-    log_message(LOG_INFO, SERVER_LOG, __FILE__, "SSL initialization successful");
+    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "SSL initialization successful");
     return OPENSSL_INIT_SUCCESS;
 }
 
@@ -76,27 +76,27 @@ int generate_rsa_key(const char* key_file)
     ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL);
     if (!ctx)
     {
-        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Error creating context.");
+        log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Error creating context.");
         return -1;
     }
 
     if (EVP_PKEY_keygen_init(ctx) <= 0)
     {
-        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Error initializing keygen.");
+        log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Error initializing keygen.");
         EVP_PKEY_CTX_free(ctx);
         return -1;
     }
 
     if (EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, RSA_KEY_LENGTH) <= 0)
     {
-        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Error setting RSA key length.");
+        log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Error setting RSA key length.");
         EVP_PKEY_CTX_free(ctx);
         return -1;
     }
 
     if (EVP_PKEY_keygen(ctx, &pkey) <= 0)
     {
-        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Error generating RSA key.");
+        log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Error generating RSA key.");
         EVP_PKEY_CTX_free(ctx);
         return -1;
     }
@@ -104,7 +104,7 @@ int generate_rsa_key(const char* key_file)
     file = fopen(key_file, "wb");
     if (!file)
     {
-        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Error opening key file.");
+        log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Error opening key file.");
         EVP_PKEY_free(pkey);
         EVP_PKEY_CTX_free(ctx);
         return -1;
@@ -112,7 +112,7 @@ int generate_rsa_key(const char* key_file)
 
     if (!PEM_write_PrivateKey(file, pkey, NULL, NULL, 0, NULL, NULL))
     {
-        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Error writing key to file.");
+        log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Error writing key to file.");
         fclose(file);
         EVP_PKEY_free(pkey);
         EVP_PKEY_CTX_free(ctx);
@@ -122,7 +122,7 @@ int generate_rsa_key(const char* key_file)
     fclose(file);
     EVP_PKEY_free(pkey);
     EVP_PKEY_CTX_free(ctx);
-    log_message(LOG_INFO, SERVER_LOG, __FILE__, "RSA key generation successful");
+    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "RSA key generation successful");
     return 0;
 }
 
@@ -135,7 +135,7 @@ int generate_self_signed_certificate(const char* cert_file, const char* key_file
     FILE* key_fp = fopen(key_file, "rb");
     if (!key_fp)
     {
-        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Unable to open key file for reading");
+        log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Unable to open key file for reading");
         return -1;
     }
 
@@ -144,7 +144,7 @@ int generate_self_signed_certificate(const char* cert_file, const char* key_file
 
     if (!pkey)
     {
-        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Error reading private key from file");
+        log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Error reading private key from file");
         return -1;
     }
 
@@ -164,7 +164,7 @@ int generate_self_signed_certificate(const char* cert_file, const char* key_file
 
     if (!X509_sign(x509, pkey, EVP_sha256()))
     {
-        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Error signing certificate.");
+        log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Error signing certificate.");
         EVP_PKEY_free(pkey);
         X509_free(x509);
         return -1;
@@ -173,7 +173,7 @@ int generate_self_signed_certificate(const char* cert_file, const char* key_file
     file = fopen(cert_file, "wb");
     if (!file)
     {
-        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Unable to open cert file for writing");
+        log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Unable to open cert file for writing");
         EVP_PKEY_free(pkey);
         X509_free(x509);
         return -1;
@@ -186,7 +186,7 @@ int generate_self_signed_certificate(const char* cert_file, const char* key_file
 
     char log_msg[MAX_LOG_LENGTH];
     snprintf(log_msg, sizeof(log_msg), "Self-signed certificate generated and saved to %s", cert_file);
-    log_message(LOG_INFO, SERVER_LOG, __FILE__, log_msg);
+    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, log_msg);
     return 0;
 }
 
@@ -195,10 +195,10 @@ void check_and_generate_key_cert()
     char log_msg[MAX_LOG_LENGTH];
     if (!file_exists(SERVER_KEY_FILE))
     {
-        log_message(LOG_INFO, SERVER_LOG, __FILE__, "Key file not found. Generating new RSA key...");
+        log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Key file not found. Generating new RSA key...");
         if (generate_rsa_key(SERVER_KEY_FILE) != 0)
         {
-            log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Failed to generate RSA key.");
+            log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Failed to generate RSA key.");
             exit(EXIT_FAILURE);
         }
     }
@@ -206,15 +206,15 @@ void check_and_generate_key_cert()
     {
         log_msg[0] = '\0';
         snprintf(log_msg, sizeof(log_msg), "Key file exists: %s", SERVER_KEY_FILE);
-        log_message(LOG_INFO, SERVER_LOG, __FILE__, log_msg);
+        log_message(T_LOG_INFO, SERVER_LOG, __FILE__, log_msg);
     }
 
     if (!file_exists(SERVER_CERT_FILE))
     {
-        log_message(LOG_INFO, SERVER_LOG, __FILE__, "Certificate file not found. Generating new self-signed certificate...");
+        log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Certificate file not found. Generating new self-signed certificate...");
         if (generate_self_signed_certificate(SERVER_CERT_FILE, SERVER_KEY_FILE) != 0)
         {
-            log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Failed to generate self-signed certificate.");
+            log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Failed to generate self-signed certificate.");
             exit(EXIT_FAILURE);
         }
     }
@@ -222,6 +222,6 @@ void check_and_generate_key_cert()
     {
         log_msg[0] = '\0';
         snprintf(log_msg, sizeof(log_msg), "Certificate file exists: %s", SERVER_CERT_FILE);
-        log_message(LOG_INFO, SERVER_LOG, __FILE__, log_msg);
+        log_message(T_LOG_INFO, SERVER_LOG, __FILE__, log_msg);
     }
 }

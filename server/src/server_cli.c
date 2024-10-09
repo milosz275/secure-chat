@@ -27,7 +27,7 @@ static srv_command_t srv_commands[] =
 int srv_history(char** args)
 {
     if (args[0] != NULL)
-        log_message(LOG_WARN, SERVER_LOG, __FILE__, "Arguments provided for history command ignored");
+        log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Arguments provided for history command ignored");
     HIST_ENTRY** history_entries = history_list();
     if (history_entries)
     {
@@ -40,7 +40,7 @@ int srv_history(char** args)
 int srv_help(char** args)
 {
     if (args[0] != NULL)
-        log_message(LOG_WARN, SERVER_LOG, __FILE__, "Arguments provided for help command ignored"); // [ ] Add help for each command (e.g. !help !ban)
+        log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Arguments provided for help command ignored"); // [ ] Add help for each command (e.g. !help !ban)
     for (int i = 0; i < SRV_COMMANDS_NUM; ++i)
         printf("%-11s- %s\n", srv_commands[i].srv_command_name, srv_commands[i].srv_command_description);
     return 1;
@@ -49,7 +49,7 @@ int srv_help(char** args)
 int srv_clear(char** args)
 {
     if (args[0] != NULL)
-        log_message(LOG_WARN, SERVER_LOG, __FILE__, "Arguments provided for clear command ignored");
+        log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Arguments provided for clear command ignored");
     clear_cli();
     return 1;
 }
@@ -159,7 +159,7 @@ int srv_exec_line(char* line)
     printf("Command not found! Type !help to see available commands.\n");
     char log_msg[MAX_LOG_LENGTH];
     sprintf(log_msg, "Command not found: %s", command);
-    log_message(LOG_INFO, SERVER_LOG, __FILE__, log_msg);
+    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, log_msg);
     free(tokens);
     return 1;
 }
