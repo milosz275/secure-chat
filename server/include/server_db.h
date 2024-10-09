@@ -1,5 +1,5 @@
-#ifndef __SERVERDB_H
-#define __SERVERDB_H
+#ifndef __SERVER_DB_H
+#define __SERVER_DB_H
 
 #include <sqlite3.h>
 

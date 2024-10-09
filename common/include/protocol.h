@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <arpa/inet.h>
+#include <openssl/ssl.h>
 
 #define TIMESTAMP_LENGTH 20
 
@@ -51,6 +52,7 @@
 // The message send result codes. These are used to determine the exit code of the send_message function.
 #define MESSAGE_SEND_SUCCESS 2300
 #define MESSAGE_SEND_FAILURE 2301
+#define MESSAGE_SEND_RETRY 2302
 
 #define MESSAGE_TYPE_UNKNOWN "UNKNOWN"
 #define MESSAGE_CODE_UNKNOWN "UNKNOWN"
@@ -161,7 +163,7 @@ enum
  *
  * @param message_uid The unique message ID.
  * @param type The type of the message.
- * @param sender_username The sender's username.
+ * @param sender_uid The sender's unique ID.
  * @param recipient_uid The recipient's unique ID (could be a user or group UID).
  * @param payload_length The length of the payload.
  * @param payload The message content or control data.
@@ -182,11 +184,13 @@ typedef struct
  *
  * @param address The request address.
  * @param socket The server returned socket.
+ * @param ssl The SSL object for the connection.
  */
 typedef struct
 {
     struct sockaddr_in address;
     int socket;
+    SSL* ssl;
 } request_t;
 
 /**
@@ -228,13 +232,13 @@ int create_message(message_t* msg, message_type_t type, const char* sender_uid, 
 void parse_message(message_t* msg, const char* buffer);
 
 /**
- * Send a message. This function is used to send a message using a socket.
+ * Send a message. This function is used to send a message using a secure SSL connection.
  *
- * @param socket The socket to send the message to.
+ * @param ssl The SSL object.
  * @param msg The message to send.
  * @return The message send result code.
  */
-int send_message(int socket, message_t* msg);
+int send_message(SSL* ssl, message_t* msg);
 
 /**
  * Get the message type as a string. This function is used to get the message type as a string.

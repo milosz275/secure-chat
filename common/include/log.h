@@ -12,6 +12,9 @@
 #define CLIENTS_LOG "clients.log"
 #define REQUESTS_LOG "requests.log"
 #define SYSTEM_LOG "system.log"
+#define CLIENT_LOG "client.log"
+#define LOG_SERVER_STARTED "Server started ----------------------------------------------------------------------------------------"
+#define LOG_CLIENT_STARTED "Client started ----------------------------------------------------------------------------------------"
 
 #define LOCKED_FILE_RETRY_TIME 1000 // in microseconds
 #define LOCKED_FILE_TIMEOUT 5000000 // in microseconds (5 seconds)
@@ -49,12 +52,15 @@ typedef struct logger_t
 /**
  * The loggers structure. This structure is used to store the loggers for the logging system.
  *
+ * @param log_mutex The mutex for the loggers.
  * @param array The array of loggers.
+ * @param is_initializing The flag to indicate if the loggers are initializing.
  */
 typedef struct loggers_t
 {
     pthread_mutex_t log_mutex;
     logger_t* array[MAX_LOG_FILES];
+    int is_initializing;
 } loggers_t;
 
 /**

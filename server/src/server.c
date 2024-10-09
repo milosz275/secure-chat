@@ -10,18 +10,21 @@
 #include <errno.h>
 #include <ctype.h>
 #include <sys/sysinfo.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 #include "protocol.h"
 #include "server_cli.h"
 #include "server_db.h"
 #include "server_auth.h"
+#include "server_openssl.h"
 #include "log.h"
 #include "sts_queue.h"
 
 volatile sig_atomic_t quit_flag = 0;
 extern _sts_queue const sts_queue;
 extern sts_header* create();
-static struct server_t server = { 0, {0}, 0, 0, 0, PTHREAD_MUTEX_INITIALIZER, {0}, NULL, NULL };
+static struct server_t server = { 0, {0}, 0, 0, 0, PTHREAD_MUTEX_INITIALIZER, {0}, NULL, NULL, NULL, NULL, 0 };
 void usleep(unsigned int usec);
 
 int srv_exit(char** args)
@@ -189,8 +192,8 @@ void* handle_client(void* arg)
 
     cl.is_ready = 1;
     create_message(&msg, MESSAGE_PING, "server", cl.uid, "PING");
-    send_message(cl.request->socket, &msg);
-    while ((nbytes = recv(cl.request->socket, buffer, sizeof(buffer), 0)) > 0)
+    send_message(cl.request->ssl, &msg);
+    while ((nbytes = SSL_read(cl.request->ssl, buffer, sizeof(buffer))) > 0)
     {
         if (quit_flag)
             break;
@@ -205,7 +208,7 @@ void* handle_client(void* arg)
             if (msg.type == MESSAGE_PING)
             {
                 create_message(&msg, MESSAGE_ACK, "server", msg.sender_uid, "ACK");
-                send_message(cl.request->socket, &msg);
+                send_message(cl.request->ssl, &msg);
             }
             else if (msg.type == MESSAGE_ACK)
             {
@@ -267,7 +270,7 @@ void* handle_msg_queue(void* arg)
             client_connection_t* cl = (client_connection_t*)malloc(sizeof(client_connection_t));
             int recipient_found = hash_map_find(server.client_map, msg->recipient_uid, &cl);
             if (recipient_found)
-                send_message(cl->request->socket, msg);
+                send_message(cl->request->ssl, msg);
             free(msg);
         }
         usleep(100000); // 100 ms
@@ -280,19 +283,24 @@ void* handle_info_update(void* arg)
 {
     struct sysinfo sys_info;
     char log_msg[MAX_LOG_LENGTH];
-    char formatted_uptime[9];
+    char formatted_srv_uptime[9];
+    char formatted_sys_uptime[9];
     while (!quit_flag)
     {
         int user_count = server.client_map->current_elements;
 
         if (!sysinfo(&sys_info))
         {
-            format_uptime(sys_info.uptime, formatted_uptime, sizeof(formatted_uptime));
-            sprintf(log_msg, "Online: %d, Req: %d, Auths: %d, Uptime: %s, Load avg: %.2f, RAM: %lu/%lu MB",
+            time_t current_time = time(NULL);
+            long uptime_seconds = (long)difftime(current_time, server.start_time);
+            format_uptime(uptime_seconds, formatted_srv_uptime, sizeof(formatted_srv_uptime));
+            format_uptime(sys_info.uptime, formatted_sys_uptime, sizeof(formatted_sys_uptime));
+            sprintf(log_msg, "Online: %d, Req: %d, Auths: %d, Uptime: %s, Sys-uptime: %s, Load avg: %.2f, RAM: %lu/%lu MB",
                 user_count,
                 server.requests_handled,
                 server.client_logins_handled,
-                formatted_uptime,
+                formatted_srv_uptime,
+                formatted_sys_uptime,
                 sys_info.loads[0] / 65536.0,
                 (sys_info.totalram - sys_info.freeram) / 1024 / 1024,
                 sys_info.totalram / 1024 / 1024);
@@ -321,13 +329,13 @@ int run_server()
     int client_socket;
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
-    request_t req;
     init_logging(SERVER_LOG);
-    log_message(LOG_INFO, SERVER_LOG, __FILE__, "Server started");
+    log_message(LOG_INFO, SERVER_LOG, __FILE__, LOG_SERVER_STARTED);
 
     sqlite3* db;
     if (setup_db(&db, DB_NAME) != DATABASE_CREATE_SUCCESS)
     {
+        finish_logging();
         return DATABASE_SETUP_FAILURE;
     }
     log_message(LOG_INFO, SERVER_LOG, __FILE__, "Database setup successful");
@@ -343,8 +351,15 @@ int run_server()
     server.address.sin_family = AF_INET;
     server.address.sin_addr.s_addr = INADDR_ANY;
     server.address.sin_port = htons(PORT);
+    if (init_ssl(&server) != OPENSSL_INIT_SUCCESS)
+    {
+        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "SSL initialization failed. Server shutting down");
+        finish_logging();
+        exit(EXIT_FAILURE);
+    }
     server.message_queue = sts_queue.create();
     server.client_map = hash_map_create(MAX_CLIENTS);
+    server.start_time = time(NULL);
 
     char log_msg[MAX_LOG_LENGTH];
     if (server.address.sin_family == AF_INET)
@@ -422,7 +437,7 @@ int run_server()
     server.thread_count++;
 
     init_logging(SYSTEM_LOG);
-    log_message(LOG_INFO, SYSTEM_LOG, __FILE__, "Server started");
+    log_message(LOG_INFO, SYSTEM_LOG, __FILE__, LOG_SERVER_STARTED);
     pthread_t info_update_thread;
     if (pthread_create(&info_update_thread, NULL, handle_info_update, (void*)NULL) != 0)
     {
@@ -445,8 +460,8 @@ int run_server()
 
     init_logging(REQUESTS_LOG);
     init_logging(CLIENTS_LOG);
-    log_message(LOG_INFO, REQUESTS_LOG, __FILE__, "Server started");
-    log_message(LOG_INFO, CLIENTS_LOG, __FILE__, "Server started");
+    log_message(LOG_INFO, REQUESTS_LOG, __FILE__, LOG_SERVER_STARTED);
+    log_message(LOG_INFO, CLIENTS_LOG, __FILE__, LOG_SERVER_STARTED);
 
     while (!quit_flag)
     {
@@ -466,12 +481,31 @@ int run_server()
                 finish_logging();
                 exit(EXIT_SUCCESS);
             }
+            if (errno == EINTR)
+                continue;
             perror("Accept failed");
             continue;
         }
 
+        SSL* client_ssl = SSL_new(server.ssl_ctx);
+        if (!client_ssl)
+        {
+            log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Failed to create SSL object for client");
+            close(client_socket);
+            continue;
+        }
+        SSL_set_fd(client_ssl, client_socket);
+        if (SSL_accept(client_ssl) <= 0)
+        {
+            log_message(LOG_ERROR, SERVER_LOG, __FILE__, "SSL handshake failed");
+            SSL_free(client_ssl);
+            close(client_socket);
+            continue;
+        }
+        request_t req;
         req.socket = client_socket;
         req.address = client_addr;
+        req.ssl = client_ssl;
 
         pthread_t tid;
         if (pthread_create(&tid, NULL, handle_client, (void*)&req) != 0)
@@ -488,7 +522,7 @@ int run_server()
         pthread_mutex_lock(&server.thread_count_mutex);
         if (server.thread_count < MAX_CLIENTS)
         {
-            server.threads[server.thread_count++] = tid;
+            server.threads[server.thread_count] = tid;
             server.thread_count++;
         }
         pthread_mutex_unlock(&server.thread_count_mutex);
@@ -500,6 +534,8 @@ int run_server()
         pthread_join(server.threads[i], NULL);
 
     sts_queue.destroy(server.message_queue);
+    hash_map_destroy(server.client_map);
+    destroy_ssl(&server);
     close(server.socket);
     pthread_join(cli_thread, NULL);
     pthread_join(info_update_thread, NULL);

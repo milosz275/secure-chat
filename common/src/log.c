@@ -12,12 +12,13 @@
 
 #include "protocol.h"
 
-static struct loggers_t loggers = { PTHREAD_MUTEX_INITIALIZER, {NULL} };
+static struct loggers_t loggers = { PTHREAD_MUTEX_INITIALIZER, {NULL}, 0 };
 int fileno(FILE* __stream);
 void usleep(unsigned int usec);
 
 void init_logging(const char* filename)
 {
+    loggers.is_initializing = 1;
     const char* log_dir = LOGS_DIR;
     struct stat st = { 0 };
 
@@ -26,6 +27,7 @@ void init_logging(const char* filename)
         if (mkdir(log_dir, 0700) != 0)
         {
             perror("Failed to create logs directory");
+            loggers.is_initializing = 0;
             return;
         }
     }
@@ -59,6 +61,7 @@ void init_logging(const char* filename)
             break;
         }
     }
+    loggers.is_initializing = 0;
     pthread_mutex_unlock(&loggers.log_mutex);
 }
 
@@ -132,12 +135,18 @@ void log_message(log_level_t level, const char* filename, const char* source_fil
 
 void finish_logging()
 {
+    while (loggers.is_initializing)
+    {
+        usleep(10000); // 10 ms
+    }
     pthread_mutex_lock(&loggers.log_mutex);
     for (int i = 0; i < MAX_LOG_FILES; i++)
     {
         if (loggers.array[i] != NULL)
         {
             fclose(loggers.array[i]->file);
+            if (loggers.array[i]->filename != NULL)
+                free(loggers.array[i]->filename);
             free(loggers.array[i]);
             loggers.array[i] = NULL;
         }
