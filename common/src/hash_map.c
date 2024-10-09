@@ -5,6 +5,7 @@
 #include <pthread.h>
 
 #include "protocol.h"
+#include "log.h"
 
 hash_map* hash_map_create(size_t hash_size)
 {
@@ -68,13 +69,22 @@ bool hash_map_find(hash_map* map, const char* uid, client_connection_t** cl)
 
     while (node)
     {
-        if (strcmp(node->cl->uid, uid) == 0)
+        if (node->cl && node->cl->uid && node->cl->request)
         {
-            *cl = node->cl;
-            pthread_mutex_unlock(&map->hash_table[hash_value].mutex);
-            return true;
+            if (strcmp(node->cl->uid, uid) == 0)
+            {
+                *cl = node->cl;
+                pthread_mutex_unlock(&map->hash_table[hash_value].mutex);
+                return true;
+            }
+            node = node->next;
         }
-        node = node->next;
+        else
+        {
+            log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Found a client with NULL fields");
+            pthread_mutex_unlock(&map->hash_table[hash_value].mutex);
+            return false;
+        }
     }
 
     pthread_mutex_unlock(&map->hash_table[hash_value].mutex);
@@ -93,7 +103,7 @@ int hash_map_insert(hash_map* map, client_connection_t* cl)
     hash_node* prev = NULL;
     hash_node* node = map->hash_table[hash_value].head;
 
-    while (node && strcmp(node->cl->uid, uid) != 0)
+    while (node && node->cl && node->cl->uid && strcmp(node->cl->uid, uid) != 0)
     {
         prev = node;
         node = node->next;
@@ -112,7 +122,11 @@ int hash_map_insert(hash_map* map, client_connection_t* cl)
         map->current_elements++;
         insert_success = 1;
     }
-    // else: Entry already exists (do nothing)
+    else
+    { // Existing entry - overwriting existing client connection needs to be handled by the caller
+        node->cl = cl;
+        insert_success = 2; 
+    }
 
     pthread_mutex_unlock(&map->hash_table[hash_value].mutex);
     return insert_success;
