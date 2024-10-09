@@ -76,6 +76,7 @@
  * @param client_map The client hash map.
  * @param ssl_ctx The SSL context.
  * @param ssl The SSL object.
+ * @param start_time The server start time.
  */
 struct server_t
 {
@@ -90,6 +91,7 @@ struct server_t
     hash_map* client_map;
     SSL_CTX* ssl_ctx;
     SSL* ssl;
+    time_t start_time;
 };
 
 /**
