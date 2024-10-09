@@ -3,5 +3,6 @@
 
 int main()
 {
+    disable_input();
     run_client();
 }
