@@ -197,7 +197,7 @@ void send_join_message(client_connection_t* cl, void* arg)
     if (cl->is_ready && cl != new_cl)
     {
         char log_msg[MAX_LOG_LENGTH];
-        sprintf(log_msg, "Sending JOIN message to client %d", cl->id);
+        sprintf(log_msg, "Sending join message to client %d", cl->id);
         log_message(LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
         message_t* msg = (message_t*)malloc(sizeof(message_t));
         create_message(msg, MESSAGE_USER_JOIN, "server", cl->uid, new_cl->username);
