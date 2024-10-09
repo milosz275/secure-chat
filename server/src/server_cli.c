@@ -1,5 +1,8 @@
 #include "server_cli.h"
 
+#include <readline/readline.h>
+#include <readline/history.h>
+
 #include "protocol.h"
 #include "log.h"
 
@@ -10,30 +13,44 @@ static srv_command_t srv_commands[] =
     {.srv_command = &srv_exit, .srv_command_name = "!quit", .srv_command_description = "Exit command alias." },
     {.srv_command = &srv_exit, .srv_command_name = "!stop", .srv_command_description = "Exit command alias." },
     {.srv_command = &srv_exit, .srv_command_name = "!shutdown", .srv_command_description = "Exit command alias." },
+    {.srv_command = &srv_history, .srv_command_name = "!history", .srv_command_description = "Prints command history." },
     {.srv_command = &srv_clear, .srv_command_name = "!clear", .srv_command_description = "Clears CLI screen." },
     {.srv_command = &srv_list, .srv_command_name = "!list", .srv_command_description = "Lists authenticated users." },
-    {.srv_command = &srv_ban, .srv_command_name = "!ban", .srv_command_description = "Bans given user (arg: username, ID or UID)." },
-    {.srv_command = &srv_mute, .srv_command_name = "!mute", .srv_command_description = "Mutes given user (arg: username, ID or UID)." },
-    {.srv_command = &srv_kick, .srv_command_name = "!kick", .srv_command_description = "Kicks given user (arg: username, ID or UID)." },
+    {.srv_command = &srv_ban, .srv_command_name = "!ban", .srv_command_description = "Bans given user by UID." },
+    {.srv_command = &srv_mute, .srv_command_name = "!mute", .srv_command_description = "Mutes given user by UID." },
+    {.srv_command = &srv_kick, .srv_command_name = "!kick", .srv_command_description = "Kicks given user by UID." },
     {.srv_command = &srv_kick_all, .srv_command_name = "!kickall", .srv_command_description = "Kicks all authenticated users." },
     {.srv_command = &srv_broadcast, .srv_command_name = "!broadcast", .srv_command_description = "Broadcast given message to all authenticated users." },
     {.srv_command = &srv_help, .srv_command_name = "!help", .srv_command_description = "Prints command descriptions." },
 };
 
+int srv_history(char** args)
+{
+    if (args[0] != NULL)
+        log_message(LOG_WARN, SERVER_LOG, __FILE__, "Arguments provided for history command ignored");
+    HIST_ENTRY** history_entries = history_list();
+    if (history_entries)
+    {
+        for (int i = 0; history_entries[i] != NULL; ++i)
+            printf("%d: %s\n", i + 1, history_entries[i]->line);
+    }
+    return 1;
+}
+
 int srv_help(char** args)
 {
+    if (args[0] != NULL)
+        log_message(LOG_WARN, SERVER_LOG, __FILE__, "Arguments provided for help command ignored"); // [ ] Add help for each command (e.g. !help !ban)
     for (int i = 0; i < SRV_COMMANDS_NUM; ++i)
-    {
         printf("%-11s- %s\n", srv_commands[i].srv_command_name, srv_commands[i].srv_command_description);
-    }
-    if (args[0] != NULL) {}
     return 1;
 }
 
 int srv_clear(char** args)
 {
+    if (args[0] != NULL)
+        log_message(LOG_WARN, SERVER_LOG, __FILE__, "Arguments provided for clear command ignored");
     clear_cli();
-    if (args[0] != NULL) {}
     return 1;
 }
 
@@ -78,15 +95,9 @@ int getline(char** lineptr, size_t* n, FILE* stream)
 
 char* srv_read_line(void)
 {
-    size_t n;
-    char* line = NULL;
-    if (!(n = (line == NULL)))
-        n = strlen(line);
-    if (getline(&line, &n, stdin) == -1)
-    {
-        perror("getline");
-        exit(EXIT_FAILURE);
-    }
+    char* line = readline("server> ");
+    if (line && *line)
+        add_history(line);
     return line;
 }
 
