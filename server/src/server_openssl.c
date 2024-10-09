@@ -16,7 +16,7 @@ int init_ssl(server_t* server)
     SSL_library_init();
     SSL_load_error_strings();
     OpenSSL_add_all_algorithms();
-    ERR_load_crypto_strings();
+
     server->ssl_ctx = SSL_CTX_new(TLS_server_method());
     if (!server->ssl_ctx)
     {
@@ -29,12 +29,14 @@ int init_ssl(server_t* server)
     {
         log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Failed to load server certificate");
         finish_logging();
+        destroy_ssl(server);
         return OPENSSL_CERTIFICATE_LOAD_FAILURE;
     }
     if (SSL_CTX_use_PrivateKey_file(server->ssl_ctx, SERVER_KEY_FILE, SSL_FILETYPE_PEM) <= 0)
     {
         log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Failed to load server private key");
         finish_logging();
+        destroy_ssl(server);
         return OPENSSL_PRIVATE_KEY_LOAD_FAILURE;
     }
     server->ssl = SSL_new(server->ssl_ctx);
@@ -42,6 +44,7 @@ int init_ssl(server_t* server)
     {
         log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Failed to create SSL object");
         finish_logging();
+        destroy_ssl(server);
         return OPENSSL_SSL_OBJECT_FAILURE;
     }
     SSL_set_fd(server->ssl, server->socket);
@@ -51,10 +54,10 @@ int init_ssl(server_t* server)
 
 int destroy_ssl(server_t* server)
 {
-    EVP_cleanup();
-    ERR_free_strings();
-    SSL_free(server->ssl);
-    SSL_CTX_free(server->ssl_ctx);
+    if (server->ssl)
+        SSL_free(server->ssl);
+    if (server->ssl_ctx)
+        SSL_CTX_free(server->ssl_ctx);
     return 1;
 }
 
@@ -84,7 +87,7 @@ int generate_rsa_key(const char* key_file)
         return -1;
     }
 
-    if (EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, 4096) <= 0)
+    if (EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, RSA_KEY_LENGTH) <= 0)
     {
         log_message(LOG_ERROR, SERVER_LOG, __FILE__, "Error setting RSA key length.");
         EVP_PKEY_CTX_free(ctx);
@@ -148,7 +151,7 @@ int generate_self_signed_certificate(const char* cert_file, const char* key_file
     X509_set_version(x509, 2);
     ASN1_INTEGER_set(X509_get_serialNumber(x509), 1);
     X509_gmtime_adj(X509_get_notBefore(x509), 0);
-    X509_gmtime_adj(X509_get_notAfter(x509), 31536000L);
+    X509_gmtime_adj(X509_get_notAfter(x509), CERT_VALIDITY_PERIOD);
 
     X509_set_pubkey(x509, pkey);
 
