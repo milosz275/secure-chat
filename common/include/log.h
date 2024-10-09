@@ -12,6 +12,9 @@
 #define CLIENTS_LOG "clients.log"
 #define REQUESTS_LOG "requests.log"
 #define SYSTEM_LOG "system.log"
+#define CLIENT_LOG "client.log"
+#define LOG_SERVER_STARTED "Server started ----------------------------------------------------------------------------------------"
+#define LOG_CLIENT_STARTED "Client started ----------------------------------------------------------------------------------------"
 
 #define LOCKED_FILE_RETRY_TIME 1000 // in microseconds
 #define LOCKED_FILE_TIMEOUT 5000000 // in microseconds (5 seconds)
