@@ -17,6 +17,7 @@
 #define DB_NAME "sqlite.db"
 #define DB_PATH_LENGTH 256
 #define USER_LOGIN_ATTEMPTS 3 // if you want to increase this number, you should add message codes for each attempt
+#define SERVER_CLI_HISTORY "server_history.txt"
 
 #define PORT_BIND_INTERVAL 1
 #define PORT_BIND_ATTEMPTS 120
@@ -95,10 +96,27 @@ struct server_t
 };
 
 /**
+ * Print client. This function is used to print a client connection.
+ *
+ * @param cl The client connection pointer.
+ */
+void print_client(client_connection_t* cl);
+
+/**
  * Send ping message. This function is used to send a ping message to a client.
  * The function is meant to be used with the hash map.
+ *
+ * @param cl The client connection pointer.
  */
-void send_ping(void* arg);
+void send_ping(client_connection_t* cl);
+
+/**
+ * Send quit signal. This function is used to send a quit signal to a client.
+ * The function is meant to be used with the hash map.
+ *
+ * @param cl The client connection pointer.
+ */
+void send_quit_signal(client_connection_t* cl);
 
 /**
  * Send broadcast message. This function is used to send a broadcast message to a client.

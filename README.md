@@ -192,7 +192,7 @@ docker run -d -p 12345:12345 mlsh/secure-chat
 
 ## Server
 
-Server is responsible for handling client connections, retrieving messages from the database and sending messages to the recipients. It also manages user registration and authentication according to the protocol. Multithreading is used to allow many concurrent requests and connections. Client connections are stored in a thread-safe hash map and only one logged instance of a client is allowed. Messages are stored in thread-safe queue (...). Server facilitates CLI for system administration. Server logs all requests, client connections and errors.
+Server is responsible for handling client connections, retrieving messages from the database and sending messages to the recipients. It also manages user registration and authentication according to the protocol. Multithreading is used to allow many concurrent requests and connections. Client connections are stored in a thread-safe hash map and only one logged instance of a client is allowed. Messages before handling are stored in thread-safe queue. Server facilitates CLI for system administration. Server logs all requests, client connections and errors.
 
 ![Server](assets/server.png)
 

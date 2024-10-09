@@ -12,6 +12,8 @@
 #include <sys/sysinfo.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 #include "protocol.h"
 #include "server_cli.h"
@@ -29,6 +31,8 @@ void usleep(unsigned int usec);
 
 int srv_exit(char** args)
 {
+    if (args[0] != NULL)
+        log_message(LOG_WARN, SERVER_LOG, __FILE__, "Arguments provided for exit command ignored");
     log_message(LOG_INFO, SERVER_LOG, __FILE__, "Server shutdown requested");
     if (setsockopt(server.socket, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) == -1)
         perror("setsockopt failed");
@@ -37,42 +41,77 @@ int srv_exit(char** args)
     server.socket = -1;
     quit_flag = 1;
     exit(0);
-    if (args[0] != NULL) {}
     return 1;
 }
 
 int srv_list(char** args)
 {
-    // [ ] Implement list command
-    if (args[0] != NULL) {}
+    if (args[0] != NULL)
+        log_message(LOG_WARN, SERVER_LOG, __FILE__, "Arguments provided for list command ignored");
+    int user_count = server.client_map->current_elements;
+    printf("Users online: %d\n", user_count);
+    if (user_count > 0)
+    {
+        hash_map_iterate(server.client_map, print_client);
+    }
     return 1;
 }
 
 int srv_ban(char** args)
 {
-    // [ ] Implement ban command
-    if (args[0] != NULL) {}
+    if (args[0] == NULL)
+    {
+        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "No argument provided for ban command");
+        return -1;
+    }
+    else if (args[1] != NULL)
+    {
+        log_message(LOG_WARN, SERVER_LOG, __FILE__, "Multiple arguments provided for ban command. Only first argument will be used");
+    }
+    // [ ] Implement ban command with database support
     return 1;
 }
 
 int srv_kick(char** args)
 {
-    // [ ] Implement kick command
-    if (args[0] != NULL) {}
+    if (args[0] == NULL)
+    {
+        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "No argument provided for kick command");
+        return -1;
+    }
+    else if (args[1] != NULL)
+    {
+        log_message(LOG_WARN, SERVER_LOG, __FILE__, "Multiple arguments provided for kick command. Only first argument will be used");
+    }
+    client_connection_t* cl = (client_connection_t*)malloc(sizeof(client_connection_t));
+    int recipient_found = hash_map_find(server.client_map, args[0], &cl);
+    if (recipient_found)
+        send_quit_signal(cl);
+    else
+        log_message(LOG_WARN, SERVER_LOG, __FILE__, "Recipient not found in client map");
     return 1;
 }
 
 int srv_kick_all(char** args)
 {
-    // [ ] Implement kickall command
-    if (args[0] != NULL) {}
+    if (args[0] != NULL)
+        log_message(LOG_WARN, SERVER_LOG, __FILE__, "Arguments provided for kickall command ignored");
+    hash_map_iterate(server.client_map, send_quit_signal);
     return 1;
 }
 
 int srv_mute(char** args)
 {
-    // [ ] Implement mute command
-    if (args[0] != NULL) {}
+    if (args[0] == NULL)
+    {
+        log_message(LOG_ERROR, SERVER_LOG, __FILE__, "No argument provided for mute command");
+        return -1;
+    }
+    else if (args[1] != NULL)
+    {
+        log_message(LOG_WARN, SERVER_LOG, __FILE__, "Multiple arguments provided for mute command. Only first argument will be used");
+    }
+    // [ ] Implement mute command with database support
     return 1;
 }
 
@@ -105,9 +144,13 @@ int srv_broadcast(char** args)
     return 1;
 }
 
-void send_ping(void* arg)
+void print_client(client_connection_t* cl)
 {
-    client_connection_t* cl = (client_connection_t*)arg;
+    printf("ID: %d, Username: %s, Address: %s:%d, UID: %s\n", cl->id, cl->username, inet_ntoa(cl->request->address.sin_addr), ntohs(cl->request->address.sin_port), cl->uid);
+}
+
+void send_ping(client_connection_t* cl)
+{
     if (cl->is_ready)
     {
         char log_msg[MAX_LOG_LENGTH];
@@ -115,6 +158,20 @@ void send_ping(void* arg)
         log_message(LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
         message_t* msg = (message_t*)malloc(sizeof(message_t));
         create_message(msg, MESSAGE_PING, "server", cl->uid, "PING");
+        sts_queue.push(server.message_queue, msg);
+    }
+}
+
+void send_quit_signal(client_connection_t* cl)
+{
+    if (cl->is_ready)
+    {
+        char log_msg[MAX_LOG_LENGTH];
+        sprintf(log_msg, "Sending quit signal to client %d", cl->id);
+        log_message(LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
+
+        message_t* msg = (message_t*)malloc(sizeof(message_t));
+        create_message(msg, MESSAGE_SIGNAL, "server", cl->uid, MESSAGE_SIGNAL_QUIT);
         sts_queue.push(server.message_queue, msg);
     }
 }
@@ -140,7 +197,7 @@ void send_join_message(client_connection_t* cl, void* arg)
     if (cl->is_ready && cl != new_cl)
     {
         char log_msg[MAX_LOG_LENGTH];
-        sprintf(log_msg, "Sending JOIN message to client %d", cl->id);
+        sprintf(log_msg, "Sending join message to client %d", cl->id);
         log_message(LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
         message_t* msg = (message_t*)malloc(sizeof(message_t));
         create_message(msg, MESSAGE_USER_JOIN, "server", cl->uid, new_cl->username);
@@ -176,6 +233,7 @@ void* handle_client(void* arg)
         close(req.socket);
         pthread_exit(NULL);
     }
+    cl.id = server.client_map->current_elements - 1;
     log_msg[0] = '\0';
     sprintf(log_msg, "%s added to client array", cl.username);
     log_message(LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
@@ -238,13 +296,16 @@ void* handle_client(void* arg)
 void* handle_cli(void* arg)
 {
     char* line = NULL;
-
+    read_history(SERVER_CLI_HISTORY);
     usleep(100000); // 100 ms
     while (!quit_flag)
     {
-        printf("server> ");
         line = srv_read_line();
-        srv_exec_line(line);
+        if (line && *line)
+        {
+            srv_exec_line(line);
+            write_history(SERVER_CLI_HISTORY);
+        }
         if (line)
         {
             free(line);

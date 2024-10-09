@@ -35,6 +35,14 @@ typedef struct
 extern int srv_exit(char** args);
 
 /**
+ * Print history. This function is used to print the command history.
+ *
+ * @param args The arguments passed to the function should be empty.
+ * @return The exit code.
+ */
+int srv_history(char** args);
+
+/**
  * Clear CLI. This function is used to clear the CLI.
  *
  * @param args The arguments passed to the function should be empty.
