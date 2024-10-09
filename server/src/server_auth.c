@@ -37,31 +37,31 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
         {
             sprintf(send_msg, "%d", MESSAGE_CODE_WELCOME);
             create_message(&msg, MESSAGE_TOAST, "server", CLIENT_DEFAULT_NAME, send_msg);
-            send_message(req->socket, &msg);
+            send_message(req->ssl, &msg);
             send_msg[0] = '\0';
             sprintf(send_msg, "%d", USER_LOGIN_ATTEMPTS - attempts);
             create_message(&msg, MESSAGE_AUTH_ATTEMPS, "server", CLIENT_DEFAULT_NAME, send_msg);
             sleep(1);
-            send_message(req->socket, &msg);
+            send_message(req->ssl, &msg);
             send_msg[0] = '\0';
             sprintf(send_msg, "%d", MESSAGE_CODE_USER_REGISTER_INFO);
             create_message(&msg, MESSAGE_SYSTEM, "server", CLIENT_DEFAULT_NAME, send_msg);
             sleep(1);
-            send_message(req->socket, &msg);
+            send_message(req->ssl, &msg);
         }
         else
         {
             sprintf(send_msg, "%d", USER_LOGIN_ATTEMPTS - attempts);
             create_message(&msg, MESSAGE_AUTH_ATTEMPS, "server", CLIENT_DEFAULT_NAME, send_msg);
-            send_message(req->socket, &msg);
+            send_message(req->ssl, &msg);
         }
         send_msg[0] = '\0';
         sprintf(send_msg, "%d", MESSAGE_CODE_ENTER_USERNAME);
         create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
         usleep(100000); // 100 ms
-        send_message(req->socket, &msg);
+        send_message(req->ssl, &msg);
 
-        nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
+        nbytes = SSL_read(req->ssl, buffer, sizeof(buffer));
         if (nbytes <= 0)
         {
             close(req->socket);
@@ -100,14 +100,14 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                 send_msg[0] = '\0';
                 sprintf(send_msg, "%d", MESSAGE_CODE_USER_DOES_NOT_EXIST);
                 create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-                send_message(req->socket, &msg);
+                send_message(req->ssl, &msg);
                 send_msg[0] = '\0';
                 sprintf(send_msg, "%d", MESSAGE_CODE_USER_REGISTER_CHOICE);
                 create_message(&msg, MESSAGE_CHOICE, "server", CLIENT_DEFAULT_NAME, send_msg);
                 usleep(100000); // 100 ms
-                send_message(req->socket, &msg);
+                send_message(req->ssl, &msg);
 
-                nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
+                nbytes = SSL_read(req->ssl, buffer, sizeof(buffer));
                 if (nbytes <= 0)
                 {
                     goto cleanup;
@@ -120,9 +120,9 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_ENTER_PASSWORD);
                     create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-                    send_message(req->socket, &msg);
+                    send_message(req->ssl, &msg);
 
-                    nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
+                    nbytes = SSL_read(req->ssl, buffer, sizeof(buffer));
                     if (nbytes <= 0)
                     {
                         goto cleanup;
@@ -136,9 +136,9 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_ENTER_PASSWORD_CONFIRMATION);
                     create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-                    send_message(req->socket, &msg);
+                    send_message(req->ssl, &msg);
 
-                    nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
+                    nbytes = SSL_read(req->ssl, buffer, sizeof(buffer));
                     if (nbytes <= 0)
                     {
                         goto cleanup;
@@ -219,13 +219,13 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                         send_msg[0] = '\0';
                         sprintf(send_msg, "%d", MESSAGE_CODE_USER_CREATED);
                         create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-                        send_message(req->socket, &msg);
+                        send_message(req->ssl, &msg);
 
                         char send_uid[HASH_HEX_OUTPUT_LENGTH];
                         snprintf(send_uid, HASH_HEX_OUTPUT_LENGTH, "%s", cl->uid);
                         create_message(&msg, MESSAGE_UID, "server", CLIENT_DEFAULT_NAME, send_uid);
                         usleep(100000); // 100 ms
-                        send_message(req->socket, &msg);
+                        send_message(req->ssl, &msg);
 
                         return USER_AUTHENTICATION_SUCCESS;
                     }
@@ -234,12 +234,12 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                         send_msg[0] = '\0';
                         sprintf(send_msg, "%d", MESSAGE_CODE_PASSWORDS_DO_NOT_MATCH);
                         create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-                        send_message(req->socket, &msg);
+                        send_message(req->ssl, &msg);
                         send_msg[0] = '\0';
                         sprintf(send_msg, "%d", MESSAGE_CODE_TRY_AGAIN);
                         create_message(&msg, MESSAGE_TEXT, "server", CLIENT_DEFAULT_NAME, send_msg);
                         usleep(100000); // 100 ms
-                        send_message(req->socket, &msg);
+                        send_message(req->ssl, &msg);
                         attempts++;
                     }
                 }
@@ -265,12 +265,12 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_USER_DOES_NOT_EXIST);
                     create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-                    send_message(req->socket, &msg);
+                    send_message(req->ssl, &msg);
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED);
                     create_message(&msg, MESSAGE_ERROR, "server", CLIENT_DEFAULT_NAME, send_msg);
                     usleep(100000); // 100 ms
-                    send_message(req->socket, &msg);
+                    send_message(req->ssl, &msg);
 
                     log_msg[0] = '\0';
                     sprintf(log_msg, "Request from %s:%d failed authentication - out of login attempts", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
@@ -282,12 +282,12 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_USER_DOES_NOT_EXIST);
                     create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-                    send_message(req->socket, &msg);
+                    send_message(req->ssl, &msg);
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_TRY_AGAIN);
                     create_message(&msg, MESSAGE_TEXT, "server", CLIENT_DEFAULT_NAME, send_msg);
                     usleep(100000); // 100 ms
-                    send_message(req->socket, &msg);
+                    send_message(req->ssl, &msg);
                 }
             }
         }
@@ -304,7 +304,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                 send_msg[0] = '\0';
                 sprintf(send_msg, "%d", MESSAGE_CODE_USER_ALREADY_ONLINE);
                 create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-                send_message(req->socket, &msg);
+                send_message(req->ssl, &msg);
                 sqlite3_finalize(stmt);
                 stmt = NULL;
                 attempts++;
@@ -315,9 +315,9 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
             send_msg[0] = '\0';
             sprintf(send_msg, "%d", MESSAGE_CODE_ENTER_PASSWORD);
             create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-            send_message(req->socket, &msg);
+            send_message(req->ssl, &msg);
 
-            nbytes = recv(req->socket, buffer, sizeof(buffer), 0);
+            nbytes = SSL_read(req->ssl, buffer, sizeof(buffer));
             if (nbytes <= 0)
             {
                 goto cleanup;
@@ -366,24 +366,24 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_INVALID_PASSWORD);
                     create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-                    send_message(req->socket, &msg);
+                    send_message(req->ssl, &msg);
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED);
                     create_message(&msg, MESSAGE_ERROR, "server", CLIENT_DEFAULT_NAME, send_msg);
                     usleep(100000); // 100 ms
-                    send_message(req->socket, &msg);
+                    send_message(req->ssl, &msg);
                 }
                 else
                 {
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_ENTER_PASSWORD);
                     create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-                    send_message(req->socket, &msg);
+                    send_message(req->ssl, &msg);
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_TRY_AGAIN);
                     create_message(&msg, MESSAGE_TEXT, "server", CLIENT_DEFAULT_NAME, send_msg);
                     usleep(100000); // 100 ms
-                    send_message(req->socket, &msg);
+                    send_message(req->ssl, &msg);
                 }
 
                 if (attempts >= USER_LOGIN_ATTEMPTS)
@@ -442,13 +442,13 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                 send_msg[0] = '\0';
                 sprintf(send_msg, "%d", MESSAGE_CODE_USER_AUTHENTICATED);
                 create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-                send_message(req->socket, &msg);
+                send_message(req->ssl, &msg);
 
                 char send_uid[HASH_HEX_OUTPUT_LENGTH];
                 snprintf(send_uid, HASH_HEX_OUTPUT_LENGTH, "%s", cl->uid);
                 create_message(&msg, MESSAGE_UID, "server", CLIENT_DEFAULT_NAME, send_uid);
                 usleep(100000); // 100 ms
-                send_message(req->socket, &msg);
+                send_message(req->ssl, &msg);
 
                 return USER_AUTHENTICATION_SUCCESS;
             }
