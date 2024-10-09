@@ -139,11 +139,17 @@ void* receive_messages(void* arg)
         }
         else if (msg.type == MESSAGE_SIGNAL)
         {
-            if ((!strcmp(msg.payload, "quit")) || (!strcmp(msg.payload, "exit")))
+            if ((!strcmp(msg.payload, MESSAGE_SIGNAL_QUIT)) || (!strcmp(msg.payload, MESSAGE_SIGNAL_EXIT)))
             {
-                reconnect_flag = 0;
-                quit_flag = 1;
-                exit(EXIT_SUCCESS);
+                if (strcmp(msg.sender_uid, "server"))
+                    log_message(LOG_WARN, CLIENT_LOG, __FILE__, "Received quit signal that is not from server");
+                else
+                {
+                    log_message(LOG_INFO, CLIENT_LOG, __FILE__, "Received quit signal from server");
+                    reconnect_flag = 0;
+                    quit_flag = 1;
+                    exit(EXIT_SUCCESS);
+                }
             }
         }
         else if (msg.type == MESSAGE_AUTH_ATTEMPS)
