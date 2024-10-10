@@ -308,7 +308,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                 sqlite3_finalize(stmt);
                 stmt = NULL;
                 attempts++;
-                break;
+                continue;
             }
 
             // authenticate credentials
