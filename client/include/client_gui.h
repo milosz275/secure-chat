@@ -53,10 +53,29 @@ typedef struct button_t
     char text[BUTTON_TEXT_LENGTH];
 } button_t;
 
+/**
+ * Initialize button. This function is used to initialize the button.
+ *
+ * @param button The button structure.
+ * @param rect The rectangle.
+ * @param color The color.
+ */
 void init_button(button_t* button, Rectangle rect, Color color);
 
+/**
+ * Button hovered state. This function is used to check if the button is hovered.
+ *
+ * @param button The button structure.
+ * @return 1 if the button is hovered, 0 otherwise.
+ */
 int is_button_hovered(button_t* button);
 
+/**
+ * Button clicked state. This function is used to check if the button is clicked.
+ *
+ * @param button The button structure.
+ * @return 1 if the button is clicked, 0 otherwise.
+ */
 int is_button_clicked(button_t* button);
 
 /**
