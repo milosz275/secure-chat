@@ -189,7 +189,12 @@ void* receive_messages(void* arg)
         {
             int code = atoi(msg.payload);
             if (!code)
+            {
                 printf("(00000) Server: %s\n", msg.payload); // unknown code
+                char message[MAX_MESSAGE_LENGTH];
+                snprintf(message, MAX_MESSAGE_LENGTH, "%s: %s", msg.sender_uid, msg.payload);
+                add_message(message);
+            }
             else
             {
                 const char* text = message_code_to_text(code);

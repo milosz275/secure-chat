@@ -101,6 +101,8 @@ void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomi
  */
 void draw_ui(client_t* client, client_state_t* state);
 
+void add_message(const char* formatted_message);
+
 /**
  * Reset state. This function is used to reset the client state.
  *

@@ -251,6 +251,13 @@ void draw_ui(client_t* client, client_state_t* state)
     DrawTextEx(font, "Press ESC to exit", (Vector2) { (float)WINDOW_WIDTH - 200, 10.0 }, FONT_SIZE, FONT_SPACING, text_color_light);
 }
 
+void add_message(const char* formatted_message)
+{
+    strncpy(messages[message_count], formatted_message, MAX_MESSAGE_LENGTH);
+    messages[message_count][MAX_MESSAGE_LENGTH - 1] = '\0';
+    message_count = (message_count + 1) % 10;
+}
+
 void reset_state(client_state_t* state)
 {
     state->is_entering_username = 0;
