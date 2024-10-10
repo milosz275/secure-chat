@@ -76,7 +76,7 @@
                 "panel": "dedicated",
                 "showReuseMessage": false,
                 "clear": false,
-                "close": false
+                "close": true
             },
             "runOptions": {
                 "instanceLimit": 1,
