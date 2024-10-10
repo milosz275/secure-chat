@@ -17,7 +17,11 @@ hash_map* hash_map_create(size_t hash_size)
     map->hash_table = (hash_bucket*)calloc(hash_size, sizeof(hash_bucket));
     if (!map->hash_table)
     {
-        free(map);
+        if (map)
+        {
+            free(map);
+            map = NULL;
+        }
         return NULL;
     }
     map->current_elements = 0;
@@ -28,8 +32,16 @@ hash_map* hash_map_create(size_t hash_size)
         {
             for (size_t j = 0; j < i; ++j)
                 pthread_mutex_destroy(&map->hash_table[j].mutex);
-            free(map->hash_table);
-            free(map);
+            if (map->hash_table)
+            {
+                free(map->hash_table);
+                map->hash_table = NULL;
+            }
+            if (map)
+            {
+                free(map);
+                map = NULL;
+            }
             return NULL;
         }
         map->hash_table[i].head = NULL;
@@ -49,18 +61,30 @@ void hash_map_destroy(hash_map* map)
         {
             hash_node* next = node->next;
             if (node->cl)
+            {
                 free(node->cl);
+                node->cl = NULL;
+            }
             if (node)
+            {
                 free(node);
+                node = NULL;
+            }
             node = next;
         }
         pthread_mutex_destroy(&map->hash_table[i].mutex);
     }
 
     if (map->hash_table)
+    {
         free(map->hash_table);
+        map->hash_table = NULL;
+    }
     if (map)
+    {
         free(map);
+        map = NULL;
+    }
 }
 
 bool hash_map_find(hash_map* map, const char* uid, client_connection_t** cl)
@@ -159,10 +183,12 @@ void hash_map_erase(hash_map* map, const char* uid)
             prev->next = node->next;
 
         map->current_elements--;
-        if (node->cl)
-            free(node->cl);
+        node->cl = NULL;
         if (node)
+        {
             free(node);
+            node = NULL;
+        }
     }
 
     pthread_mutex_unlock(&map->hash_table[hash_value].mutex);
@@ -178,9 +204,15 @@ void hash_map_clear(hash_map* map)
         {
             hash_node* next = node->next;
             if (node->cl)
-                free(node->cl);  // Free the client connection
+            {
+                free(node->cl);
+                node->cl = NULL;
+            }
             if (node)
+            {
                 free(node);
+                node = NULL;
+            }
             node = next;
         }
         map->hash_table[i].head = NULL;
