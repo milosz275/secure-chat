@@ -49,7 +49,7 @@ void init_ui()
     SetWindowPosition(GetScreenWidth() / 2 - WINDOW_WIDTH / 2, GetScreenHeight() / 2 - WINDOW_HEIGHT / 2);
     font = LoadFontEx("assets/JetBrainsMono.ttf", FONT_SIZE, NULL, 0);
     init_button(&button_dark_mode, (Rectangle) { 10, 10, 32, 32 }, RED);
-    
+
     Image logo_image = LoadImage("assets/logo.png");
     app_logo = LoadTextureFromImage(logo_image);
     SetTextureFilter(app_logo, TEXTURE_FILTER_ANISOTROPIC_16X);
