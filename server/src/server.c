@@ -221,6 +221,7 @@ void* handle_client(void* arg)
     client_connection_t cl;
     server.requests_handled++;
     cl.is_ready = 0;
+    cl.is_inserted = 0;
 
     sprintf(log_msg, "Handing request %s:%d", inet_ntoa(req.address.sin_addr), ntohs(req.address.sin_port));
     log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
@@ -237,6 +238,7 @@ void* handle_client(void* arg)
         close(req.socket);
         pthread_exit(NULL);
     }
+    cl.is_inserted = 1;
     cl.id = server.client_map->current_elements - 1;
     log_msg[0] = '\0';
     sprintf(log_msg, "%s added to client array", cl.username);
@@ -296,7 +298,8 @@ void* handle_client(void* arg)
     log_msg[0] = '\0';
     sprintf(log_msg, "Client %d disconnected", cl.id);
     log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
-    hash_map_erase(server.client_map, cl.uid);
+    if (cl.is_inserted)
+        hash_map_erase(server.client_map, cl.uid);
     close(cl.request->socket);
     pthread_exit(NULL);
 }

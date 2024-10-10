@@ -204,6 +204,7 @@ typedef struct
  * @param uid The unique ID of the client.
  * @param username The username of the client.
  * @param is_ready The client readiness status.
+ * @param is_inserted The client hash map insertion status.
  */
 typedef struct client_connection_t
 {
@@ -212,6 +213,7 @@ typedef struct client_connection_t
     char* uid;
     char username[MAX_USERNAME_LENGTH + 1];
     int is_ready;
+    int is_inserted;
 } client_connection_t;
 
 /**
