@@ -11,7 +11,7 @@
 
 ![Logo](assets/logo.png)
 
-Secure Chat is a C program that allows you host decentralized system and chat securely with your friends. -It implements Diffie-Hellman (DH) key exchange to prevent man-in-the-middle (MitM) attacks, it uses the RSA algorithm to create sessions and AES algorithm for message end-to-end (EE2E) encryption-. Messages are stored in SQLite3 (ultimately other, distributed) database and can be read by the recipient only. Sending messages in optimized for maximum performance and resource usage.
+Secure Chat is a C program that allows you host decentralized system and chat securely with your friends. It implements Diffie-Hellman (DH) key exchange to prevent man-in-the-middle (MitM) attacks RSA algorithm is used to create sessions and AES algorithm for message end-to-end (EE2E) encryption. Messages are stored in SQLite3 (ultimately other, distributed) database and can be read by the recipient only. Sending messages in optimized for maximum performance and resource usage.
 
 - [GitHub repository](https://github.com/milosz275/secure-chat)
 - [Docker repository](https://hub.docker.com/repository/docker/mlsh/secure-chat)
