@@ -292,7 +292,11 @@ void* handle_client(void* arg)
             log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
         }
     }
-
+    // client disconnected
+    log_msg[0] = '\0';
+    sprintf(log_msg, "Client %d disconnected", cl.id);
+    log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
+    hash_map_erase(server.client_map, cl.uid);
     close(cl.request->socket);
     pthread_exit(NULL);
 }
