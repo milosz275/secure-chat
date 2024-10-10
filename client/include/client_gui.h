@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <signal.h>
+#include <raylib.h>
 
 #include "client.h"
 
@@ -13,6 +14,8 @@
 #define BACKSPACE_DELAY 50
 #define FONT_SIZE 20
 #define FONT_SPACING 2
+
+#define BUTTON_TEXT_LENGTH 16
 
 /**
  * The client state structure. This structure is used to define the client state structure.
@@ -35,6 +38,26 @@ typedef struct client_state_t
     int is_authenticated;
     int auth_attempts;
 } client_state_t;
+
+/**
+ * The button structure. This structure is used to define the button structure.
+ *
+ * @param rect The rectangle.
+ * @param color The color.
+ * @param text The text.
+ */
+typedef struct button_t
+{
+    Rectangle rect;
+    Color color;
+    char text[BUTTON_TEXT_LENGTH];
+} button_t;
+
+void init_button(button_t* button, Rectangle rect, Color color);
+
+int is_button_hovered(button_t* button);
+
+int is_button_clicked(button_t* button);
 
 /**
  * Initialize UI. This function is used to initialize the user interface using Raylib library.
