@@ -48,15 +48,19 @@ void hash_map_destroy(hash_map* map)
         while (node)
         {
             hash_node* next = node->next;
-            free(node->cl);
-            free(node);
+            if (node->cl)
+                free(node->cl);
+            if (node)
+                free(node);
             node = next;
         }
         pthread_mutex_destroy(&map->hash_table[i].mutex);
     }
 
-    free(map->hash_table);
-    free(map);
+    if (map->hash_table)
+        free(map->hash_table);
+    if (map)
+        free(map);
 }
 
 bool hash_map_find(hash_map* map, const char* uid, client_connection_t** cl)
@@ -95,7 +99,7 @@ int hash_map_insert(hash_map* map, client_connection_t* cl)
 {
     int insert_success = 0;
     const char* uid = cl->uid;
-    
+
     // Directly use the uid to compute the index (uid is already hashed)
     size_t hash_value = strtoul(uid, NULL, 16) % map->hash_size;
 
@@ -125,7 +129,7 @@ int hash_map_insert(hash_map* map, client_connection_t* cl)
     else
     { // Existing entry - overwriting existing client connection needs to be handled by the caller
         node->cl = cl;
-        insert_success = 2; 
+        insert_success = 2;
     }
 
     pthread_mutex_unlock(&map->hash_table[hash_value].mutex);
@@ -155,8 +159,10 @@ void hash_map_erase(hash_map* map, const char* uid)
             prev->next = node->next;
 
         map->current_elements--;
-        free(node->cl);  // Free the client connection
-        free(node);
+        if (node->cl)
+            free(node->cl);
+        if (node)
+            free(node);
     }
 
     pthread_mutex_unlock(&map->hash_table[hash_value].mutex);
@@ -171,8 +177,10 @@ void hash_map_clear(hash_map* map)
         while (node)
         {
             hash_node* next = node->next;
-            free(node->cl);  // Free the client connection
-            free(node);
+            if (node->cl)
+                free(node->cl);  // Free the client connection
+            if (node)
+                free(node);
             node = next;
         }
         map->hash_table[i].head = NULL;
