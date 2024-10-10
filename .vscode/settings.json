@@ -14,6 +14,7 @@
         "freeram",
         "hankey",
         "kickall",
+        "LIGHTGRAY",
         "lineptr",
         "Maculewicz",
         "Miłosz",
@@ -47,7 +48,8 @@
         "utility": "c",
         "server_auth.h": "c",
         "raylib.h": "c",
-        "log.h": "c"
+        "log.h": "c",
+        "client.h": "c"
     },
     "task.allowAutomaticTasks": "on",
     "editor.formatOnSave": true,
