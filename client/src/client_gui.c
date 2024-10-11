@@ -45,21 +45,20 @@ void init_ui()
     SetTargetFPS(TARGET_FPS);
     SetExitKey(0);
     SetTraceLogLevel(LOG_NONE);
+    SetTraceLogCallback(NULL);
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     SetWindowPosition(GetScreenWidth() / 2 - WINDOW_WIDTH / 2, GetScreenHeight() / 2 - WINDOW_HEIGHT / 2);
     font = LoadFontEx("assets/JetBrainsMono.ttf", FONT_SIZE, NULL, 0);
-    init_button(&button_dark_mode, (Rectangle) { 10, 10, 32, 32 }, RED);
+    init_button(&button_dark_mode, (Rectangle) { 10, 10, FAVICON_SIZE, FAVICON_SIZE }, RED);
 
     Image logo_image = LoadImage("assets/logo.png");
     app_logo = LoadTextureFromImage(logo_image);
-    SetTextureFilter(app_logo, TEXTURE_FILTER_ANISOTROPIC_16X);
     UnloadImage(logo_image);
 
     logo_image = LoadImage("assets/android-chrome-512x512.png");
     SetWindowIcon(logo_image);
     app_favicon = LoadTextureFromImage(logo_image);
-    app_favicon.width = 32;
-    app_favicon.height = 32;
+    app_favicon.width = app_favicon.height = FAVICON_SIZE;
     UnloadImage(logo_image);
 }
 
@@ -89,7 +88,6 @@ void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomi
         message_t msg;
         if (client_state->is_entering_username)
         {
-            client_state->is_entering_username = 0;
             client->username[0] = '\0';
             char truncated_username[MAX_USERNAME_LENGTH];
             snprintf(truncated_username, sizeof(truncated_username), "%.*s", MAX_USERNAME_LENGTH - 1, client->input);
@@ -100,19 +98,16 @@ void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomi
         }
         else if (client_state->is_entering_password)
         {
-            client_state->is_entering_password = 0;
             create_message(&msg, MESSAGE_AUTH, client->uid, "server", client->input);
             client->input[0] = '\0';
         }
         else if (client_state->is_confirming_password)
         {
-            client_state->is_confirming_password = 0;
             create_message(&msg, MESSAGE_AUTH, client->uid, "server", client->input);
             client->input[0] = '\0';
         }
         else if (client_state->is_choosing_register)
         {
-            client_state->is_choosing_register = 0;
             create_message(&msg, MESSAGE_CHOICE, client->uid, "server", client->input);
             client->input[0] = '\0';
         }
@@ -179,11 +174,11 @@ void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomi
     }
     // draw
     BeginDrawing();
-    draw_ui(client, client_state);
+    draw_ui(client, client_state, *reconnect_flag, *quit_flag);
     EndDrawing();
 }
 
-void draw_ui(client_t* client, client_state_t* state)
+void draw_ui(client_t* client, client_state_t* state, volatile sig_atomic_t reconnect_flag, volatile sig_atomic_t quit_flag)
 {
     Color text_color_light = DARKGRAY;
     Color text_color = BLACK;
@@ -192,13 +187,24 @@ void draw_ui(client_t* client, client_state_t* state)
     {
         text_color_light = LIGHTGRAY;
         text_color = WHITE;
-        bg_color = DARKGRAY;
+        bg_color = (Color){ 13, 17, 23, 255 };
     }
     ClearBackground(bg_color);
 
     DrawTexture(app_favicon, 10, 10, WHITE);
+    DrawTextEx(font, "Secure Chat", (Vector2) { 10.0 + button_dark_mode.rect.width + 10.0, 10.0 + button_dark_mode.rect.height / 2 - FONT_SIZE / 2 }, FONT_SIZE, FONT_SPACING, text_color);
 
-    if (!state->is_authenticated)
+    if (reconnect_flag)
+    {
+        DrawTextEx(font, "Reconnecting...", (Vector2) { 100.0, 100.0 }, FONT_SIZE, FONT_SPACING, text_color_light);
+        return;
+    }
+    else if (quit_flag)
+    {
+        DrawTextEx(font, "Exiting...", (Vector2) { 100.0, 100.0 }, FONT_SIZE, FONT_SPACING, text_color_light);
+        return;
+    }
+    else if (!state->is_authenticated)
     {
         if (state->is_entering_username)
         {
