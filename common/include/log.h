@@ -2,6 +2,7 @@
 #define __LOG_H
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <pthread.h>
 
 #define MAX_LOG_FILES 10
@@ -76,9 +77,10 @@ void init_logging(const char* filename);
  * @param level The log level.
  * @param log_file The file that the log message is destined for.
  * @param source_file The source file that the log message is from.
- * @param message The log message.
+ * @param format The format of the log message.
+ * @param ... The arguments for the format.
  */
-void log_message(log_level_t level, const char* filename, const char* source_file, const char* message);
+void log_message(log_level_t level, const char* filename, const char* source_file, const char* format, ...);
 
 /**
  * Finish logging. This function is used to finish logging and close the log file.

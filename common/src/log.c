@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
@@ -65,7 +66,7 @@ void init_logging(const char* filename)
     pthread_mutex_unlock(&loggers.log_mutex);
 }
 
-void log_message(log_level_t level, const char* filename, const char* source_file, const char* message)
+void log_message(log_level_t level, const char* filename, const char* source_file, const char* format, ...)
 {
     const char* log_dir = LOGS_DIR;
 
@@ -124,6 +125,13 @@ void log_message(log_level_t level, const char* filename, const char* source_fil
 
     char timestamp[TIMESTAMP_LENGTH];
     get_formatted_timestamp(timestamp, TIMESTAMP_LENGTH);
+
+    char message[1024];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(message, sizeof(message), format, args);
+    va_end(args);
+
     fprintf(log, "%s - %s - %s - %s\n", timestamp, level_str, source_file, message);
 
     fflush(log);
