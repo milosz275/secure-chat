@@ -41,10 +41,7 @@ void* receive_messages(void* arg)
                 printf("Server disconnected.\n");
             else
                 perror("Receive failed");
-            SSL_shutdown(client.ssl);
-            close(sock);
             reconnect_flag = 1;
-            pthread_exit(NULL);
         }
 
         buffer[nbytes] = '\0';
@@ -94,6 +91,7 @@ void* receive_messages(void* arg)
         }
         else if (msg.type == MESSAGE_AUTH && !strcmp(msg.payload, message_code_to_string(MESSAGE_CODE_ENTER_PASSWORD)))
         {
+            client_state.is_entering_username = 0;
             client_state.is_entering_password = 1;
             int code = atoi(msg.payload);
             const char* text = message_code_to_text(code);
@@ -108,6 +106,7 @@ void* receive_messages(void* arg)
         }
         else if (msg.type == MESSAGE_CHOICE && !strcmp(msg.payload, message_code_to_string(MESSAGE_CODE_USER_REGISTER_CHOICE)))
         {
+            client_state.is_entering_username = 0;
             client_state.is_choosing_register = 1;
             int code = atoi(msg.payload);
             const char* text = message_code_to_text(code);
@@ -120,8 +119,14 @@ void* receive_messages(void* arg)
             const char* text = message_code_to_text(code);
             printf("(0%s) Server: %s\n", msg.payload, text);
         }
-        else if (msg.type == MESSAGE_AUTH && (!strcmp(msg.payload, message_code_to_string(MESSAGE_CODE_USER_AUTHENTICATED)) || !strcmp(msg.payload, message_code_to_string(MESSAGE_CODE_USER_CREATED))))
+        else if (msg.type == MESSAGE_AUTH && !strcmp(msg.payload, message_code_to_string(MESSAGE_CODE_USER_AUTHENTICATED)))
         {
+            client_state.is_entering_password = 0;
+            client_state.is_authenticated = 1;
+        }
+        else if (msg.type == MESSAGE_AUTH && !strcmp(msg.payload, message_code_to_string(MESSAGE_CODE_USER_CREATED)))
+        {
+            client_state.is_confirming_password = 0;
             client_state.is_authenticated = 1;
         }
         else if (msg.type == MESSAGE_UID)
@@ -284,9 +289,13 @@ void run_client()
         }
 
         reconnect_flag = 0;
-        client.uid = (char*)malloc(HASH_HEX_OUTPUT_LENGTH);
-        if (client.uid == NULL)
+        if (client.uid != NULL)
         {
+            free(client.uid);
+            client.uid = NULL;
+        }
+        client.uid = (char*)malloc(HASH_HEX_OUTPUT_LENGTH);
+        if (client.uid == NULL) {
             log_message(T_LOG_ERROR, CLIENT_LOG, __FILE__, "Memory allocation failed");
             finish_logging();
             close(client.socket);
@@ -313,26 +322,37 @@ void run_client()
             client_state.is_authenticated = 0;
             client.username[0] = '\0';
             if (client.uid)
-            {
-                free(client.uid);
                 client.uid = NULL;
+            if (client.socket != -1)
+            {
+                close(client.socket);
+                client.socket = -1;
             }
-            close(client.socket);
         }
-        pthread_cancel(recv_thread);
-        pthread_join(recv_thread, NULL);
+        if (recv_thread)
+        {
+            int cancel_result = pthread_cancel(recv_thread);
+            if (cancel_result != 0)
+            {
+                log_message(T_LOG_ERROR, CLIENT_LOG, __FILE__, "Error cancelling thread: %s", strerror(cancel_result));
+            }
+            else
+            {
+                int join_result = pthread_join(recv_thread, NULL);
+                if (join_result != 0)
+                {
+                    log_message(T_LOG_ERROR, CLIENT_LOG, __FILE__, "Error joining thread: %s", strerror(join_result));
+                }
+            }
+        }
     }
 
     CloseWindow();
     destroy_ssl(&client);
     if (client.uid)
         free(client.uid);
-    if (close(client.socket) == -1)
+    if (client.socket != -1 && close(client.socket) == -1)
         perror("Error closing socket");
-    if (pthread_cancel(recv_thread) != 0)
-        perror("Error cancelling thread");
-    if (pthread_join(recv_thread, NULL) != 0)
-        perror("Error joining thread");
     log_message(T_LOG_INFO, CLIENT_LOG, __FILE__, "Client is shutting down.");
     finish_logging();
     exit(EXIT_SUCCESS);
