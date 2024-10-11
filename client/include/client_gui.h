@@ -7,8 +7,8 @@
 
 #include "client.h"
 
-#define WINDOW_WIDTH 800
-#define WINDOW_HEIGHT 600
+#define WINDOW_WIDTH 1280
+#define WINDOW_HEIGHT 720
 #define TARGET_FPS 60
 
 #define BACKSPACE_DELAY 50
@@ -16,6 +16,7 @@
 #define FONT_SPACING 2
 
 #define BUTTON_TEXT_LENGTH 16
+#define FAVICON_SIZE 32
 
 /**
  * The client state structure. This structure is used to define the client state structure.
@@ -98,8 +99,10 @@ void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomi
  *
  * @param client The client structure.
  * @param state The client state structure.
+ * @param reconnect_flag The reconnect flag.
+ * @param quit_flag The quit flag.
  */
-void draw_ui(client_t* client, client_state_t* state);
+void draw_ui(client_t* client, client_state_t* state, volatile sig_atomic_t reconnect_flag, volatile sig_atomic_t quit_flag);
 
 void add_message(const char* formatted_message);
 
