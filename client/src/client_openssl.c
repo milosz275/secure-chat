@@ -1,6 +1,8 @@
 #include "client_openssl.h"
 
 #include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <unistd.h>
 
 #include "log.h"
 
@@ -32,9 +34,11 @@ int init_ssl(client_t* client)
 
 int destroy_ssl(client_t* client)
 {
+    SSL_shutdown(client->ssl);
     if (client->ssl)
         SSL_free(client->ssl);
     if (client->ssl_ctx)
         SSL_CTX_free(client->ssl_ctx);
+    close(client->socket);
     return 0;
 }
