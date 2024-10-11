@@ -61,10 +61,7 @@ void hash_map_destroy(hash_map* map)
         {
             hash_node* next = node->next;
             if (node->cl)
-            {
-                free(node->cl);
                 node->cl = NULL;
-            }
             if (node)
             {
                 free(node);
