@@ -11,7 +11,7 @@
 
 ![Logo](assets/logo.png)
 
-Secure Chat is a C program that allows you host decentralized system and chat securely with your friends. -It implements Diffie-Hellman (DH) key exchange to prevent man-in-the-middle (MitM) attacks, it uses the RSA algorithm to create sessions and AES algorithm for message end-to-end (EE2E) encryption-. Messages are stored in SQLite3 (ultimately other, distributed) database and can be read by the recipient only. Sending messages in optimized for maximum performance and resource usage.
+Secure Chat is a C program that allows you host decentralized system and chat securely with your friends. It implements Diffie-Hellman (DH) key exchange to prevent man-in-the-middle (MitM) attacks RSA algorithm is used to create sessions and AES algorithm for message end-to-end (EE2E) encryption. Messages are stored in SQLite3 (ultimately other, distributed) database and can be read by the recipient only. Sending messages in optimized for maximum performance and resource usage.
 
 - [GitHub repository](https://github.com/milosz275/secure-chat)
 - [Docker repository](https://hub.docker.com/repository/docker/mlsh/secure-chat)
@@ -60,7 +60,7 @@ The server does not store any messages, only the public keys of the clients. The
 
 ### 2. Sending Messages Between Clients
 
-#### Scenario 1: **Sending a Message to an Online User**
+#### Scenario 1: Sending a Message to an Online User
 
 1. **Client A prepares a message for Client B**:
    - Client A composes the message.
@@ -79,7 +79,7 @@ The server does not store any messages, only the public keys of the clients. The
 5. **Decryption**:
    - Client B uses the shared **AES key** to decrypt the message.
 
-#### Scenario 2: **Sending a Message to a New or Offline User**
+#### Scenario 2: Sending a Message to a New or Offline User
 
 If Client A sends a message to Client B, and Client B is either **offline** or no prior DH key exchange has occurred (e.g., first-time contact):
 
@@ -106,7 +106,7 @@ If Client A sends a message to Client B, and Client B is either **offline** or n
 
 ### 3. Handling Different Devices and Stored Messages
 
-#### Scenario 1: **Using a New Device**
+#### Scenario 1: Using a New Device
 
 1. **Unique DH Key Exchange**:
    - If Client B logs in from a new device, a new **Diffie-Hellman (DH) key exchange** occurs between Client A and Client B.
@@ -121,7 +121,7 @@ If Client A sends a message to Client B, and Client B is either **offline** or n
 4. **Multiple Devices**:
    - **Each device** has its own DH key exchange and generates its own AES key, ensuring that messages are independently encrypted and decrypted per device.
 
-#### Scenario 2: **Reusing the Same Device**
+#### Scenario 2: Reusing the Same Device
 
 1. **Reusing existing keys**:
    - If Client B logs in from the same device, the **AES key** from the previous DH exchange is reused.
