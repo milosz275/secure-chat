@@ -22,7 +22,7 @@
 volatile sig_atomic_t quit_flag = 0;
 volatile sig_atomic_t reconnect_flag = 0;
 static struct client_t client = { -1, NULL, CLIENT_DEFAULT_NAME, NULL, NULL, "\0" };
-static struct client_state_t client_state = { 1, 0, 0, 0, 0, 0, 0, 0 };
+static struct client_state_t client_state = { 1, 0, 0, 0, 0, 0, 0, -1, 0 };
 int server_answer = 0;
 
 void* receive_messages(void* arg)
