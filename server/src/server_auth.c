@@ -44,7 +44,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
             send_message(req->ssl, &msg);
             send_msg[0] = '\0';
             sprintf(send_msg, "%d", MESSAGE_CODE_USER_REGISTER_INFO);
-            create_message(&msg, MESSAGE_SYSTEM, "server", CLIENT_DEFAULT_NAME, send_msg);
+            create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
             sleep(1);
             send_message(req->ssl, &msg);
         }
@@ -226,7 +226,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                         send_message(req->ssl, &msg);
                         send_msg[0] = '\0';
                         sprintf(send_msg, "%d", MESSAGE_CODE_TRY_AGAIN);
-                        create_message(&msg, MESSAGE_TEXT, "server", CLIENT_DEFAULT_NAME, send_msg);
+                        create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
                         usleep(100000); // 100 ms
                         send_message(req->ssl, &msg);
                         attempts++;
@@ -270,7 +270,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                     send_message(req->ssl, &msg);
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_TRY_AGAIN);
-                    create_message(&msg, MESSAGE_TEXT, "server", CLIENT_DEFAULT_NAME, send_msg);
+                    create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
                     usleep(100000); // 100 ms
                     send_message(req->ssl, &msg);
                 }
@@ -361,7 +361,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                     send_message(req->ssl, &msg);
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_TRY_AGAIN);
-                    create_message(&msg, MESSAGE_TEXT, "server", CLIENT_DEFAULT_NAME, send_msg);
+                    create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
                     usleep(100000); // 100 ms
                     send_message(req->ssl, &msg);
                 }
