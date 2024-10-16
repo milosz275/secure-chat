@@ -77,11 +77,15 @@ void* attempt_reconnection(void* arg)
     {
         if (reconnect_flag || !client_state.is_connected)
         {
-            printf("Attempting to reconnect...\n");
+            if (reconnect_flag)
+                printf("Attempting to reconnect...\n");
             if (connect_to_server((struct sockaddr_in*)arg) == 0)
             {
                 reconnect_flag = 0;  // successfully reconnected
-                log_message(T_LOG_INFO, CLIENT_LOG, __FILE__, "Reconnected to server");
+                if (!client_state.is_connected)
+                    log_message(T_LOG_INFO, CLIENT_LOG, __FILE__, "Connected to server");
+                else
+                    log_message(T_LOG_INFO, CLIENT_LOG, __FILE__, "Reconnected to server");
                 client_state.is_connected = 1;
             }
             else
@@ -105,8 +109,10 @@ void* handle_server_ping(void* arg)
         }
         else if (!client.ssl)
         {
-            log_message(T_LOG_ERROR, CLIENT_LOG, __FILE__, "Ping thread: SSL object is NULL");
-            reconnect_flag = 1;
+            log_message(T_LOG_WARN, CLIENT_LOG, __FILE__, "Ping thread: SSL object is NULL");
+            if (client_state.is_connected)
+                reconnect_flag = 1;
+            sleep(1);
             continue;
         }
 
