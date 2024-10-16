@@ -64,12 +64,24 @@
             "options": {
                 "cwd": "${workspaceFolder}"
             },
+            "problemMatcher": [],
+            "isBackground": true,
+            "group": {
+                "kind": "none",
+                "isDefault": false
+            },
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
+                "panel": "dedicated",
+                "showReuseMessage": false,
+                "clear": false,
                 "close": true
             },
-            "problemMatcher": []
+            "runOptions": {
+                "instanceLimit": 1,
+                "reevaluateOnRerun": false
+            }
         },
         {
             "label": "run client",

@@ -2,11 +2,11 @@
 #define __LOG_H
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <pthread.h>
 
 #define MAX_LOG_FILES 10
 #define MAX_FILENAME_LENGTH 256
-#define MAX_LOG_LENGTH 4096
 #define LOGS_DIR "logs"
 #define SERVER_LOG "server.log"
 #define CLIENTS_LOG "clients.log"
@@ -20,21 +20,21 @@
 #define LOCKED_FILE_TIMEOUT 5000000 // in microseconds (5 seconds)
 
 /**
- * The log level enumeration. This enumeration is used to define the level of logging that is being used.
+ * The log level enumeration. This enumeration is used to define the level of logging that is being used. Regular log enums are used by Raylib.
  *
- * @param LOG_DEBUG Debug level logging
- * @param LOG_INFO Information level logging
- * @param LOG_WARN Warning level logging
- * @param LOG_ERROR Error level logging
- * @param LOG_FATAL Fatal level logging
+ * @param T_LOG_DEBUG Debug level logging
+ * @param T_LOG_INFO Information level logging
+ * @param T_LOG_WARN Warning level logging
+ * @param T_LOG_ERROR Error level logging
+ * @param T_LOG_FATAL Fatal level logging
  */
 typedef enum
 {
-    LOG_DEBUG,
-    LOG_INFO,
-    LOG_WARN,
-    LOG_ERROR,
-    LOG_FATAL
+    T_LOG_DEBUG,
+    T_LOG_INFO,
+    T_LOG_WARN,
+    T_LOG_ERROR,
+    T_LOG_FATAL
 } log_level_t;
 
 /**
@@ -76,9 +76,10 @@ void init_logging(const char* filename);
  * @param level The log level.
  * @param log_file The file that the log message is destined for.
  * @param source_file The source file that the log message is from.
- * @param message The log message.
+ * @param format The format of the log message.
+ * @param ... The arguments for the format.
  */
-void log_message(log_level_t level, const char* filename, const char* source_file, const char* message);
+void log_message(log_level_t level, const char* filename, const char* source_file, const char* format, ...);
 
 /**
  * Finish logging. This function is used to finish logging and close the log file.

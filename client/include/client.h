@@ -9,6 +9,9 @@
 #define SERVER_RECONNECTION_INTERVAL 1
 #define SERVER_RECONNECTION_ATTEMPTS 120
 
+#define MAX_INPUT_LENGTH 128
+#define MAX_MESSAGE_LENGTH 147
+
 /**
  * The client structure. This structure is used to define the client structure.
  *
@@ -17,6 +20,7 @@
  * @param username The client username.
  * @param ssl_ctx The SSL context.
  * @param ssl The SSL object.
+ * @param input The client input.
  */
 typedef struct client_t
 {
@@ -25,23 +29,8 @@ typedef struct client_t
     char username[MAX_USERNAME_LENGTH + 1];
     SSL_CTX* ssl_ctx;
     SSL* ssl;
+    char input[MAX_INPUT_LENGTH];
 } client_t;
-
-/**
- * The client state structure. This structure is used to define the client state structure.
- *
- * @param is_entering_username The client is entering the username.
- * @param is_entering_password The client is entering the password.
- * @param is_confirming_password The client is confirming the password.
- * @param is_authenticated The client is authenticated.
- */
-typedef struct client_state_t
-{
-    int is_entering_username;
-    int is_entering_password;
-    int is_confirming_password;
-    int is_authenticated;
-} client_state_t;
 
 /**
  * Connect to the server. This function is used to connect to the server.

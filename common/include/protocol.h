@@ -116,6 +116,7 @@ enum
  * @param MESSAGE_CODE_INVALID_PASSWORD Invalid password
  * @param MESSAGE_CODE_PASSWORDS_DO_NOT_MATCH Passwords do not match
  * @param MESSAGE_CODE_TRY_AGAIN Try again
+ * @param MESSAGE_CODE_BROADCAST User broadcast
  * @param MESSAGE_CODE_USER_JOIN User joined
  * @param MESSAGE_CODE_USER_LEAVE User left
  * @param MESSAGE_CODE_USER_DOES_NOT_EXIST User does not exist
@@ -144,6 +145,7 @@ enum
     MESSAGE_CODE_INVALID_PASSWORD,
     MESSAGE_CODE_PASSWORDS_DO_NOT_MATCH,
     MESSAGE_CODE_TRY_AGAIN,
+    MESSAGE_CODE_BROADCAST,
     MESSAGE_CODE_USER_JOIN,
     MESSAGE_CODE_USER_LEAVE,
     MESSAGE_CODE_USER_DOES_NOT_EXIST,
@@ -204,6 +206,8 @@ typedef struct
  * @param uid The unique ID of the client.
  * @param username The username of the client.
  * @param is_ready The client readiness status.
+ * @param is_inserted The client hash map insertion status.
+ * @param ping_sent The client ping status.
  */
 typedef struct client_connection_t
 {
@@ -212,6 +216,8 @@ typedef struct client_connection_t
     char* uid;
     char username[MAX_USERNAME_LENGTH + 1];
     int is_ready;
+    int is_inserted;
+    int ping_sent;
 } client_connection_t;
 
 /**
@@ -244,15 +250,23 @@ void parse_message(message_t* msg, const char* buffer);
 int send_message(SSL* ssl, message_t* msg);
 
 /**
- * Get the message type as a string. This function is used to get the message type as a string.
+ * Get the message type as a text string. This function is used to get the message type as a text string, for example "MESSAGE_TOAST".
  *
  * @param type The message type.
- * @return The message type as a string.
+ * @return The message type as a text string.
  */
-const char* message_type_to_string(message_type_t type);
+const char* message_type_to_text(message_type_t type);
 
 /**
- * Get the message code as a string. This function is used to get the message code as a string.
+ * Get the message code as a text string. This function is used to get the message code as a text string, for example "Welcome!".
+ *
+ * @param code The message code.
+ * @return The message code as a text string.
+ */
+const char* message_code_to_text(message_code_t code);
+
+/**
+ * Get the message code as a string. This function is used to get the message code as a string, for example "1234".
  *
  * @param code The message code.
  * @return The message code as a string.

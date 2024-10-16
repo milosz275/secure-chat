@@ -93,7 +93,7 @@ int send_message(SSL* ssl, message_t* msg)
 }
 
 
-const char* message_type_to_string(message_type_t type)
+const char* message_type_to_text(message_type_t type)
 {
     switch (type)
     {
@@ -118,9 +118,8 @@ const char* message_type_to_string(message_type_t type)
     }
 }
 
-const char* message_code_to_string(message_code_t code)
+const char* message_code_to_text(message_code_t code)
 {
-    // this function is temporarily used for CLI client application and will be removed for codes to be handled in GUI
     switch (code)
     {
     case MESSAGE_CODE_WELCOME: return "Welcome!";
@@ -131,6 +130,7 @@ const char* message_code_to_string(message_code_t code)
     case MESSAGE_CODE_INVALID_PASSWORD: return "Invalid password.";
     case MESSAGE_CODE_PASSWORDS_DO_NOT_MATCH: return "Passwords do not match.";
     case MESSAGE_CODE_TRY_AGAIN: return "Try again.";
+    case MESSAGE_CODE_BROADCAST: return "Broadcast message.";
     case MESSAGE_CODE_USER_JOIN: return " has joined the chat.";
     case MESSAGE_CODE_USER_LEAVE: return " has left the chat.";
     case MESSAGE_CODE_USER_DOES_NOT_EXIST: return "User does not exist.";
@@ -148,6 +148,13 @@ const char* message_code_to_string(message_code_t code)
     case MESSAGE_CODE_UID: return "Your UID is ";
     default: return MESSAGE_CODE_UNKNOWN;
     }
+}
+
+const char* message_code_to_string(message_code_t code)
+{
+    static char code_str[16];
+    snprintf(code_str, sizeof(code_str), "%d", code);
+    return code_str;
 }
 
 int get_hash(const unsigned char* input, char* output)

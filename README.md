@@ -1,21 +1,21 @@
 # Secure Chat
 
-[![C/C++ CI](https://github.com/mldxo/secure-chat/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/mldxo/secure-chat/actions/workflows/c-cpp.yml)
-[![Docker image](https://github.com/mldxo/secure-chat/actions/workflows/docker-image.yml/badge.svg)](https://github.com/mldxo/secure-chat/actions/workflows/docker-image.yml)
-[![CodeQL scan](https://github.com/mldxo/secure-chat/actions/workflows/codeql.yml/badge.svg)](https://github.com/mldxo/secure-chat/actions/workflows/codeql.yml)
-[![Doxygen Pages](https://github.com/mldxo/secure-chat/actions/workflows/doxygen-pages.yml/badge.svg)](https://github.com/mldxo/secure-chat/actions/workflows/doxygen-pages.yml)
-[![GitHub tags](https://img.shields.io/github/v/tag/mldxo/secure-chat)](https://github.com/mldxo/secure-chat/tags)
-[![GitHub release](https://img.shields.io/github/v/release/mldxo/secure-chat)](https://github.com/mldxo/secure-chat/releases)
-[![GitHub issues](https://img.shields.io/github/issues/mldxo/secure-chat)](https://github.com/mldxo/secure-chat/issues)
-[![GitHub license](https://img.shields.io/github/license/mldxo/secure-chat)](/LICENSE)
+[![C/C++ CI](https://github.com/milosz275/secure-chat/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/milosz275/secure-chat/actions/workflows/c-cpp.yml)
+[![Docker image](https://github.com/milosz275/secure-chat/actions/workflows/docker-image.yml/badge.svg)](https://github.com/milosz275/secure-chat/actions/workflows/docker-image.yml)
+[![CodeQL scan](https://github.com/milosz275/secure-chat/actions/workflows/codeql.yml/badge.svg)](https://github.com/milosz275/secure-chat/actions/workflows/codeql.yml)
+[![Doxygen Pages](https://github.com/milosz275/secure-chat/actions/workflows/doxygen-pages.yml/badge.svg)](https://github.com/milosz275/secure-chat/actions/workflows/doxygen-pages.yml)
+[![GitHub tags](https://img.shields.io/github/v/tag/milosz275/secure-chat)](https://github.com/milosz275/secure-chat/tags)
+[![GitHub release](https://img.shields.io/github/v/release/milosz275/secure-chat)](https://github.com/milosz275/secure-chat/releases)
+[![GitHub issues](https://img.shields.io/github/issues/milosz275/secure-chat)](https://github.com/milosz275/secure-chat/issues)
+[![GitHub license](https://img.shields.io/github/license/milosz275/secure-chat)](/LICENSE)
 
 ![Logo](assets/logo.png)
 
-Secure Chat is a C program that allows you host decentralized system and chat securely with your friends. -It implements Diffie-Hellman (DH) key exchange to prevent man-in-the-middle (MitM) attacks, it uses the RSA algorithm to create sessions and AES algorithm for message end-to-end (EE2E) encryption-. Messages are stored in SQLite3 (ultimately other, distributed) database and can be read by the recipient only. Sending messages in optimized for maximum performance and resource usage.
+Secure Chat is a C program that allows you host decentralized system and chat securely with your friends. It implements Diffie-Hellman (DH) key exchange to prevent man-in-the-middle (MitM) attacks RSA algorithm is used to create sessions and AES algorithm for message end-to-end (EE2E) encryption. Messages are stored in SQLite3 (ultimately other, distributed) database and can be read by the recipient only. Sending messages in optimized for maximum performance and resource usage.
 
-- [GitHub repository](https://github.com/mldxo/secure-chat)
+- [GitHub repository](https://github.com/milosz275/secure-chat)
 - [Docker repository](https://hub.docker.com/repository/docker/mlsh/secure-chat)
-- [Doxygen documentation](https://mldxo.github.io/secure-chat/)
+- [Doxygen documentation](https://milosz275.github.io/secure-chat/)
 
 > [!IMPORTANT]
 > This project is still in development and does not contain server distribution yet.
@@ -60,7 +60,7 @@ The server does not store any messages, only the public keys of the clients. The
 
 ### 2. Sending Messages Between Clients
 
-#### Scenario 1: **Sending a Message to an Online User**
+#### Scenario 1: Sending a Message to an Online User
 
 1. **Client A prepares a message for Client B**:
    - Client A composes the message.
@@ -79,7 +79,7 @@ The server does not store any messages, only the public keys of the clients. The
 5. **Decryption**:
    - Client B uses the shared **AES key** to decrypt the message.
 
-#### Scenario 2: **Sending a Message to a New or Offline User**
+#### Scenario 2: Sending a Message to a New or Offline User
 
 If Client A sends a message to Client B, and Client B is either **offline** or no prior DH key exchange has occurred (e.g., first-time contact):
 
@@ -106,7 +106,7 @@ If Client A sends a message to Client B, and Client B is either **offline** or n
 
 ### 3. Handling Different Devices and Stored Messages
 
-#### Scenario 1: **Using a New Device**
+#### Scenario 1: Using a New Device
 
 1. **Unique DH Key Exchange**:
    - If Client B logs in from a new device, a new **Diffie-Hellman (DH) key exchange** occurs between Client A and Client B.
@@ -121,7 +121,7 @@ If Client A sends a message to Client B, and Client B is either **offline** or n
 4. **Multiple Devices**:
    - **Each device** has its own DH key exchange and generates its own AES key, ensuring that messages are independently encrypted and decrypted per device.
 
-#### Scenario 2: **Reusing the Same Device**
+#### Scenario 2: Reusing the Same Device
 
 1. **Reusing existing keys**:
    - If Client B logs in from the same device, the **AES key** from the previous DH exchange is reused.
@@ -160,7 +160,7 @@ This should also work with Ubuntu and Linux Mint.
 ## Build
 
 ```bash
-git clone https://github.com/mldxo/secure-chat
+git clone https://github.com/milosz275/secure-chat
 cd secure-chat
 make
 ```
@@ -177,7 +177,7 @@ client/build/bin/client
 
 ## Releases
 
-You can download server and client from the [releases](https://github.com/mldxo/secure-chat/releases) page.
+You can download server and client from the [releases](https://github.com/milosz275/secure-chat/releases) page.
 
 ## Docker
 
@@ -210,7 +210,7 @@ SQLite3 database is utilized at the moment. There is planned usage of distribute
 
 ### Database Schema
 
-Navigate to [database](https://github.com/mldxo/secure-chat/tree/main/database) for detailed database schema documentation.
+Navigate to [database](https://github.com/milosz275/secure-chat/tree/main/database) for detailed database schema documentation.
 
 # Current work
 
@@ -231,16 +231,16 @@ Navigate to [database](https://github.com/mldxo/secure-chat/tree/main/database) 
 
 # License
 
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/mldxo/secure-chat/blob/main/LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/milosz275/secure-chat/blob/main/LICENSE) file for details.
 
 # Authors
 
-- [mldxo](https://github.com/mldxo)
+- [milosz275](https://github.com/milosz275)
 - [antk02](https://github.com/antk02)
 
 # Contributing
 
-Please refer to [CONTRIBUTING.md](https://github.com/mldxo/secure-chat/blob/main/CONTRIBUTING.md). We appreciate your help!
+Please refer to [CONTRIBUTING.md](https://github.com/milosz275/secure-chat/blob/main/CONTRIBUTING.md). We appreciate your help!
 
 # Acknowledgments
 
