@@ -99,40 +99,27 @@ void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomi
             strncpy(client->username, truncated_username, MAX_USERNAME_LENGTH);
             client->username[MAX_USERNAME_LENGTH] = '\0';
             create_message(&msg, MESSAGE_AUTH, client->uid, "server", client->input);
-            client->input[0] = '\0';
         }
-        else if (client_state->is_entering_password)
-        {
+        else if (client_state->is_entering_password || client_state->is_confirming_password)
             create_message(&msg, MESSAGE_AUTH, client->uid, "server", client->input);
-            client->input[0] = '\0';
-        }
-        else if (client_state->is_confirming_password)
-        {
-            create_message(&msg, MESSAGE_AUTH, client->uid, "server", client->input);
-            client->input[0] = '\0';
-        }
         else if (client_state->is_choosing_register)
-        {
             create_message(&msg, MESSAGE_CHOICE, client->uid, "server", client->input);
-            client->input[0] = '\0';
-        }
         else
-        {
-            char formatted_message[MAX_MESSAGE_LENGTH];
-            snprintf(formatted_message, sizeof(formatted_message), "%.50s: %.100s", client->username, client->input);
-            create_message(&msg, MESSAGE_TEXT, client->uid, "server", formatted_message);
-            strncpy(messages[message_count], formatted_message, MAX_MESSAGE_LENGTH);
-            messages[message_count][MAX_MESSAGE_LENGTH - 1] = '\0';
-            message_count = (message_count + 1) % 10;
-            client->input[0] = '\0';
-        }
+            create_message(&msg, MESSAGE_TEXT, client->uid, "server", client->input);
 
         if (send_message(client->ssl, &msg) != MESSAGE_SEND_SUCCESS)
         {
             log_message(T_LOG_ERROR, CLIENT_LOG, __FILE__, "Send failed. Server might be disconnected.");
             *reconnect_flag = 1;
+            client->input[0] = '\0';
             return;
         }
+        if (client_state->is_authenticated)
+        {
+            log_message(T_LOG_INFO, CLIENT_LOG, __FILE__, "Message sent to %s: %s", msg.recipient_uid, client->input);
+            add_message(client->username, client->input);
+        }
+        client->input[0] = '\0';
     }
     else if (IsKeyPressed(KEY_BACKSPACE) || IsKeyDown(KEY_BACKSPACE))
     {
@@ -263,9 +250,11 @@ void draw_ui(client_t* client, client_state_t* state, volatile sig_atomic_t reco
     DrawTextEx(font, "Press ESC to exit", (Vector2) { (float)WINDOW_WIDTH - 200, 10.0 }, FONT_SIZE, FONT_SPACING, text_color_light);
 }
 
-void add_message(const char* formatted_message)
+void add_message(const char* sender, const char* payload)
 {
-    strncpy(messages[message_count], formatted_message, MAX_MESSAGE_LENGTH);
+    char temp[MAX_MESSAGE_LENGTH];
+    snprintf(temp, MAX_MESSAGE_LENGTH, "%s: %s", sender, payload);
+    strncpy(messages[message_count], temp, MAX_MESSAGE_LENGTH);
     messages[message_count][MAX_MESSAGE_LENGTH - 1] = '\0';
     message_count = (message_count + 1) % 10;
 }
@@ -280,7 +269,7 @@ void reset_state(client_state_t* state)
     state->auth_attempts = 0;
 }
 
-void disable_input()
+void disable_cli_input()
 {
     struct termios newt;
     tcgetattr(STDIN_FILENO, &newt);
