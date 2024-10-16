@@ -112,6 +112,12 @@ void handle_message(message_t* msg, client_t* client, client_state_t* state, vol
         state->is_confirming_password = 0;
         state->is_authenticated = 1;
     }
+    else if (msg->type == MESSAGE_AUTH && !strcmp(msg->payload, message_code_to_string(MESSAGE_CODE_USER_DOES_NOT_EXIST) && msg_from_srv))
+    {
+        int code = atoi(msg->payload);
+        const char* text = message_code_to_text(code);
+        printf("(0%s) Server: %s\n", msg->payload, text);
+    }
     else if (msg->type == MESSAGE_UID && msg_from_srv)
     {
         if (strlen(msg->payload) != HASH_HEX_OUTPUT_LENGTH - 1)
@@ -177,6 +183,12 @@ void handle_message(message_t* msg, client_t* client, client_state_t* state, vol
         printf("(0%d) Server: %s\n", MESSAGE_CODE_BROADCAST, msg->payload);
         add_message("Server", msg->payload);
     }
+    else if (msg->type == MESSAGE_TOAST && msg_from_srv)
+    {
+        int code = atoi(msg->payload);
+        const char* text = message_code_to_text(code);
+        printf("(0%s) Server: %s\n", msg->payload, text);
+    }
     else
     {
         if (msg_from_srv)
@@ -193,11 +205,9 @@ void handle_message(message_t* msg, client_t* client, client_state_t* state, vol
                 const char* text = message_code_to_text(code);
                 printf("(0%s) Server: %s\n", msg->payload, text);
             }
-        }
-        else
-        {
-            printf("%s: %s\n", msg->sender_uid, msg->payload);
             add_message(msg->sender_uid, msg->payload);
         }
+        else
+            printf("%s: %s\n", msg->sender_uid, msg->payload);
     }
 }
