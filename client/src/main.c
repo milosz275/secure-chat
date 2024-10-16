@@ -4,6 +4,6 @@
 
 int main()
 {
-    disable_input();
+    disable_cli_input();
     run_client();
 }
