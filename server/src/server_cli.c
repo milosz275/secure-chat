@@ -157,9 +157,7 @@ int srv_exec_line(char* line)
         }
     }
     printf("Command not found! Type !help to see available commands.\n");
-    char log_msg[MAX_LOG_LENGTH];
-    sprintf(log_msg, "Command not found: %s", command);
-    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, log_msg);
+    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Command not found: %s", command);
     free(tokens);
     return 1;
 }

@@ -184,15 +184,12 @@ int generate_self_signed_certificate(const char* cert_file, const char* key_file
     EVP_PKEY_free(pkey);
     X509_free(x509);
 
-    char log_msg[MAX_LOG_LENGTH];
-    snprintf(log_msg, sizeof(log_msg), "Self-signed certificate generated and saved to %s", cert_file);
-    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, log_msg);
+    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Self-signed certificate generated and saved to %s", cert_file);
     return 0;
 }
 
 void check_and_generate_key_cert()
 {
-    char log_msg[MAX_LOG_LENGTH];
     if (!file_exists(SERVER_KEY_FILE))
     {
         log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Key file not found. Generating new RSA key...");
@@ -203,11 +200,7 @@ void check_and_generate_key_cert()
         }
     }
     else
-    {
-        log_msg[0] = '\0';
-        snprintf(log_msg, sizeof(log_msg), "Key file exists: %s", SERVER_KEY_FILE);
-        log_message(T_LOG_INFO, SERVER_LOG, __FILE__, log_msg);
-    }
+        log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Key file exists: %s", SERVER_KEY_FILE);
 
     if (!file_exists(SERVER_CERT_FILE))
     {
@@ -219,9 +212,5 @@ void check_and_generate_key_cert()
         }
     }
     else
-    {
-        log_msg[0] = '\0';
-        snprintf(log_msg, sizeof(log_msg), "Certificate file exists: %s", SERVER_CERT_FILE);
-        log_message(T_LOG_INFO, SERVER_LOG, __FILE__, log_msg);
-    }
+        log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Certificate file exists: %s", SERVER_CERT_FILE);
 }

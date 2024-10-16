@@ -128,8 +128,6 @@ int setup_db(sqlite3** db, char* db_name)
         sqlite3_close(*db);
     }
 
-    char log_msg[MAX_LOG_LENGTH];
-    sprintf(log_msg, "Successfully created tables in database %s", db_name);
-    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, log_msg);
+    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Successfully created tables in database %s", db_name);
     return DATABASE_CREATE_SUCCESS;
 }
