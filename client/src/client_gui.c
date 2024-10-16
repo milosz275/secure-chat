@@ -23,6 +23,9 @@ time_t last_backspace_press = 0;
 int dark_mode = 0;
 button_t button_dark_mode = { 0 };
 
+int window_width = WINDOW_WIDTH;
+int window_height = WINDOW_HEIGHT;
+
 void init_button(button_t* button, Rectangle rect, Color color)
 {
     button->rect = rect;
@@ -41,13 +44,13 @@ int is_button_clicked(button_t* button)
 
 void init_ui()
 {
-    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Secure Chat Client");
+    InitWindow(window_width, window_height, "Secure Chat Client");
     SetTargetFPS(TARGET_FPS);
     SetExitKey(0);
     SetTraceLogLevel(LOG_NONE);
     SetTraceLogCallback(NULL);
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    SetWindowPosition(GetScreenWidth() / 2 - WINDOW_WIDTH / 2, GetScreenHeight() / 2 - WINDOW_HEIGHT / 2);
+    SetWindowPosition(GetScreenWidth() / 2 - window_width / 2, GetScreenHeight() / 2 - window_height / 2);
     font = LoadFontEx("assets/JetBrainsMono.ttf", FONT_SIZE, NULL, 0);
     init_button(&button_dark_mode, (Rectangle) { 10, 10, FAVICON_SIZE, FAVICON_SIZE }, RED);
 
@@ -74,6 +77,9 @@ void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomi
     }
 
     // update
+    window_width = GetScreenWidth();
+    window_height = GetScreenHeight();
+
     if (is_button_hovered(&button_dark_mode))
     {
         button_dark_mode.color = GRAY;
@@ -199,6 +205,16 @@ void draw_ui(client_t* client, client_state_t* state, volatile sig_atomic_t reco
     }
     else if (!state->is_authenticated)
     {
+        if (state->can_register && !state->just_joined)
+            DrawTextEx(font, "You can register.", (Vector2) { window_width - 370.0, window_height - 30.0 }, FONT_SIZE, FONT_SPACING, text_color_light);
+        if (state->auth_attempts >= 0 && !state->just_joined)
+        {
+            char auth_attempts_str[12];
+            sprintf(auth_attempts_str, "%d", state->auth_attempts);
+            DrawTextEx(font, "Auth attempts: ", (Vector2) { window_width - 175.0, window_height - 30.0 }, FONT_SIZE, FONT_SPACING, text_color_light);
+            DrawTextEx(font, auth_attempts_str, (Vector2) { window_width - 20.0, window_height - 30.0 }, FONT_SIZE, FONT_SPACING, text_color);
+        }
+
         if (state->is_entering_username)
         {
             DrawTextEx(font, message_code_to_text(MESSAGE_CODE_ENTER_USERNAME), (Vector2) { 100.0, 100.0 }, FONT_SIZE, FONT_SPACING, text_color_light);
@@ -232,11 +248,11 @@ void draw_ui(client_t* client, client_state_t* state, volatile sig_atomic_t reco
         {
             if (state->just_joined)
             {
-                DrawTexture(app_logo, WINDOW_WIDTH / 2 - app_logo.width / 2, WINDOW_HEIGHT / 2 - app_logo.height / 2, WHITE);
-                DrawTextEx(font, message_code_to_text(MESSAGE_CODE_WELCOME), (Vector2) { (float)WINDOW_WIDTH / 2 - 25, (float)WINDOW_HEIGHT - 40 }, FONT_SIZE, FONT_SPACING, text_color_light);
+                DrawTexture(app_logo, window_width / 2 - app_logo.width / 2, window_height / 2 - app_logo.height / 2, WHITE);
+                DrawTextEx(font, message_code_to_text(MESSAGE_CODE_WELCOME), (Vector2) { (float)window_width / 2 - 25, (float)window_height - 40 }, FONT_SIZE, FONT_SPACING, text_color_light);
             }
             else
-                DrawTextEx(font, "Loading...", (Vector2) { (float)WINDOW_WIDTH / 2 - 25, (float)WINDOW_HEIGHT / 2 - 25 }, FONT_SIZE, FONT_SPACING, text_color_light);
+                DrawTextEx(font, "Loading...", (Vector2) { (float)window_width / 2 - 25, (float)window_height / 2 - 25 }, FONT_SIZE, FONT_SPACING, text_color_light);
         }
     }
     else
@@ -247,7 +263,7 @@ void draw_ui(client_t* client, client_state_t* state, volatile sig_atomic_t reco
         for (int i = 0; i < message_count; ++i)
             DrawTextEx(font, messages[i], (Vector2) { 100.0, 100.0 + i * 30 }, FONT_SIZE, FONT_SPACING, text_color);
     }
-    DrawTextEx(font, "Press ESC to exit", (Vector2) { (float)WINDOW_WIDTH - 200, 10.0 }, FONT_SIZE, FONT_SPACING, text_color_light);
+    DrawTextEx(font, "Press ESC to exit", (Vector2) { (float)window_width - 200, 10.0 + button_dark_mode.rect.height / 2 - FONT_SIZE / 2 }, FONT_SIZE, FONT_SPACING, text_color_light);
 }
 
 void add_message(const char* sender, const char* payload)
@@ -267,6 +283,7 @@ void reset_state(client_state_t* state)
     state->is_choosing_register = 0;
     state->is_authenticated = 0;
     state->auth_attempts = 0;
+    state->can_register = 0;
 }
 
 void disable_cli_input()
