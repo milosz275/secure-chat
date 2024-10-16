@@ -205,6 +205,7 @@ typedef struct
  * @param username The username of the client.
  * @param is_ready The client readiness status.
  * @param is_inserted The client hash map insertion status.
+ * @param ping_sent The client ping status.
  */
 typedef struct client_connection_t
 {
@@ -214,6 +215,7 @@ typedef struct client_connection_t
     char username[MAX_USERNAME_LENGTH + 1];
     int is_ready;
     int is_inserted;
+    int ping_sent;
 } client_connection_t;
 
 /**
