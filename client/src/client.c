@@ -77,6 +77,8 @@ void* attempt_reconnection(void* arg)
     {
         if (reconnect_flag || !client_state.is_connected)
         {
+            client_state.is_connected = 0;
+            reset_state(&client_state);
             if (reconnect_flag)
                 printf("Attempting to reconnect...\n");
             if (connect_to_server((struct sockaddr_in*)arg) == 0)
