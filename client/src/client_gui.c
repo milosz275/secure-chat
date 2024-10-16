@@ -60,28 +60,33 @@ void init_ui()
     app_favicon = LoadTextureFromImage(logo_image);
     app_favicon.width = app_favicon.height = FAVICON_SIZE;
     UnloadImage(logo_image);
+
+    log_message(T_LOG_INFO, CLIENT_LOG, __FILE__, "UI initialized");
 }
 
 void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomic_t* reconnect_flag, volatile sig_atomic_t* quit_flag)
 {
+    // exit conditions
+    if (*quit_flag)
+    {
+        CloseWindow();
+        return;
+    }
+
     // update
     if (is_button_hovered(&button_dark_mode))
     {
-        button_dark_mode.color = MAROON;
+        button_dark_mode.color = GRAY;
         SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
     }
+    else if (is_button_clicked(&button_dark_mode))
+        dark_mode = !dark_mode;
     else
     {
-        button_dark_mode.color = RED;
-        SetMouseCursor(MOUSE_CURSOR_ARROW);
-    }
-    if (is_button_clicked(&button_dark_mode))
-    {
-        dark_mode = !dark_mode;
         if (dark_mode)
-            button_dark_mode.color = RED;
+            button_dark_mode.color = WHITE;
         else
-            button_dark_mode.color = GREEN;
+            button_dark_mode.color = BLACK;
     }
     if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER))
     {
@@ -152,7 +157,8 @@ void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomi
         for (int i = 0; i < 10; ++i)
             messages[i][0] = '\0';
         message_count = 0;
-        exit(EXIT_SUCCESS);
+        CloseWindow();
+        return;
     }
     else
     {
