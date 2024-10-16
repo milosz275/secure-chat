@@ -49,7 +49,8 @@
         "server_auth.h": "c",
         "raylib.h": "c",
         "log.h": "c",
-        "client.h": "c"
+        "client.h": "c",
+        "client_gui.h": "c"
     },
     "task.allowAutomaticTasks": "on",
     "editor.formatOnSave": true,
