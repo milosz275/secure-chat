@@ -157,12 +157,19 @@ void send_ping(client_connection_t* cl)
 {
     if (cl->is_ready)
     {
-        char log_msg[MAX_LOG_LENGTH];
-        sprintf(log_msg, "Sending PING to client %d", cl->id);
-        log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
+        log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Sending PING to client %d", cl->id);
         message_t* msg = (message_t*)malloc(sizeof(message_t));
         create_message(msg, MESSAGE_PING, "server", cl->uid, "PING");
         sts_queue.push(server.message_queue, msg);
+    }
+}
+
+void kick_unresponsive(client_connection_t* cl)
+{
+    if (cl->is_ready && cl->ping_sent)
+    {
+        log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Kicking unresponsive client %d", cl->id);
+        send_quit_signal(cl);
     }
 }
 
@@ -170,10 +177,7 @@ void send_quit_signal(client_connection_t* cl)
 {
     if (cl->is_ready)
     {
-        char log_msg[MAX_LOG_LENGTH];
-        sprintf(log_msg, "Sending quit signal to client %d", cl->id);
-        log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
-
+        log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Sending quit signal to client %d", cl->id);
         message_t* msg = (message_t*)malloc(sizeof(message_t));
         create_message(msg, MESSAGE_SIGNAL, "server", cl->uid, MESSAGE_SIGNAL_QUIT);
         sts_queue.push(server.message_queue, msg);
@@ -185,10 +189,7 @@ void send_broadcast(client_connection_t* cl, void* arg)
     char* message = (char*)arg;
     if (cl->is_ready)
     {
-        char log_msg[MAX_LOG_LENGTH];
-        sprintf(log_msg, "Broadcasting message to client %d: %s", cl->id, message);
-        log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
-
+        log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Broadcasting message to client %d: %s", cl->id, message);
         message_t* msg = (message_t*)malloc(sizeof(message_t));
         create_message(msg, MESSAGE_TEXT, "server", cl->uid, message);
         sts_queue.push(server.message_queue, msg);
@@ -200,9 +201,7 @@ void send_join_message(client_connection_t* cl, void* arg)
     client_connection_t* new_cl = (client_connection_t*)arg;
     if (cl->is_ready && cl != new_cl)
     {
-        char log_msg[MAX_LOG_LENGTH];
-        sprintf(log_msg, "Sending join message to client %d", cl->id);
-        log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
+        log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Sending join message to client %d", cl->id);
         message_t* msg = (message_t*)malloc(sizeof(message_t));
         create_message(msg, MESSAGE_USER_JOIN, "server", cl->uid, new_cl->username);
         sts_queue.push(server.message_queue, msg);
@@ -212,7 +211,6 @@ void send_join_message(client_connection_t* cl, void* arg)
 void* handle_client(void* arg)
 {
     // before authentication log to requests.log
-    char log_msg[MAX_LOG_LENGTH];
     char buffer[BUFFER_SIZE];
     int nbytes;
     request_t* req_ptr = ((request_t*)arg);
@@ -222,9 +220,7 @@ void* handle_client(void* arg)
     server.requests_handled++;
     cl.is_ready = 0;
     cl.is_inserted = 0;
-
-    sprintf(log_msg, "Handing request %s:%d", inet_ntoa(req.address.sin_addr), ntohs(req.address.sin_port));
-    log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, log_msg);
+    log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Handing request %s:%d", inet_ntoa(req.address.sin_addr), ntohs(req.address.sin_port));
 
     if (user_auth(&req, &cl, server.client_map) != USER_AUTHENTICATION_SUCCESS)
     {
@@ -240,23 +236,16 @@ void* handle_client(void* arg)
     }
     cl.is_inserted = 1;
     cl.id = server.client_map->current_elements - 1;
-    log_msg[0] = '\0';
-    sprintf(log_msg, "%s added to client array", cl.username);
-    log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
+    log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "%s added to client array", cl.username);
 
     // from this point log to client_connections.log
     server.client_logins_handled++;
-
-    log_msg[0] = '\0';
-    sprintf(log_msg, "Successful auth of client - id: %d - username: %s - address: %s:%d - uid: %s", cl.id, cl.username, inet_ntoa(req.address.sin_addr), ntohs(req.address.sin_port), cl.uid);
-    log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
+    log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Successful auth of client - id: %d - username: %s - address: %s:%d - uid: %s", cl.id, cl.username, inet_ntoa(req.address.sin_addr), ntohs(req.address.sin_port), cl.uid);
 
     // send join message to all clients except the new one
     hash_map_iterate2(server.client_map, send_join_message, &cl);
 
     cl.is_ready = 1;
-    create_message(&msg, MESSAGE_PING, "server", cl.uid, "PING");
-    send_message(cl.request->ssl, &msg);
     while ((nbytes = SSL_read(cl.request->ssl, buffer, sizeof(buffer))) > 0)
     {
         if (quit_flag)
@@ -276,9 +265,8 @@ void* handle_client(void* arg)
             }
             else if (msg.type == MESSAGE_ACK)
             {
-                log_msg[0] = '\0';
-                sprintf(log_msg, "Received ACK from client %d", cl.id);
-                log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
+                log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Received ACK from client %d", cl.id);
+                cl.ping_sent = 0;
             }
             else
             {
@@ -288,19 +276,25 @@ void* handle_client(void* arg)
             }
         }
         else
-        {
-            log_msg[0] = '\0';
-            sprintf(log_msg, "Received malformed message from client %d", cl.id);
-            log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
-        }
+            log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Received malformed message from client %d", cl.id);
     }
     // client disconnected
-    log_msg[0] = '\0';
-    sprintf(log_msg, "Client %d disconnected", cl.id);
-    log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, log_msg);
+    log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Client %d disconnected", cl.id);
     if (cl.is_inserted)
         hash_map_erase(server.client_map, cl.uid);
     close(cl.request->socket);
+    pthread_exit(NULL);
+}
+
+void* handle_client_ping(void* arg)
+{
+    while (!quit_flag)
+    {
+        hash_map_iterate(server.client_map, send_ping);
+        sleep(5);
+        hash_map_iterate(server.client_map, kick_unresponsive);
+    }
+    if (arg) {}
     pthread_exit(NULL);
 }
 
@@ -336,13 +330,18 @@ void* handle_msg_queue(void* arg)
         message_t* msg = sts_queue.pop(server.message_queue);
         if (msg)
         {
-            char log_msg[MAX_LOG_LENGTH];
-            snprintf(log_msg, MAX_LOG_LENGTH, "Message from %s to %s: %s", msg->sender_uid, msg->recipient_uid, msg->payload);
-            log_message(T_LOG_INFO, SERVER_LOG, __FILE__, log_msg);
+            log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Message from %s to %s: %s", msg->sender_uid, msg->recipient_uid, msg->payload);
             client_connection_t* cl = (client_connection_t*)malloc(sizeof(client_connection_t));
             int recipient_found = hash_map_find(server.client_map, msg->recipient_uid, &cl);
             if (recipient_found)
+            {
                 send_message(cl->request->ssl, msg);
+                if (msg->type == MESSAGE_PING && !strcmp(msg->sender_uid, "server"))
+                {
+                    log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Sent PING to client %d", cl->id);
+                    cl->ping_sent = 1;
+                }
+            }
             free(msg);
         }
         usleep(100000); // 100 ms
@@ -354,7 +353,6 @@ void* handle_msg_queue(void* arg)
 void* handle_info_update(void* arg)
 {
     struct sysinfo sys_info;
-    char log_msg[MAX_LOG_LENGTH];
     char formatted_srv_uptime[9];
     char formatted_sys_uptime[9];
     while (!quit_flag)
@@ -367,7 +365,7 @@ void* handle_info_update(void* arg)
             long uptime_seconds = (long)difftime(current_time, server.start_time);
             format_uptime(uptime_seconds, formatted_srv_uptime, sizeof(formatted_srv_uptime));
             format_uptime(sys_info.uptime, formatted_sys_uptime, sizeof(formatted_sys_uptime));
-            sprintf(log_msg, "Online: %d, Req: %d, Auths: %d, Uptime: %s, Sys-uptime: %s, Load avg: %.2f, RAM: %lu/%lu MB",
+            log_message(T_LOG_INFO, SYSTEM_LOG, __FILE__, "Online: %d, Req: %d, Auths: %d, Uptime: %s, Sys-uptime: %s, Load avg: %.2f, RAM: %lu/%lu MB",
                 user_count,
                 server.requests_handled,
                 server.client_logins_handled,
@@ -376,7 +374,6 @@ void* handle_info_update(void* arg)
                 sys_info.loads[0] / 65536.0,
                 (sys_info.totalram - sys_info.freeram) / 1024 / 1024,
                 sys_info.totalram / 1024 / 1024);
-            log_message(T_LOG_INFO, SYSTEM_LOG, __FILE__, log_msg);
         }
         else
             log_message(T_LOG_ERROR, SYSTEM_LOG, __FILE__, "Failed to get system info");
@@ -433,14 +430,12 @@ int run_server()
     server.client_map = hash_map_create(MAX_CLIENTS);
     server.start_time = time(NULL);
 
-    char log_msg[MAX_LOG_LENGTH];
     if (server.address.sin_family == AF_INET)
-        sprintf(log_msg, "IPv4 socket created with address %s and port %d", inet_ntoa(server.address.sin_addr), PORT);
+        log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "IPv4 socket created with address %s and port %d", inet_ntoa(server.address.sin_addr), PORT);
     else if (server.address.sin_family == AF_INET6)
-        sprintf(log_msg, "IPv6 socket created with address %s and port %d", inet_ntoa(server.address.sin_addr), PORT);
+        log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "IPv6 socket created with address %s and port %d", inet_ntoa(server.address.sin_addr), PORT);
     else
-        sprintf(log_msg, "Socket created with unknown address family and port %d", PORT);
-    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, log_msg);
+        log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Socket created with unknown address family and port %d", PORT);
 
     int attempts = 0;
     int bind_success = 0;
@@ -494,17 +489,11 @@ int run_server()
         finish_logging();
         exit(EXIT_FAILURE);
     }
-    log_msg[0] = '\0';
-    sprintf(log_msg, "Server listening on port %d", PORT);
-    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, log_msg);
+    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Server listening on port %d", PORT);
 
     pthread_t cli_thread;
     if (pthread_create(&cli_thread, NULL, handle_cli, (void*)NULL) != 0)
-    {
-        log_msg[0] = '\0';
-        snprintf(log_msg, sizeof(log_msg), "CLI thread creation failed: %s", strerror(errno));
-        log_message(T_LOG_WARN, SERVER_LOG, __FILE__, log_msg);
-    }
+        log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "CLI thread creation failed: %s", strerror(errno));
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "CLI thread started");
     server.thread_count++;
 
@@ -512,22 +501,20 @@ int run_server()
     log_message(T_LOG_INFO, SYSTEM_LOG, __FILE__, LOG_SERVER_STARTED);
     pthread_t info_update_thread;
     if (pthread_create(&info_update_thread, NULL, handle_info_update, (void*)NULL) != 0)
-    {
-        log_msg[0] = '\0';
-        snprintf(log_msg, sizeof(log_msg), "Info update thread creation failed: %s", strerror(errno));
-        log_message(T_LOG_WARN, SERVER_LOG, __FILE__, log_msg);
-    }
+        log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Info update thread creation failed: %s", strerror(errno));
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Info update thread started");
     server.thread_count++;
 
     pthread_t msg_queue_thread;
     if (pthread_create(&msg_queue_thread, NULL, handle_msg_queue, (void*)NULL) != 0)
-    {
-        log_msg[0] = '\0';
-        snprintf(log_msg, sizeof(log_msg), "Message queue handler thread creation failed: %s", strerror(errno));
-        log_message(T_LOG_WARN, SERVER_LOG, __FILE__, log_msg);
-    }
+        log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Message queue handler thread creation failed: %s", strerror(errno));
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Message queue handler thread started");
+    server.thread_count++;
+
+    pthread_t client_ping_thread;
+    if (pthread_create(&client_ping_thread, NULL, handle_client_ping, (void*)NULL) != 0)
+        log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Client ping thread creation failed: %s", strerror(errno));
+    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Client ping thread started");
     server.thread_count++;
 
     init_logging(REQUESTS_LOG);
@@ -584,10 +571,7 @@ int run_server()
         {
             char error_msg[128];
             snprintf(error_msg, sizeof(error_msg), "Thread creation failed: %s", strerror(errno));
-
-            log_msg[0] = '\0';
-            snprintf(log_msg, sizeof(log_msg), "Thread creation failed for client %s: %s", inet_ntoa(client_addr.sin_addr), error_msg);
-            log_message(T_LOG_WARN, SERVER_LOG, __FILE__, log_msg);
+            log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Thread creation failed for client %s: %s", inet_ntoa(client_addr.sin_addr), error_msg);
             close(client_socket);
             continue;
         }
