@@ -26,6 +26,7 @@
  * @param is_entering_password The client is entering the password.
  * @param is_confirming_password The client is confirming the password.
  * @param is_choosing_register The client is choosing to register (y/n).
+ * @param is_connected The client is connected.
  * @param is_authenticated The client is authenticated.
  * @param auth_attempts The client authentication attempts.
  */
@@ -36,6 +37,7 @@ typedef struct client_state_t
     int is_entering_password;
     int is_confirming_password;
     int is_choosing_register;
+    int is_connected;
     int is_authenticated;
     int auth_attempts;
 } client_state_t;
