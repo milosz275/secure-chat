@@ -29,6 +29,7 @@
  * @param is_connected The client is connected.
  * @param is_authenticated The client is authenticated.
  * @param auth_attempts The client authentication attempts.
+ * @param can_register The client can register.
  */
 typedef struct client_state_t
 {
@@ -40,6 +41,7 @@ typedef struct client_state_t
     int is_connected;
     int is_authenticated;
     int auth_attempts;
+    int can_register;
 } client_state_t;
 
 /**
