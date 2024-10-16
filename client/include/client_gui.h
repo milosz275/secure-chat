@@ -87,7 +87,7 @@ int is_button_clicked(button_t* button);
 void init_ui();
 
 /**
- * Draw UI. This function is used to draw the user interface using Raylib library.
+ * Cycle UI. This function is used to update, draw and handle the user interface using Raylib library.
  *
  * @param client The client structure.
  * @param state The client state structure.
@@ -97,7 +97,7 @@ void init_ui();
 void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomic_t* reconnect_flag, volatile sig_atomic_t* quit_flag);
 
 /**
- * Draw UI. This function is used to draw the user interface using Raylib library.
+ * Draw UI. This function is used to draw singular frame of the user interface using Raylib library.
  *
  * @param client The client structure.
  * @param state The client state structure.
@@ -106,7 +106,14 @@ void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomi
  */
 void draw_ui(client_t* client, client_state_t* state, volatile sig_atomic_t reconnect_flag, volatile sig_atomic_t quit_flag);
 
-void add_message(const char* formatted_message);
+/**
+ * Add message. This function is used to add a message to the client state's message array.
+ * NOTE: Replaced in the future by client-sided message handling using database.
+ *
+ * @param sender The message sender.
+ * @param payload The message payload.
+ */
+void add_message(const char* sender, const char* payload);
 
 /**
  * Reset state. This function is used to reset the client state.
@@ -118,6 +125,6 @@ void reset_state(client_state_t* state);
 /**
  * Disable input. This function is used to disable input from the command line interface.
  */
-void disable_input();
+void disable_cli_input();
 
 #endif
