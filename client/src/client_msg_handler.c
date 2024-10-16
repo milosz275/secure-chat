@@ -73,6 +73,20 @@ void handle_message(message_t* msg, client_t* client, client_state_t* state, vol
         const char* text = message_code_to_text(code);
         printf("(0%s) Server: %s\n", msg->payload, text);
     }
+    else if (msg->type == MESSAGE_AUTH && !strcmp(msg->payload, message_code_to_string(MESSAGE_CODE_USER_REGISTER_INFO)) && msg_from_srv)
+    {
+        state->can_register = 1;
+        int code = atoi(msg->payload);
+        const char* text = message_code_to_text(code);
+        printf("(0%s) Server: %s\n", msg->payload, text);
+    }
+    else if (msg->type == MESSAGE_AUTH && !strcmp(msg->payload, message_code_to_string(MESSAGE_CODE_TRY_AGAIN)) && msg_from_srv)
+    {
+        state->can_register = 0;
+        int code = atoi(msg->payload);
+        const char* text = message_code_to_text(code);
+        printf("(0%s) Server: %s\n", msg->payload, text);
+    }
     else if (msg->type == MESSAGE_CHOICE && !strcmp(msg->payload, message_code_to_string(MESSAGE_CODE_USER_REGISTER_CHOICE)) && msg_from_srv)
     {
         state->is_entering_username = 0;
@@ -135,12 +149,15 @@ void handle_message(message_t* msg, client_t* client, client_state_t* state, vol
         {
         case 3:
             printf("(0%d) Server: %s\n", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_THREE, message_code_to_text(MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_THREE));
+            state->auth_attempts = 3;
             break;
         case 2:
             printf("(0%d) Server: %s\n", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_TWO, message_code_to_text(MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_TWO));
+            state->auth_attempts = 2;
             break;
         case 1:
             printf("(0%d) Server: %s\n", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_ONE, message_code_to_text(MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_ONE));
+            state->auth_attempts = 1;
             break;
         default:
             printf("(00001) Server: %s\n", msg->payload); // unknown code
@@ -168,8 +185,8 @@ void handle_message(message_t* msg, client_t* client, client_state_t* state, vol
             if (!code)
             {
                 printf("(00000) Server: %s\n", msg->payload); // unknown code
-                char message[MAX_MESSAGE_LENGTH];
-                snprintf(message, MAX_MESSAGE_LENGTH, "%s: %s", msg->sender_uid, msg->payload);
+                char message[BUFFER_SIZE];
+                snprintf(message, BUFFER_SIZE, "%s: %s", msg->sender_uid, msg->payload);
             }
             else
             {
