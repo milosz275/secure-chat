@@ -130,6 +130,7 @@ const char* message_code_to_text(message_code_t code)
     case MESSAGE_CODE_INVALID_PASSWORD: return "Invalid password.";
     case MESSAGE_CODE_PASSWORDS_DO_NOT_MATCH: return "Passwords do not match.";
     case MESSAGE_CODE_TRY_AGAIN: return "Try again.";
+    case MESSAGE_CODE_BROADCAST: return "Broadcast message.";
     case MESSAGE_CODE_USER_JOIN: return " has joined the chat.";
     case MESSAGE_CODE_USER_LEAVE: return " has left the chat.";
     case MESSAGE_CODE_USER_DOES_NOT_EXIST: return "User does not exist.";
