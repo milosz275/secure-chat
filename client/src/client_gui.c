@@ -50,7 +50,7 @@ void init_ui()
     SetTraceLogLevel(LOG_NONE);
     SetTraceLogCallback(NULL);
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    SetWindowPosition(GetScreenWidth() / 2 - window_width / 2, GetScreenHeight() / 2 - window_height / 2);
+    SetWindowFocused();
     font = LoadFontEx("assets/JetBrainsMono.ttf", FONT_SIZE, NULL, 0);
     init_button(&button_dark_mode, (Rectangle) { 10, 10, FAVICON_SIZE, FAVICON_SIZE }, RED);
 
@@ -85,15 +85,16 @@ void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomi
         button_dark_mode.color = GRAY;
         SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
     }
-    else if (is_button_clicked(&button_dark_mode))
-        dark_mode = !dark_mode;
     else
     {
+        SetMouseCursor(MOUSE_CURSOR_ARROW);
         if (dark_mode)
             button_dark_mode.color = WHITE;
         else
             button_dark_mode.color = BLACK;
     }
+    if (is_button_clicked(&button_dark_mode))
+        dark_mode = !dark_mode;
     if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER))
     {
         message_t msg;
