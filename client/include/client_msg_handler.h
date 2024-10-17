@@ -26,7 +26,8 @@
  * @param reconnect_flag The reconnect flag.
  * @param quit_flag The quit flag.
  * @param server_answer The server answer flag.
+ * @param log_filename The log filename.
  */
-void handle_message(message_t* msg, client_t* client, client_state_t* state, volatile sig_atomic_t* reconnect_flag, volatile sig_atomic_t* quit_flag, volatile sig_atomic_t* server_answer);
+void handle_message(message_t* msg, client_t* client, client_state_t* state, volatile sig_atomic_t* reconnect_flag, volatile sig_atomic_t* quit_flag, volatile sig_atomic_t* server_answer, const char* log_filename);
 
 #endif
