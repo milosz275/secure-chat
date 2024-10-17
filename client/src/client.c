@@ -24,6 +24,7 @@ volatile sig_atomic_t reconnect_flag = 0;
 static struct client_t client = { -1, NULL, CLIENT_DEFAULT_NAME, NULL, NULL, "\0" };
 static struct client_state_t client_state = { 1, 0, 0, 0, 0, 0, 0, -1, 0 };
 int server_answer = 0;
+char log_filename[256];
 
 void* receive_messages(void* arg)
 {
@@ -39,9 +40,15 @@ void* receive_messages(void* arg)
             sleep(1);
             continue;
         }
+        else if (!client.uid)
+        {
+            log_message(T_LOG_ERROR, log_filename, __FILE__, "Recv thread: Client UID is NULL");
+            sleep(5);
+            continue;
+        }
         else if (!client.ssl)
         {
-            log_message(T_LOG_ERROR, CLIENT_LOG, __FILE__, "Recv thread: SSL object is NULL");
+            log_message(T_LOG_ERROR, log_filename, __FILE__, "Recv thread: SSL object is NULL");
             reconnect_flag = 1;
             continue;
         }
@@ -65,7 +72,7 @@ void* receive_messages(void* arg)
         msg.payload_length = 0;
 
         parse_message(&msg, buffer);
-        handle_message(&msg, &client, &client_state, &reconnect_flag, &quit_flag, &server_answer);
+        handle_message(&msg, &client, &client_state, &reconnect_flag, &quit_flag, &server_answer, log_filename);
     }
     if (arg) {}
     pthread_exit(NULL);
@@ -80,14 +87,22 @@ void* attempt_reconnection(void* arg)
             client_state.is_connected = 0;
             reset_state(&client_state);
             if (reconnect_flag)
+            {
                 printf("Attempting to reconnect...\n");
+                if (client.uid)
+                {
+                    free(client.uid);
+                    client.uid = NULL;
+                }
+            }
+            
             if (connect_to_server((struct sockaddr_in*)arg) == 0)
             {
                 reconnect_flag = 0;  // successfully reconnected
                 if (!client_state.is_connected)
-                    log_message(T_LOG_INFO, CLIENT_LOG, __FILE__, "Connected to server");
+                    log_message(T_LOG_INFO, log_filename, __FILE__, "Connected to server");
                 else
-                    log_message(T_LOG_INFO, CLIENT_LOG, __FILE__, "Reconnected to server");
+                    log_message(T_LOG_INFO, log_filename, __FILE__, "Reconnected to server");
                 client_state.is_connected = 1;
             }
             else
@@ -111,7 +126,7 @@ void* handle_server_ping(void* arg)
         }
         else if (!client.ssl)
         {
-            log_message(T_LOG_WARN, CLIENT_LOG, __FILE__, "Ping thread: SSL object is NULL");
+            log_message(T_LOG_WARN, log_filename, __FILE__, "Ping thread: SSL object is NULL");
             if (client_state.is_connected)
                 reconnect_flag = 1;
             sleep(1);
@@ -131,13 +146,14 @@ void* handle_server_ping(void* arg)
             }
 
             server_answer = 0;
-            sleep(5);
+            sleep(15);
 
             if (!server_answer)
             {
-                log_message(T_LOG_WARN, CLIENT_LOG, __FILE__, "No response to PING. Reconnecting...");
-                client_state.is_connected = 0;
-                reconnect_flag = 1;
+                log_message(T_LOG_WARN, log_filename, __FILE__, "No response to PING from server");
+                // log_message(T_LOG_WARN, log_filename, __FILE__, "No response to PING. Reconnecting...");
+                // client_state.is_connected = 0;
+                // reconnect_flag = 1;
             }
         }
         else
@@ -193,7 +209,26 @@ int connect_to_server(struct sockaddr_in* server_addr)
         return -1;
     }
 
-    init_ssl(&client);
+    int ssl_result = init_ssl(&client);
+    if (ssl_result == OPENSSL_SSL_CTX_CREATION_FAILURE)
+    {
+        log_message(T_LOG_ERROR, log_filename, __FILE__, "Failed to create SSL context");
+        cleanup_client_connection();
+        return -1;
+    }
+    else if (ssl_result == OPENSSL_SSL_OBJECT_FAILURE)
+    {
+        log_message(T_LOG_ERROR, log_filename, __FILE__, "Failed to create SSL object");
+        cleanup_client_connection();
+        return -1;
+    }
+    else if (ssl_result != OPENSSL_INIT_SUCCESS)
+    {
+        log_message(T_LOG_ERROR, log_filename, __FILE__, "Failed to initialize OpenSSL");
+        cleanup_client_connection();
+        return -1;
+    }
+    log_message(T_LOG_INFO, log_filename, __FILE__, "SSL initialization successful");
     if (SSL_connect(client.ssl) <= 0)
     {
         ERR_print_errors_fp(stderr);
@@ -210,13 +245,16 @@ int connect_to_server(struct sockaddr_in* server_addr)
 void run_client()
 {
     struct sockaddr_in server_addr;
-    init_logging(CLIENT_LOG);
-    log_message(T_LOG_INFO, CLIENT_LOG, __FILE__, LOG_CLIENT_STARTED);
+    char timestamp[15];
+    get_timestamp(timestamp, sizeof(timestamp));
+    snprintf(log_filename, sizeof(log_filename), "client-%s.log", timestamp);
+    init_logging(log_filename);
+    log_message(T_LOG_INFO, log_filename, __FILE__, "Client started");
 
     client.uid = (char*)malloc(HASH_HEX_OUTPUT_LENGTH);
     if (!client.uid)
     {
-        log_message(T_LOG_ERROR, CLIENT_LOG, __FILE__, "Memory allocation failed for UID");
+        log_message(T_LOG_ERROR, log_filename, __FILE__, "Memory allocation failed for UID");
         cleanup_client_connection();
 
     }
@@ -226,11 +264,12 @@ void run_client()
     server_addr.sin_port = htons(PORT);
     if (inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr) <= 0)
     {
-        log_message(T_LOG_ERROR, CLIENT_LOG, __FILE__, "Invalid address/Address not supported");
+        log_message(T_LOG_ERROR, log_filename, __FILE__, "Invalid address/Address not supported");
         finish_logging();
         exit(EXIT_FAILURE);
     }
     init_ui(&client_state);
+    log_message(T_LOG_INFO, log_filename, __FILE__, "UI initialized");
 
     pthread_t reconnect_thread, recv_thread, ping_thread;
     pthread_create(&reconnect_thread, NULL, attempt_reconnection, (void*)&server_addr);
@@ -238,7 +277,7 @@ void run_client()
     pthread_create(&ping_thread, NULL, handle_server_ping, NULL);
 
     while (!WindowShouldClose())
-        ui_cycle(&client, &client_state, &reconnect_flag, &quit_flag);
+        ui_cycle(&client, &client_state, &reconnect_flag, &quit_flag, log_filename);
 
     pthread_cancel(reconnect_thread);
     pthread_cancel(recv_thread);
