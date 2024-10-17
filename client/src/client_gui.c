@@ -63,11 +63,9 @@ void init_ui()
     app_favicon = LoadTextureFromImage(logo_image);
     app_favicon.width = app_favicon.height = FAVICON_SIZE;
     UnloadImage(logo_image);
-
-    log_message(T_LOG_INFO, CLIENT_LOG, __FILE__, "UI initialized");
 }
 
-void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomic_t* reconnect_flag, volatile sig_atomic_t* quit_flag)
+void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomic_t* reconnect_flag, volatile sig_atomic_t* quit_flag, const char* log_filename)
 {
     // exit conditions
     if (*quit_flag)
@@ -116,14 +114,14 @@ void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomi
 
         if (send_message(client->ssl, &msg) != MESSAGE_SEND_SUCCESS)
         {
-            log_message(T_LOG_ERROR, CLIENT_LOG, __FILE__, "Send failed. Server might be disconnected.");
+            log_message(T_LOG_ERROR, log_filename, __FILE__, "Send failed. Server might be disconnected.");
             *reconnect_flag = 1;
             client->input[0] = '\0';
             return;
         }
         if (client_state->is_authenticated)
         {
-            log_message(T_LOG_INFO, CLIENT_LOG, __FILE__, "Message sent to %s: %s", msg.recipient_uid, client->input);
+            log_message(T_LOG_INFO, log_filename, __FILE__, "Message sent to %s: %s", msg.recipient_uid, client->input);
             add_message(client->username, client->input);
         }
         client->input[0] = '\0';
@@ -168,7 +166,7 @@ void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomi
                     client->input[len + 1] = '\0';
                 }
                 else
-                    log_message(T_LOG_WARN, CLIENT_LOG, __FILE__, "Input buffer overflow");
+                    log_message(T_LOG_WARN, log_filename, __FILE__, "Input buffer overflow");
             }
         }
     }
@@ -206,9 +204,9 @@ void draw_ui(client_t* client, client_state_t* state, volatile sig_atomic_t reco
     }
     else if (!state->is_authenticated)
     {
-        if (state->can_register && !state->just_joined)
+        if (state->can_register && !state->just_joined && !reconnect_flag)
             DrawTextEx(font, "You can register.", (Vector2) { window_width - 370.0, window_height - 30.0 }, FONT_SIZE, FONT_SPACING, text_color_light);
-        if (state->auth_attempts >= 0 && !state->just_joined)
+        if (state->auth_attempts >= 0 && !state->just_joined && !reconnect_flag && state->is_connected)
         {
             char auth_attempts_str[12];
             sprintf(auth_attempts_str, "%d", state->auth_attempts);
