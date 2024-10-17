@@ -14,7 +14,7 @@
 #include "client_gui.h"
 #include "log.h"
 
-void handle_message(message_t* msg, client_t* client, client_state_t* state, volatile sig_atomic_t* reconnect_flag, volatile sig_atomic_t* quit_flag, volatile sig_atomic_t* server_answer)
+void handle_message(message_t* msg, client_t* client, client_state_t* state, volatile sig_atomic_t* reconnect_flag, volatile sig_atomic_t* quit_flag, volatile sig_atomic_t* server_answer, const char* log_filename)
 {
     int msg_from_srv = !strcmp(msg->sender_uid, "server");
     if (msg->type == MESSAGE_PING && msg_from_srv)
@@ -26,15 +26,19 @@ void handle_message(message_t* msg, client_t* client, client_state_t* state, vol
             *reconnect_flag = 1;
             pthread_exit(NULL);
         }
-        log_message(T_LOG_INFO, CLIENT_LOG, __FILE__, "Received PING from server and sent ACK");
+        log_message(T_LOG_INFO, log_filename, __FILE__, "Received PING from server and sent ACK");
         return;
     }
     else if (msg->type == MESSAGE_ACK && msg_from_srv)
     {
-        log_message(T_LOG_INFO, CLIENT_LOG, __FILE__, "Received ACK from server");
+        log_message(T_LOG_INFO, log_filename, __FILE__, "Received ACK from server");
         *server_answer = 1;
         return;
     }
+    if (msg->type == MESSAGE_PING && !msg_from_srv)
+        return;
+    else if (msg->type == MESSAGE_ACK && !msg_from_srv)
+        return;
 
     // dropping messages addressed to other users
     if (!state->is_authenticated && strcmp(client->uid, CLIENT_DEFAULT_NAME) && msg->type != MESSAGE_PING && msg->type != MESSAGE_ACK)
@@ -68,6 +72,7 @@ void handle_message(message_t* msg, client_t* client, client_state_t* state, vol
     }
     else if (msg->type == MESSAGE_AUTH && !strcmp(msg->payload, message_code_to_string(MESSAGE_CODE_ENTER_PASSWORD_CONFIRMATION)) && msg_from_srv)
     {
+        state->is_entering_password = 0;
         state->is_confirming_password = 1;
         int code = atoi(msg->payload);
         const char* text = message_code_to_text(code);
@@ -112,7 +117,7 @@ void handle_message(message_t* msg, client_t* client, client_state_t* state, vol
         state->is_confirming_password = 0;
         state->is_authenticated = 1;
     }
-    else if (msg->type == MESSAGE_AUTH && !strcmp(msg->payload, message_code_to_string(MESSAGE_CODE_USER_DOES_NOT_EXIST) && msg_from_srv))
+    else if (msg->type == MESSAGE_AUTH && !strcmp(msg->payload, message_code_to_string(MESSAGE_CODE_USER_DOES_NOT_EXIST)) && msg_from_srv)
     {
         int code = atoi(msg->payload);
         const char* text = message_code_to_text(code);
@@ -139,10 +144,10 @@ void handle_message(message_t* msg, client_t* client, client_state_t* state, vol
         if ((!strcmp(msg->payload, MESSAGE_SIGNAL_QUIT)) || (!strcmp(msg->payload, MESSAGE_SIGNAL_EXIT)))
         {
             if (msg_from_srv)
-                log_message(T_LOG_WARN, CLIENT_LOG, __FILE__, "Received quit signal that is not from server");
+                log_message(T_LOG_WARN, log_filename, __FILE__, "Received quit signal that is not from server");
             else
             {
-                log_message(T_LOG_INFO, CLIENT_LOG, __FILE__, "Received quit signal from server");
+                log_message(T_LOG_INFO, log_filename, __FILE__, "Received quit signal from server");
                 *reconnect_flag = 0;
                 *quit_flag = 1;
                 exit(EXIT_SUCCESS);
