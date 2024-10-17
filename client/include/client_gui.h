@@ -7,8 +7,8 @@
 
 #include "client.h"
 
-#define WINDOW_WIDTH 1280
-#define WINDOW_HEIGHT 720
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 600
 #define TARGET_FPS 60
 
 #define BACKSPACE_DELAY 50
@@ -95,8 +95,9 @@ void init_ui();
  * @param state The client state structure.
  * @param reconnect_flag The reconnect flag.
  * @param quit_flag The quit flag.
+ * @param log_filename The log filename.
  */
-void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomic_t* reconnect_flag, volatile sig_atomic_t* quit_flag);
+void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomic_t* reconnect_flag, volatile sig_atomic_t* quit_flag, const char* log_filename);
 
 /**
  * Draw UI. This function is used to draw singular frame of the user interface using Raylib library.
