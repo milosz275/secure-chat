@@ -10,8 +10,6 @@
 #include "log.h"
 #include "hash_map.h"
 
-void usleep(unsigned int usec);
-
 int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
 {
     message_t msg;
@@ -40,12 +38,10 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
             send_msg[0] = '\0';
             sprintf(send_msg, "%d", USER_LOGIN_ATTEMPTS - attempts);
             create_message(&msg, MESSAGE_AUTH_ATTEMPS, "server", CLIENT_DEFAULT_NAME, send_msg);
-            sleep(1);
             send_message(req->ssl, &msg);
             send_msg[0] = '\0';
             sprintf(send_msg, "%d", MESSAGE_CODE_USER_REGISTER_INFO);
             create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-            sleep(1);
             send_message(req->ssl, &msg);
         }
         else
@@ -57,7 +53,6 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
         send_msg[0] = '\0';
         sprintf(send_msg, "%d", MESSAGE_CODE_ENTER_USERNAME);
         create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-        usleep(100000); // 100 ms
         send_message(req->ssl, &msg);
 
         nbytes = SSL_read(req->ssl, buffer, sizeof(buffer));
@@ -101,7 +96,6 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                 send_msg[0] = '\0';
                 sprintf(send_msg, "%d", MESSAGE_CODE_USER_REGISTER_CHOICE);
                 create_message(&msg, MESSAGE_CHOICE, "server", CLIENT_DEFAULT_NAME, send_msg);
-                usleep(100000); // 100 ms
                 send_message(req->ssl, &msg);
 
                 nbytes = SSL_read(req->ssl, buffer, sizeof(buffer));
@@ -213,7 +207,6 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                         char send_uid[HASH_HEX_OUTPUT_LENGTH];
                         snprintf(send_uid, HASH_HEX_OUTPUT_LENGTH, "%s", cl->uid);
                         create_message(&msg, MESSAGE_UID, "server", CLIENT_DEFAULT_NAME, send_uid);
-                        usleep(100000); // 100 ms
                         send_message(req->ssl, &msg);
 
                         return USER_AUTHENTICATION_SUCCESS;
@@ -227,7 +220,6 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                         send_msg[0] = '\0';
                         sprintf(send_msg, "%d", MESSAGE_CODE_TRY_AGAIN);
                         create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-                        usleep(100000); // 100 ms
                         send_message(req->ssl, &msg);
                         attempts++;
                     }
@@ -256,7 +248,6 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED);
                     create_message(&msg, MESSAGE_ERROR, "server", CLIENT_DEFAULT_NAME, send_msg);
-                    usleep(100000); // 100 ms
                     send_message(req->ssl, &msg);
 
                     log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Request from %s:%d failed authentication - out of login attempts", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
@@ -271,7 +262,6 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_TRY_AGAIN);
                     create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-                    usleep(100000); // 100 ms
                     send_message(req->ssl, &msg);
                 }
             }
@@ -291,7 +281,6 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                 sqlite3_finalize(stmt);
                 stmt = NULL;
                 attempts++;
-                usleep(2000000); // 2 s
                 continue;
             }
 
@@ -350,7 +339,6 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED);
                     create_message(&msg, MESSAGE_ERROR, "server", CLIENT_DEFAULT_NAME, send_msg);
-                    usleep(100000); // 100 ms
                     send_message(req->ssl, &msg);
                 }
                 else
@@ -362,7 +350,6 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_TRY_AGAIN);
                     create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-                    usleep(100000); // 100 ms
                     send_message(req->ssl, &msg);
                 }
 
@@ -423,7 +410,6 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                 char send_uid[HASH_HEX_OUTPUT_LENGTH];
                 snprintf(send_uid, HASH_HEX_OUTPUT_LENGTH, "%s", cl->uid);
                 create_message(&msg, MESSAGE_UID, "server", CLIENT_DEFAULT_NAME, send_uid);
-                usleep(100000); // 100 ms
                 send_message(req->ssl, &msg);
 
                 return USER_AUTHENTICATION_SUCCESS;
