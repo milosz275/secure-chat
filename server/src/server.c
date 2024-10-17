@@ -27,7 +27,9 @@ volatile sig_atomic_t quit_flag = 0;
 extern _sts_queue const sts_queue;
 extern sts_header* create();
 static struct server_t server = { 0, {0}, 0, 0, 0, PTHREAD_MUTEX_INITIALIZER, {0}, NULL, NULL, NULL, NULL, 0 };
+
 void usleep(unsigned int usec);
+char* strdup(const char* str1);
 
 int srv_exit(char** args)
 {
@@ -170,6 +172,8 @@ void kick_unresponsive(client_connection_t* cl)
     {
         log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Kicking unresponsive client %d", cl->id);
         send_quit_signal(cl);
+        sleep(5);
+        hash_map_erase(server.client_map, cl->uid);
     }
 }
 
@@ -291,7 +295,7 @@ void* handle_client_ping(void* arg)
     while (!quit_flag)
     {
         hash_map_iterate(server.client_map, send_ping);
-        sleep(5);
+        sleep(15);
         hash_map_iterate(server.client_map, kick_unresponsive);
     }
     if (arg) {}
@@ -330,7 +334,8 @@ void* handle_msg_queue(void* arg)
         message_t* msg = sts_queue.pop(server.message_queue);
         if (msg)
         {
-            log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Message from %s to %s: %s", msg->sender_uid, msg->recipient_uid, msg->payload);
+            const char* payload_copy = strdup(msg->payload);
+            log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Message from %s to %s: %s", msg->sender_uid, msg->recipient_uid, (char*)payload_copy);
             client_connection_t* cl = (client_connection_t*)malloc(sizeof(client_connection_t));
             int recipient_found = hash_map_find(server.client_map, msg->recipient_uid, &cl);
             if (recipient_found)
@@ -342,7 +347,10 @@ void* handle_msg_queue(void* arg)
                     cl->ping_sent = 1;
                 }
             }
+            else
+                log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Recipient not found in the client map: %s (msg type: %d; msg payload: %s)", msg->recipient_uid, msg->type, msg->payload);
             free(msg);
+            free((void*)payload_copy);
         }
         usleep(100000); // 100 ms
     }
