@@ -122,6 +122,11 @@ int hash_map_insert(hash_map* map, client_connection_t* cl)
     const char* uid = cl->uid;
 
     // Directly use the uid to compute the index (uid is already hashed)
+    if (!uid)
+    {
+        log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Client UID is NULL");
+        return insert_success;
+    }
     size_t hash_value = strtoul(uid, NULL, 16) % map->hash_size;
 
     pthread_mutex_lock(&map->hash_table[hash_value].mutex);
