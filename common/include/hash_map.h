@@ -18,7 +18,7 @@
  */
 typedef struct hash_node
 {
-    client_connection_t* cl;  // Store client connection
+    client_connection* cl;  // Store client connection
     struct hash_node* next;
 } hash_node;
 
@@ -71,7 +71,7 @@ void hash_map_destroy(hash_map* map);
  * @param cl The client connection pointer to store the result in.
  * @return True if the entry was found, false otherwise.
  */
-bool hash_map_find(hash_map* map, const char* uid, client_connection_t** cl);
+bool hash_map_find(hash_map* map, const char* uid, client_connection** cl);
 
 /**
  * Insert an entry into the hash map. This function will insert the entry into the hash map if it does not already exist.
@@ -80,7 +80,7 @@ bool hash_map_find(hash_map* map, const char* uid, client_connection_t** cl);
  * @param cl The client connection to insert (uses its `uid` as the key).
  * @return True if the entry was inserted, false otherwise.
  */
-int hash_map_insert(hash_map* map, client_connection_t* cl);
+int hash_map_insert(hash_map* map, client_connection* cl);
 
 /**
  * Erase an entry from the hash map. This function will remove the entry from the hash map if it exists.
@@ -103,7 +103,7 @@ void hash_map_clear(hash_map* map);
  * @param map The hash map to iterate over.
  * @param callback The callback function to call for each entry.
  */
-void hash_map_iterate(hash_map* map, void (*callback)(client_connection_t*));
+void hash_map_iterate(hash_map* map, void (*callback)(client_connection*));
 
 /**
  * Iterate over the hash map with a parameter. This function will iterate over all entries in the hash map and call the specified callback function with a parameter.
@@ -112,6 +112,6 @@ void hash_map_iterate(hash_map* map, void (*callback)(client_connection_t*));
  * @param callback The callback function to call for each entry.
  * @param param The parameter to pass to the callback function.
  */
-void hash_map_iterate2(hash_map* map, void (*callback)(client_connection_t*, void*), void* param);
+void hash_map_iterate2(hash_map* map, void (*callback)(client_connection*, void*), void* param);
 
 #endif

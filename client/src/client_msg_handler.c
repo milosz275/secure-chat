@@ -14,13 +14,13 @@
 #include "client_gui.h"
 #include "log.h"
 
-void handle_message(message_t* msg, client_t* client, client_state_t* state, volatile sig_atomic_t* reconnect_flag, volatile sig_atomic_t* quit_flag, volatile sig_atomic_t* server_answer, const char* log_filename)
+void handle_message(message* msg, client* cl, client_state* cl_state, volatile sig_atomic_t* reconnect_flag, volatile sig_atomic_t* quit_flag, volatile sig_atomic_t* server_answer, const char* log_filename)
 {
     int msg_from_srv = !strcmp(msg->sender_uid, "server");
     if (msg->type == MESSAGE_PING && msg_from_srv)
     {
-        create_message(msg, MESSAGE_ACK, client->uid, "server", "ACK");
-        if (send_message(client->ssl, msg) != MESSAGE_SEND_SUCCESS)
+        create_message(msg, MESSAGE_ACK, cl->uid, "server", "ACK");
+        if (send_message(cl->ssl, msg) != MESSAGE_SEND_SUCCESS)
         {
             perror("Send failed");
             *reconnect_flag = 1;
@@ -41,13 +41,13 @@ void handle_message(message_t* msg, client_t* client, client_state_t* state, vol
         return;
 
     // dropping messages addressed to other users
-    if (!state->is_authenticated && strcmp(client->uid, CLIENT_DEFAULT_NAME) && msg->type != MESSAGE_PING && msg->type != MESSAGE_ACK)
+    if (!cl_state->is_authenticated && strcmp(cl->uid, CLIENT_DEFAULT_NAME) && msg->type != MESSAGE_PING && msg->type != MESSAGE_ACK)
     {
         // unauthenticated user should be addressed as CLIENT_DEFAULT_NAME
         printf("(11111) Server: %s\n", msg->payload);
         return;
     }
-    else if (state->is_authenticated && strncmp((char*)msg->recipient_uid, client->uid, HASH_HEX_OUTPUT_LENGTH - 1) && msg->type != MESSAGE_UID && msg->type != MESSAGE_PING && msg->type != MESSAGE_ACK)
+    else if (cl_state->is_authenticated && strncmp((char*)msg->recipient_uid, cl->uid, HASH_HEX_OUTPUT_LENGTH - 1) && msg->type != MESSAGE_UID && msg->type != MESSAGE_PING && msg->type != MESSAGE_ACK)
     {
         // authenticated user should be addressed by their UID
         printf("(11112) Server: %s\n", msg->payload);
@@ -56,66 +56,66 @@ void handle_message(message_t* msg, client_t* client, client_state_t* state, vol
 
     if (msg->type == MESSAGE_AUTH && !strcmp(msg->payload, message_code_to_string(MESSAGE_CODE_ENTER_USERNAME)) && msg_from_srv)
     {
-        state->just_joined = 0;
-        state->is_entering_username = 1;
+        cl_state->just_joined = 0;
+        cl_state->is_entering_username = 1;
         int code = atoi(msg->payload);
         const char* text = message_code_to_text(code);
         printf("(0%s) Server: %s\n", msg->payload, text);
     }
     else if (msg->type == MESSAGE_AUTH && !strcmp(msg->payload, message_code_to_string(MESSAGE_CODE_ENTER_PASSWORD)) && msg_from_srv)
     {
-        state->is_entering_username = 0;
-        state->is_entering_password = 1;
+        cl_state->is_entering_username = 0;
+        cl_state->is_entering_password = 1;
         int code = atoi(msg->payload);
         const char* text = message_code_to_text(code);
         printf("(0%s) Server: %s\n", msg->payload, text);
     }
     else if (msg->type == MESSAGE_AUTH && !strcmp(msg->payload, message_code_to_string(MESSAGE_CODE_ENTER_PASSWORD_CONFIRMATION)) && msg_from_srv)
     {
-        state->is_entering_password = 0;
-        state->is_confirming_password = 1;
+        cl_state->is_entering_password = 0;
+        cl_state->is_confirming_password = 1;
         int code = atoi(msg->payload);
         const char* text = message_code_to_text(code);
         printf("(0%s) Server: %s\n", msg->payload, text);
     }
     else if (msg->type == MESSAGE_AUTH && !strcmp(msg->payload, message_code_to_string(MESSAGE_CODE_USER_REGISTER_INFO)) && msg_from_srv)
     {
-        state->can_register = 1;
+        cl_state->can_register = 1;
         int code = atoi(msg->payload);
         const char* text = message_code_to_text(code);
         printf("(0%s) Server: %s\n", msg->payload, text);
     }
     else if (msg->type == MESSAGE_AUTH && !strcmp(msg->payload, message_code_to_string(MESSAGE_CODE_TRY_AGAIN)) && msg_from_srv)
     {
-        state->can_register = 0;
+        cl_state->can_register = 0;
         int code = atoi(msg->payload);
         const char* text = message_code_to_text(code);
         printf("(0%s) Server: %s\n", msg->payload, text);
     }
     else if (msg->type == MESSAGE_CHOICE && !strcmp(msg->payload, message_code_to_string(MESSAGE_CODE_USER_REGISTER_CHOICE)) && msg_from_srv)
     {
-        state->is_entering_username = 0;
-        state->is_choosing_register = 1;
+        cl_state->is_entering_username = 0;
+        cl_state->is_choosing_register = 1;
         int code = atoi(msg->payload);
         const char* text = message_code_to_text(code);
         printf("(0%s) Server: %s\n", msg->payload, text);
     }
     else if (msg->type == MESSAGE_AUTH && !strcmp(msg->payload, message_code_to_string(MESSAGE_CODE_USER_ALREADY_ONLINE)) && msg_from_srv)
     {
-        reset_state(state);
+        reset_state(cl_state);
         int code = atoi(msg->payload);
         const char* text = message_code_to_text(code);
         printf("(0%s) Server: %s\n", msg->payload, text);
     }
     else if (msg->type == MESSAGE_AUTH && !strcmp(msg->payload, message_code_to_string(MESSAGE_CODE_USER_AUTHENTICATED)) && msg_from_srv)
     {
-        state->is_entering_password = 0;
-        state->is_authenticated = 1;
+        cl_state->is_entering_password = 0;
+        cl_state->is_authenticated = 1;
     }
     else if (msg->type == MESSAGE_AUTH && !strcmp(msg->payload, message_code_to_string(MESSAGE_CODE_USER_CREATED)) && msg_from_srv)
     {
-        state->is_confirming_password = 0;
-        state->is_authenticated = 1;
+        cl_state->is_confirming_password = 0;
+        cl_state->is_authenticated = 1;
     }
     else if (msg->type == MESSAGE_AUTH && !strcmp(msg->payload, message_code_to_string(MESSAGE_CODE_USER_DOES_NOT_EXIST)) && msg_from_srv)
     {
@@ -131,12 +131,12 @@ void handle_message(message_t* msg, client_t* client, client_state_t* state, vol
             return;
         }
         printf("(0%d) Server: %s%s\n", MESSAGE_CODE_UID, message_code_to_text(MESSAGE_CODE_UID), msg->payload);
-        if (client->uid != NULL)
-            strcpy(client->uid, msg->payload);
+        if (cl->uid != NULL)
+            strcpy(cl->uid, msg->payload);
         else
         {
-            client->uid = malloc(strlen(msg->payload) + 1);
-            strcpy(client->uid, msg->payload);
+            cl->uid = malloc(strlen(msg->payload) + 1);
+            strcpy(cl->uid, msg->payload);
         }
     }
     else if (msg->type == MESSAGE_SIGNAL)
@@ -160,15 +160,15 @@ void handle_message(message_t* msg, client_t* client, client_state_t* state, vol
         {
         case 3:
             printf("(0%d) Server: %s\n", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_THREE, message_code_to_text(MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_THREE));
-            state->auth_attempts = 3;
+            cl_state->auth_attempts = 3;
             break;
         case 2:
             printf("(0%d) Server: %s\n", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_TWO, message_code_to_text(MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_TWO));
-            state->auth_attempts = 2;
+            cl_state->auth_attempts = 2;
             break;
         case 1:
             printf("(0%d) Server: %s\n", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_ONE, message_code_to_text(MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_ONE));
-            state->auth_attempts = 1;
+            cl_state->auth_attempts = 1;
             break;
         default:
             printf("(00001) Server: %s\n", msg->payload); // unknown code

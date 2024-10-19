@@ -31,7 +31,7 @@
  * @param auth_attempts The client authentication attempts.
  * @param can_register The client can register.
  */
-typedef struct client_state_t
+typedef struct client_state
 {
     int just_joined;
     int is_entering_username;
@@ -42,7 +42,7 @@ typedef struct client_state_t
     int is_authenticated;
     int auth_attempts;
     int can_register;
-} client_state_t;
+} client_state;
 
 /**
  * The button structure. This structure is used to define the button structure.
@@ -51,37 +51,37 @@ typedef struct client_state_t
  * @param color The color.
  * @param text The text.
  */
-typedef struct button_t
+typedef struct button
 {
     Rectangle rect;
     Color color;
     char text[BUTTON_TEXT_LENGTH];
-} button_t;
+} button;
 
 /**
  * Initialize button. This function is used to initialize the button.
  *
- * @param button The button structure.
+ * @param bt The button structure.
  * @param rect The rectangle.
- * @param color The color.
+ * @param col The color.
  */
-void init_button(button_t* button, Rectangle rect, Color color);
+void init_button(button* bt, Rectangle rect, Color col);
 
 /**
  * Button hovered state. This function is used to check if the button is hovered.
  *
- * @param button The button structure.
+ * @param bt The button structure.
  * @return 1 if the button is hovered, 0 otherwise.
  */
-int is_button_hovered(button_t* button);
+int is_button_hovered(button* bt);
 
 /**
  * Button clicked state. This function is used to check if the button is clicked.
  *
- * @param button The button structure.
+ * @param bt The button structure.
  * @return 1 if the button is clicked, 0 otherwise.
  */
-int is_button_clicked(button_t* button);
+int is_button_clicked(button* bt);
 
 /**
  * Initialize UI. This function is used to initialize the user interface using Raylib library.
@@ -91,23 +91,23 @@ void init_ui();
 /**
  * Cycle UI. This function is used to update, draw and handle the user interface using Raylib library.
  *
- * @param client The client structure.
- * @param state The client state structure.
+ * @param cl The client structure.
+ * @param cl_state The client state structure.
  * @param reconnect_flag The reconnect flag.
  * @param quit_flag The quit flag.
  * @param log_filename The log filename.
  */
-void ui_cycle(client_t* client, client_state_t* client_state, volatile sig_atomic_t* reconnect_flag, volatile sig_atomic_t* quit_flag, const char* log_filename);
+void ui_cycle(client* cl, client_state* cl_state, volatile sig_atomic_t* reconnect_flag, volatile sig_atomic_t* quit_flag, const char* log_filename);
 
 /**
  * Draw UI. This function is used to draw singular frame of the user interface using Raylib library.
  *
- * @param client The client structure.
- * @param state The client state structure.
+ * @param cl The client structure.
+ * @param cl_state The client state structure.
  * @param reconnect_flag The reconnect flag.
  * @param quit_flag The quit flag.
  */
-void draw_ui(client_t* client, client_state_t* state, volatile sig_atomic_t reconnect_flag, volatile sig_atomic_t quit_flag);
+void draw_ui(client* cl, client_state* cl_state, volatile sig_atomic_t reconnect_flag, volatile sig_atomic_t quit_flag);
 
 /**
  * Add message. This function is used to add a message to the client state's message array.
@@ -121,9 +121,9 @@ void add_message(const char* sender, const char* payload);
 /**
  * Reset state. This function is used to reset the client state.
  *
- * @param state The client state.
+ * @param cl_state The client state.
  */
-void reset_state(client_state_t* state);
+void reset_state(client_state* cl_state);
 
 /**
  * Disable input. This function is used to disable input from the command line interface.

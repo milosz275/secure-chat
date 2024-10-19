@@ -84,7 +84,7 @@ void hash_map_destroy(hash_map* map)
     }
 }
 
-bool hash_map_find(hash_map* map, const char* uid, client_connection_t** cl)
+bool hash_map_find(hash_map* map, const char* uid, client_connection** cl)
 {
     // Directly use the uid to compute the index (uid is already hashed)
     size_t hash_value = strtoul(uid, NULL, 16) % map->hash_size;
@@ -94,7 +94,7 @@ bool hash_map_find(hash_map* map, const char* uid, client_connection_t** cl)
 
     while (node)
     {
-        if (node->cl && node->cl->uid && node->cl->request)
+        if (node->cl && node->cl->uid && node->cl->req)
         {
             if (strcmp(node->cl->uid, uid) == 0)
             {
@@ -116,7 +116,7 @@ bool hash_map_find(hash_map* map, const char* uid, client_connection_t** cl)
     return false;
 }
 
-int hash_map_insert(hash_map* map, client_connection_t* cl)
+int hash_map_insert(hash_map* map, client_connection* cl)
 {
     int insert_success = 0;
     const char* uid = cl->uid;
@@ -222,7 +222,7 @@ void hash_map_clear(hash_map* map)
     }
 }
 
-void hash_map_iterate(hash_map* map, void (*callback)(client_connection_t*))
+void hash_map_iterate(hash_map* map, void (*callback)(client_connection*))
 {
     for (size_t i = 0; i < map->hash_size; ++i)
     {
@@ -237,7 +237,7 @@ void hash_map_iterate(hash_map* map, void (*callback)(client_connection_t*))
     }
 }
 
-void hash_map_iterate2(hash_map* map, void (*callback)(client_connection_t*, void*), void* param)
+void hash_map_iterate2(hash_map* map, void (*callback)(client_connection*, void*), void* param)
 {
     for (size_t i = 0; i < map->hash_size; ++i)
     {

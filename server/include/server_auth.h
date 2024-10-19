@@ -11,6 +11,6 @@
  * @param uid The obtained unique ID of the client.
  * @param user_map The user hash map.
  */
-int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map);
+int user_auth(request* req, client_connection* cl, hash_map* user_map);
 
 #endif
