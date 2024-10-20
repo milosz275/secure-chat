@@ -7,7 +7,7 @@
 #include "log.h"
 
 // Server command array
-static srv_command_t srv_commands[] =
+static server_command srv_commands[] =
 {
     {.srv_command = &srv_exit, .srv_command_name = "!exit", .srv_command_description = "Stops the server." },
     {.srv_command = &srv_exit, .srv_command_name = "!quit", .srv_command_description = "Exit command alias." },

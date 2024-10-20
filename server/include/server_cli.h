@@ -10,7 +10,7 @@
 #define SRV_DELIM " "
 #define MAX_LINE_LENGTH 256
 
-#define SRV_COMMANDS_NUM (int) (sizeof(srv_commands) / sizeof(srv_command_t))
+#define SRV_COMMANDS_NUM (int) (sizeof(srv_commands) / sizeof(server_command))
 
 /**
  * Server commands structure.
@@ -24,7 +24,7 @@ typedef struct
     int (*srv_command)(char**);
     char* srv_command_name;
     char* srv_command_description;
-} srv_command_t;
+} server_command;
 
 /**
  * Exit server. This function is used to exit the server.
