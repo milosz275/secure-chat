@@ -83,7 +83,7 @@
  * @param MESSAGE_SYSTEM Server maintenance message
  * @return The message type enumeration.
  */
-typedef int32_t message_type_t;
+typedef int32_t message_type;
 enum
 {
     MESSAGE_TEXT = 1234,
@@ -134,7 +134,7 @@ enum
  * @param MESSAGE_CODE_UID Unique message ID
  * @param MESSAGE_CODE_UNKNOWN Unknown message code
  */
-typedef int32_t message_code_t;
+typedef int32_t message_code;
 enum
 {
     MESSAGE_CODE_WELCOME = 2345,
@@ -177,31 +177,31 @@ enum
 typedef struct
 {
     char message_uid[HASH_HEX_OUTPUT_LENGTH];
-    message_type_t type;
+    message_type type;
     char sender_uid[HASH_HEX_OUTPUT_LENGTH];
     char recipient_uid[HASH_HEX_OUTPUT_LENGTH];
     uint32_t payload_length;
     char payload[MAX_PAYLOAD_SIZE];
-} message_t;
+} message;
 
 /**
  * The singular request structure. This structure is used to store server connection data.
  *
- * @param address The request address.
- * @param socket The server returned socket.
+ * @param addr The request address.
+ * @param sock The server returned socket.
  * @param ssl The SSL object for the connection.
  */
 typedef struct
 {
-    struct sockaddr_in address;
-    int socket;
+    struct sockaddr_in addr;
+    int sock;
     SSL* ssl;
-} request_t;
+} request;
 
 /**
  * The singular client structure. This structure is used to store information about a client connected to the server.
  *
- * @param request The client request.
+ * @param req The client request.
  * @param id The ID of the client.
  * @param uid The unique ID of the client.
  * @param username The username of the client.
@@ -209,16 +209,16 @@ typedef struct
  * @param is_inserted The client hash map insertion status.
  * @param ping_sent The client ping status.
  */
-typedef struct client_connection_t
+typedef struct client_connection
 {
-    request_t* request;
+    request* req;
     int id;
     char* uid;
     char username[MAX_USERNAME_LENGTH + 1];
     int is_ready;
     int is_inserted;
     int ping_sent;
-} client_connection_t;
+} client_connection;
 
 /**
  * Create a message. This function is used to create a message structure based on the message type, sender, recipient, and payload.
@@ -229,7 +229,7 @@ typedef struct client_connection_t
  * @param payload The message content or control data.
  * @return The message creation result code.
  */
-int create_message(message_t* msg, message_type_t type, const char* sender_uid, const char* recipient_uid, const char* payload);
+int create_message(message* msg, message_type type, const char* sender_uid, const char* recipient_uid, const char* payload);
 
 /**
  * Parse a message. This function is used to parse a message structure and return the message content.
@@ -238,7 +238,7 @@ int create_message(message_t* msg, message_type_t type, const char* sender_uid, 
  * @param buffer The message buffer.
  * @return The message parsing result code.
  */
-void parse_message(message_t* msg, const char* buffer);
+void parse_message(message* msg, const char* buffer);
 
 /**
  * Send a message. This function is used to send a message using a secure SSL connection.
@@ -247,15 +247,15 @@ void parse_message(message_t* msg, const char* buffer);
  * @param msg The message to send.
  * @return The message send result code.
  */
-int send_message(SSL* ssl, message_t* msg);
+int send_message(SSL* ssl, message* msg);
 
 /**
- * Get the message type as a text string. This function is used to get the message type as a text string, for example "MESSAGE_TOAST".
+ * Get the message type as a text string. This function is used to get the message type as a text string, for example "messageOAST".
  *
  * @param type The message type.
  * @return The message type as a text string.
  */
-const char* message_type_to_text(message_type_t type);
+const char* message_type_to_text(message_type type);
 
 /**
  * Get the message code as a text string. This function is used to get the message code as a text string, for example "Welcome!".
@@ -263,7 +263,7 @@ const char* message_type_to_text(message_type_t type);
  * @param code The message code.
  * @return The message code as a text string.
  */
-const char* message_code_to_text(message_code_t code);
+const char* message_code_to_text(message_code code);
 
 /**
  * Get the message code as a string. This function is used to get the message code as a string, for example "1234".
@@ -271,7 +271,7 @@ const char* message_code_to_text(message_code_t code);
  * @param code The message code.
  * @return The message code as a string.
  */
-const char* message_code_to_string(message_code_t code);
+const char* message_code_to_string(message_code code);
 
 /**
  * Get the hash of an input. Calculates the SHA-512 hash of the input string and converts it to a hex string in a thread-safe manner.

@@ -7,8 +7,8 @@
 
 static sts_header* create();
 static void destroy(sts_header* header);
-static void push(sts_header* header, message_t* elem);
-static message_t* pop(sts_header* header);
+static void push(sts_header* header, message* elem);
+static message* pop(sts_header* header);
 
 static sts_header* create()
 {
@@ -28,7 +28,7 @@ static void destroy(sts_header* header)
     free(header);
 }
 
-static void push(sts_header* header, message_t* elem)
+static void push(sts_header* header, message* elem)
 {
     // Create new element
     sts_element* element = malloc(sizeof(*element));
@@ -52,7 +52,7 @@ static void push(sts_header* header, message_t* elem)
     pthread_mutex_unlock(header->mutex);
 }
 
-static message_t* pop(sts_header* header)
+static message* pop(sts_header* header)
 {
     pthread_mutex_lock(header->mutex);
     sts_element* head = header->head;
@@ -69,7 +69,7 @@ static message_t* pop(sts_header* header)
         header->head = head->next;
 
         // Get head and free element memory
-        message_t* value = head->value;
+        message* value = head->value;
         free(head);
 
         pthread_mutex_unlock(header->mutex);

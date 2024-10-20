@@ -66,8 +66,8 @@
 /**
  * The server structure. This structure is used to store information about the server.
  *
- * @param socket The server socket.
- * @param address The server address.
+ * @param sock The server socket.
+ * @param addr The server address.
  * @param requests_handled The number of requests handled.
  * @param client_logins_handled The number of client logins handled.
  * @param thread_count The number of all allocated threads.
@@ -79,10 +79,10 @@
  * @param ssl The SSL object.
  * @param start_time The server start time.
  */
-struct server_t
+struct server
 {
-    int socket;
-    struct sockaddr_in address;
+    int sock;
+    struct sockaddr_in addr;
     int requests_handled;
     int client_logins_handled;
     int thread_count;
@@ -100,7 +100,7 @@ struct server_t
  *
  * @param cl The client connection pointer.
  */
-void print_client(client_connection_t* cl);
+void print_client(client_connection* cl);
 
 /**
  * Send ping message. This function is used to send a ping message to a client.
@@ -108,7 +108,7 @@ void print_client(client_connection_t* cl);
  *
  * @param cl The client connection pointer.
  */
-void send_ping(client_connection_t* cl);
+void send_ping(client_connection* cl);
 
 /**
  * Send quit signal. This function is used to send a quit signal to a client.
@@ -116,7 +116,7 @@ void send_ping(client_connection_t* cl);
  *
  * @param cl The client connection pointer.
  */
-void send_quit_signal(client_connection_t* cl);
+void send_quit_signal(client_connection* cl);
 
 /**
  * Send broadcast message. This function is used to send a broadcast message to a client.
@@ -125,7 +125,7 @@ void send_quit_signal(client_connection_t* cl);
  * @param cl The client connection pointer.
  * @param arg The message to send.
  */
-void send_broadcast(client_connection_t* cl, void* arg);
+void send_broadcast(client_connection* cl, void* arg);
 
 /**
  * Send join message. This function is used to send a join message to a client, as long as it is not the new client.
@@ -134,7 +134,7 @@ void send_broadcast(client_connection_t* cl, void* arg);
  * @param cl The client connection pointer.
  * @param arg The new client connection pointer.
  */
-void send_join_message(client_connection_t* cl, void* arg);
+void send_join_message(client_connection* cl, void* arg);
 
 /**
  * Client handler. This function is used to handle a request, create and connect user to the server.
@@ -167,6 +167,14 @@ void* handle_msg_queue(void* arg);
  * @param arg Not used.
  */
 void* handle_info_update(void* arg);
+
+/**
+ * Add client connection. This function is accepting new client connections and handle them in separate threads.
+ * The function is meant to be run in a separate thread.
+ *
+ * @param arg Not used.
+ */
+void* handle_connection_add(void* arg);
 
 /**
  * Runs the server. This function is meant to be called by the main function of the server program.

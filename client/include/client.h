@@ -15,22 +15,22 @@
 /**
  * The client structure. This structure is used to define the client structure.
  *
- * @param socket The client socket.
+ * @param sock The client socket.
  * @param uid The client unique ID.
  * @param username The client username.
  * @param ssl_ctx The SSL context.
  * @param ssl The SSL object.
  * @param input The client input.
  */
-typedef struct client_t
+typedef struct client
 {
-    int socket;
+    int sock;
     char* uid;
     char username[MAX_USERNAME_LENGTH + 1];
     SSL_CTX* ssl_ctx;
     SSL* ssl;
     char input[MAX_INPUT_LENGTH];
-} client_t;
+} client;
 
 /**
  * Connect to the server. This function is used to connect to the server.

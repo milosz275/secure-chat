@@ -7,23 +7,20 @@
 #define OPENSSL_SSL_CTX_CREATION_FAILURE 9001
 #define OPENSSL_SSL_OBJECT_FAILURE 9002
 
-
-typedef struct client_t client_t;
-
 /**
  * Initialize SSL. This function is used to initialize OpenSSL, its context and all structures.
  *
- * @param client The client structure.
+ * @param cl The client structure.
  * @return The exit code.
  */
-int init_ssl(client_t* client);
+int init_ssl(struct client* cl);
 
 /**
  * Destroy SSL. This function is used to deinitialize OpenSSL, its context and all structures.
  *
- * @param client The client structure.
+ * @param cl The client structure.
  * @return The exit code.
  */
-int destroy_ssl(client_t* client);
+int destroy_ssl(struct client* cl);
 
 #endif

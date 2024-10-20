@@ -11,7 +11,7 @@
 typedef struct sts_element
 {
     void* next;
-    message_t* value;
+    message* value;
 } sts_element;
 
 /**
@@ -38,8 +38,8 @@ typedef struct
 {
     sts_header* (* const create)();
     void (* const destroy)(sts_header* handle);
-    void (* const push)(sts_header* handle, message_t* elem);
-    message_t* (* const pop)(sts_header* handle);
+    void (* const push)(sts_header* handle, message* elem);
+    message* (* const pop)(sts_header* handle);
 } _sts_queue;
 
 extern _sts_queue const sts_queue;

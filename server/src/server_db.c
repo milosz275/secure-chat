@@ -47,7 +47,10 @@ int setup_db(sqlite3** db, char* db_name)
         "uid TEXT NOT NULL UNIQUE, "
         "password_hash TEXT NOT NULL, "
         "created_at TEXT DEFAULT CURRENT_TIMESTAMP, "
-        "last_login TEXT"
+        "last_login TEXT, "
+        "is_banned BOOLEAN DEFAULT FALSE, "
+        "is_muted BOOLEAN DEFAULT FALSE, "
+        "is_admin BOOLEAN DEFAULT FALSE"
         ");";
     if (sqlite3_exec(*db, sql, NULL, 0, NULL) != SQLITE_OK)
     {

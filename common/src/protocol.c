@@ -10,7 +10,7 @@
 
 struct tm* localtime_r(const time_t* timer, struct tm* buf);
 
-int create_message(message_t* msg, message_type_t type, const char* sender_uid, const char* recipient_uid, const char* payload)
+int create_message(message* msg, message_type type, const char* sender_uid, const char* recipient_uid, const char* payload)
 {
     if (payload == NULL)
         payload = "";
@@ -49,7 +49,7 @@ int create_message(message_t* msg, message_type_t type, const char* sender_uid, 
     return MESSAGE_CREATION_SUCCESS;
 }
 
-void parse_message(message_t* msg, const char* buffer)
+void parse_message(message* msg, const char* buffer)
 {
     char format_string[128];
     snprintf(format_string, sizeof(format_string), "%%%d[^|]|%%d|%%%d[^|]|%%%d[^|]|%%u|%%%d[^\n]",
@@ -59,7 +59,7 @@ void parse_message(message_t* msg, const char* buffer)
     msg->payload[msg->payload_length] = '\0';
 }
 
-int send_message(SSL* ssl, message_t* msg)
+int send_message(SSL* ssl, message* msg)
 {
     if (msg == NULL)
         return MESSAGE_SEND_FAILURE;
@@ -93,7 +93,7 @@ int send_message(SSL* ssl, message_t* msg)
 }
 
 
-const char* message_type_to_text(message_type_t type)
+const char* message_type_to_text(message_type type)
 {
     switch (type)
     {
@@ -118,7 +118,7 @@ const char* message_type_to_text(message_type_t type)
     }
 }
 
-const char* message_code_to_text(message_code_t code)
+const char* message_code_to_text(message_code code)
 {
     switch (code)
     {
@@ -150,7 +150,7 @@ const char* message_code_to_text(message_code_t code)
     }
 }
 
-const char* message_code_to_string(message_code_t code)
+const char* message_code_to_string(message_code code)
 {
     static char code_str[16];
     snprintf(code_str, sizeof(code_str), "%d", code);
