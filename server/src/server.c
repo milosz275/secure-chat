@@ -614,6 +614,7 @@ int run_server()
     if (pthread_create(&cli_thread, NULL, handle_cli, (void*)NULL) != 0)
         log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "CLI thread creation failed: %s", strerror(errno));
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "CLI thread started");
+    srv.threads[srv.thread_count] = cli_thread;
     srv.thread_count++;
 
     init_logging(SYSTEM_LOG);
@@ -622,18 +623,21 @@ int run_server()
     if (pthread_create(&info_update_thread, NULL, handle_info_update, (void*)NULL) != 0)
         log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Info update thread creation failed: %s", strerror(errno));
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Info update thread started");
+    srv.threads[srv.thread_count] = info_update_thread;
     srv.thread_count++;
 
     pthread_t msg_queue_thread;
     if (pthread_create(&msg_queue_thread, NULL, handle_msg_queue, (void*)NULL) != 0)
         log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Message queue handler thread creation failed: %s", strerror(errno));
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Message queue handler thread started");
+    srv.threads[srv.thread_count] = msg_queue_thread;
     srv.thread_count++;
 
     pthread_t client_ping_thread;
     if (pthread_create(&client_ping_thread, NULL, handle_client_ping, (void*)NULL) != 0)
         log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Client ping thread creation failed: %s", strerror(errno));
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Client ping thread started");
+    srv.threads[srv.thread_count] = client_ping_thread;
     srv.thread_count++;
 
     init_logging(REQUESTS_LOG);
@@ -642,9 +646,15 @@ int run_server()
     log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, LOG_SERVER_STARTED);
 
     pthread_t connection_add_thread;
-    if (pthread_create(&connection_add_thread, NULL, handle_client_ping, (void*)NULL) != 0)
+    if (pthread_create(&connection_add_thread, NULL, handle_connection_add, (void*)NULL) != 0)
+    {
         log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Connection add thread creation failed: %s", strerror(errno));
+        close(srv.sock);
+        finish_logging();
+        exit(EXIT_FAILURE);
+    }
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Connection add thread started");
+    srv.threads[srv.thread_count] = connection_add_thread;
     srv.thread_count++;
 
     while (!quit_flag)
@@ -658,18 +668,6 @@ int run_server()
     hash_map_destroy(srv.client_map);
     destroy_ssl(&srv);
     close(srv.sock);
-
-    pthread_cancel(cli_thread);
-    pthread_cancel(info_update_thread);
-    pthread_cancel(msg_queue_thread);
-    pthread_cancel(client_ping_thread);
-    pthread_cancel(connection_add_thread);
-
-    pthread_join(cli_thread, NULL);
-    pthread_join(info_update_thread, NULL);
-    pthread_join(msg_queue_thread, NULL);
-    pthread_join(client_ping_thread, NULL);
-    pthread_join(connection_add_thread, NULL);
 
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Server shutting down");
     finish_logging();
