@@ -145,7 +145,7 @@ const char* message_code_to_text(message_code code)
     case MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_ONE: return "You have 1 attempt left.";
     case MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED: return "User authentication attempts exceeded.";
     case MESSAGE_CODE_USER_AUTHENTICATION_SUCCESS: return "User authentication success.";
-    case MESSAGE_CODE_UID: return "Your UID is ";
+    case MESSAGE_CODE_UID: return "'s UID is ";
     default: return MESSAGE_CODE_UNKNOWN;
     }
 }
