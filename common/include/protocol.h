@@ -13,6 +13,7 @@
 #define BUFFER_SIZE 4096
 #define HASH_LENGTH 64 // SHA-512 hash (64 bytes)
 #define HASH_HEX_OUTPUT_LENGTH (HASH_LENGTH * 2 + 1) // hex output length (2 chars per byte + \0) for SHA-512 it will be 129 (128 characters)
+#define HASH_MESSAGE_LENGTH (HASH_HEX_OUTPUT_LENGTH + MAX_USERNAME_LENGTH + 2) // hash message length (hash + separator + username + \0)
 #define MAX_PAYLOAD_SIZE 2048 // 2 KB
 #define MAX_USERNAME_LENGTH 16
 #define MAX_PASSWORD_LENGTH 16
