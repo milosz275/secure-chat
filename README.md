@@ -101,7 +101,9 @@ Server is responsible for handling client connections, retrieving messages from 
 
 ### Client
 
-Client connects to the server, sends messages and receives messages from the server. GUI is planned to be implemented with Raylib in next few PRs.
+Client connects to the server, sends messages and receives messages from the server. GUI is implemented using Raylib library and dark-mode is added. Dynamic signal resolution is used to allow for the best performance and resource usage. States are used to manage the client's connection and message sending. Client logs all requests, server connections and errors.
+
+![Client](assets/client.png)
 
 ### Common
 
