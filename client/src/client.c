@@ -95,7 +95,7 @@ void* attempt_reconnection(void* arg)
                     cl.uid = NULL;
                 }
             }
-            
+
             if (connect_to_server((struct sockaddr_in*)arg) == 0)
             {
                 reconnect_flag = 0;  // successfully reconnected
@@ -279,10 +279,7 @@ void run_client()
     while (!WindowShouldClose())
         ui_cycle(&cl, &cl_state, &reconnect_flag, &quit_flag, log_filename);
 
-    pthread_cancel(reconnect_thread);
-    pthread_cancel(recv_thread);
-    pthread_cancel(ping_thread);
-
+    enable_cli_input();
     pthread_join(reconnect_thread, NULL);
     pthread_join(recv_thread, NULL);
     pthread_join(ping_thread, NULL);
