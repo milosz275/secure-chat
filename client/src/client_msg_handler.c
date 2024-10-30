@@ -125,18 +125,50 @@ void handle_message(message* msg, client* cl, client_state* cl_state, volatile s
     }
     else if (msg->type == MESSAGE_UID && msg_from_srv)
     {
-        if (strlen(msg->payload) != HASH_HEX_OUTPUT_LENGTH - 1)
+        char username[MAX_USERNAME_LENGTH + 1];
+        char uid[HASH_HEX_OUTPUT_LENGTH];
+        sscanf(msg->payload, "%[^" MESSAGE_DELIMITER "]%*c%s", username, uid);
+        printf("(0%d) Server: %s%s%s\n", MESSAGE_CODE_UID, username, message_code_to_text(MESSAGE_CODE_UID), uid);
+
+        if (!cl->uid && strcmp(cl->username, username) == 0)
         {
-            printf("Invalid UID received from server\n");
+            // allocating new uid for the client from server after auth
+            cl->uid = malloc(strlen(uid) + 1);
+            strcpy(cl->uid, uid);
             return;
         }
-        printf("(0%d) Server: %s%s\n", MESSAGE_CODE_UID, message_code_to_text(MESSAGE_CODE_UID), msg->payload);
-        if (cl->uid != NULL)
-            strcpy(cl->uid, msg->payload);
+        else if (cl->uid && strcmp(cl->username, username) == 0 && strcmp(cl->uid, CLIENT_DEFAULT_NAME) == 0)
+        {
+            // assigning new uid for the client from server after auth
+            free(cl->uid);
+            cl->uid = malloc(strlen(uid) + 1);
+            strcpy(cl->uid, uid);
+            return;
+        }
+        else if (cl->uid && strcmp(cl->username, username) == 0 && strcmp(cl->uid, CLIENT_DEFAULT_NAME) != 0)
+        {
+            // skip uid overwrite
+            printf("Attempted to overwrite user UID\n");
+            printf("Current UID: %s\n", cl->uid);
+            return;
+        }
+        else if (strcmp(cl->uid, CLIENT_DEFAULT_NAME) != 0 && strcmp(cl->username, username) == 0)
+        {
+            // skip being addressed with default name while authed
+            printf("Received UID from server while already authenticated\n");
+            return;
+        }
+        else if (strcmp(cl->username, username) != 0)
+        {
+            // [ ] Add local entry: user - UID, for communication
+            printf("Received UID from server of another user\n");
+            return;
+        }
         else
         {
-            cl->uid = malloc(strlen(msg->payload) + 1);
-            strcpy(cl->uid, msg->payload);
+            // unknown situation
+            printf("Received UID not handled\n");
+            return;
         }
     }
     else if (msg->type == MESSAGE_SIGNAL)
