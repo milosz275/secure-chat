@@ -50,7 +50,8 @@
         "raylib.h": "c",
         "log.h": "c",
         "client.h": "c",
-        "client_gui.h": "c"
+        "client_gui.h": "c",
+        "cmath": "c"
     },
     "task.allowAutomaticTasks": "on",
     "editor.formatOnSave": true,

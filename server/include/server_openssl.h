@@ -16,23 +16,21 @@
 
 #include "server.h"
 
-typedef struct server_t server_t;
-
 /**
  * Initialize SSL. This function is used to initialize OpenSSL, its context and all structures.
  *
- * @param server The server structure.
+ * @param srv The server structure.
  * @return The exit code.
  */
-int init_ssl(server_t* server);
+int init_ssl(struct server* srv);
 
 /**
  * Destroy SSL. This function is used to deinitialize OpenSSL, its context and all structures.
  *
- * @param server The server structure.
+ * @param srv The server structure.
  * @return The exit code.
  */
-int destroy_ssl(server_t* server);
+int destroy_ssl(struct server* srv);
 
 /**
  * Check if file exists. This function is used to check if a file exists.

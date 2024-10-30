@@ -11,7 +11,7 @@
 #include "log.h"
 #include "server.h"
 
-int init_ssl(server_t* server)
+int init_ssl(struct server* server)
 {
     SSL_library_init();
     SSL_load_error_strings();
@@ -47,12 +47,12 @@ int init_ssl(server_t* server)
         destroy_ssl(server);
         return OPENSSL_SSL_OBJECT_FAILURE;
     }
-    SSL_set_fd(server->ssl, server->socket);
+    SSL_set_fd(server->ssl, server->sock);
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "SSL initialization successful");
     return OPENSSL_INIT_SUCCESS;
 }
 
-int destroy_ssl(server_t* server)
+int destroy_ssl(struct server* server)
 {
     if (server->ssl)
         SSL_free(server->ssl);

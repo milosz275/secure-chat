@@ -10,11 +10,9 @@
 #include "log.h"
 #include "hash_map.h"
 
-void usleep(unsigned int usec);
-
-int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
+int user_auth(request* req, client_connection* cl, hash_map* user_map)
 {
-    message_t msg;
+    message msg;
     char buffer[BUFFER_SIZE];
     int nbytes;
 
@@ -23,7 +21,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
     int db_result = connect_db(&db, DB_NAME);
     if (db_result != DATABASE_CONNECTION_SUCCESS)
     {
-        close(req->socket);
+        close(req->sock);
         return USER_AUTHENTICATION_DATABASE_CONNECTION_FAILURE;
     }
 
@@ -40,12 +38,10 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
             send_msg[0] = '\0';
             sprintf(send_msg, "%d", USER_LOGIN_ATTEMPTS - attempts);
             create_message(&msg, MESSAGE_AUTH_ATTEMPS, "server", CLIENT_DEFAULT_NAME, send_msg);
-            sleep(1);
             send_message(req->ssl, &msg);
             send_msg[0] = '\0';
             sprintf(send_msg, "%d", MESSAGE_CODE_USER_REGISTER_INFO);
             create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-            sleep(1);
             send_message(req->ssl, &msg);
         }
         else
@@ -57,13 +53,12 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
         send_msg[0] = '\0';
         sprintf(send_msg, "%d", MESSAGE_CODE_ENTER_USERNAME);
         create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-        usleep(100000); // 100 ms
         send_message(req->ssl, &msg);
 
         nbytes = SSL_read(req->ssl, buffer, sizeof(buffer));
         if (nbytes <= 0)
         {
-            close(req->socket);
+            close(req->sock);
             return USER_AUTHENTICATION_USERNAME_RECEIVE_FAILURE;
         }
 
@@ -73,7 +68,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
         snprintf(username, MAX_USERNAME_LENGTH, "%.*s", MAX_USERNAME_LENGTH - 1, msg.payload);
         username[MAX_USERNAME_LENGTH] = '\0';
 
-        log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Request from %s:%d for username %s", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port), username);
+        log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Request from %s:%d for username %s", inet_ntoa(req->addr.sin_addr), ntohs(req->addr.sin_port), username);
 
         char* sql = "SELECT uid FROM users WHERE username = ?;";
 
@@ -101,7 +96,6 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                 send_msg[0] = '\0';
                 sprintf(send_msg, "%d", MESSAGE_CODE_USER_REGISTER_CHOICE);
                 create_message(&msg, MESSAGE_CHOICE, "server", CLIENT_DEFAULT_NAME, send_msg);
-                usleep(100000); // 100 ms
                 send_message(req->ssl, &msg);
 
                 nbytes = SSL_read(req->ssl, buffer, sizeof(buffer));
@@ -148,21 +142,22 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
 
                     if (!strcmp(password, password_confirmation))
                     {
+                        // save username and password to database
                         snprintf(cl->username, MAX_USERNAME_LENGTH + 1, "%s", username);
 
                         cl->uid = (char*)malloc(HASH_HEX_OUTPUT_LENGTH);
                         if (!cl->uid)
                         {
                             fprintf(stderr, "Failed to allocate memory for UID\n");
-                            log_message(T_LOG_WARN, REQUESTS_LOG, __FILE__, "Failed to allocate memory for UID - register request from %s:%d", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
-                            log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Failed to allocate memory for UID - register request from %s:%d", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
+                            log_message(T_LOG_WARN, REQUESTS_LOG, __FILE__, "Failed to allocate memory for UID - register request from %s:%d", inet_ntoa(req->addr.sin_addr), ntohs(req->addr.sin_port));
+                            log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Failed to allocate memory for UID - register request from %s:%d", inet_ntoa(req->addr.sin_addr), ntohs(req->addr.sin_port));
                             goto cleanup;
                         }
                         if (get_hash((unsigned char*)username, cl->uid) != 0)
                         {
                             fprintf(stderr, "Failed to hash username\n");
-                            log_message(T_LOG_WARN, REQUESTS_LOG, __FILE__, "Failed to hash username - register request from %s:%d", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
-                            log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Failed to hash username - register request from %s:%d", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
+                            log_message(T_LOG_WARN, REQUESTS_LOG, __FILE__, "Failed to hash username - register request from %s:%d", inet_ntoa(req->addr.sin_addr), ntohs(req->addr.sin_port));
+                            log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Failed to hash username - register request from %s:%d", inet_ntoa(req->addr.sin_addr), ntohs(req->addr.sin_port));
                             goto cleanup;
                         }
 
@@ -170,8 +165,8 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                         if (get_hash((unsigned char*)password, password_hash) != 0)
                         {
                             fprintf(stderr, "Failed to hash password\n");
-                            log_message(T_LOG_WARN, REQUESTS_LOG, __FILE__, "Failed to hash password - register request from %s:%d", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
-                            log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Failed to hash password - register request from %s:%d", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
+                            log_message(T_LOG_WARN, REQUESTS_LOG, __FILE__, "Failed to hash password - register request from %s:%d", inet_ntoa(req->addr.sin_addr), ntohs(req->addr.sin_port));
+                            log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Failed to hash password - register request from %s:%d", inet_ntoa(req->addr.sin_addr), ntohs(req->addr.sin_port));
                             goto cleanup;
                         }
 
@@ -200,7 +195,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                         sqlite3_finalize(stmt);
                         stmt = NULL;
                         sqlite3_close(db);
-                        cl->request = req;
+                        cl->req = req;
 
                         log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Registered user %s with UID %s", username, cl->uid);
 
@@ -210,10 +205,10 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                         create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
                         send_message(req->ssl, &msg);
 
-                        char send_uid[HASH_HEX_OUTPUT_LENGTH];
-                        snprintf(send_uid, HASH_HEX_OUTPUT_LENGTH, "%s", cl->uid);
-                        create_message(&msg, MESSAGE_UID, "server", CLIENT_DEFAULT_NAME, send_uid);
-                        usleep(100000); // 100 ms
+                        // send username + separator + uid
+                        char send_data[HASH_MESSAGE_LENGTH + strlen(cl->username) + strlen(MESSAGE_DELIMITER) + 1]; // Buffer to hold username + separator + uid
+                        snprintf(send_data, sizeof(send_data), "%s%s%s", cl->username, MESSAGE_DELIMITER, cl->uid); // Concatenate username, separator, and uid
+                        create_message(&msg, MESSAGE_UID, "server", CLIENT_DEFAULT_NAME, send_data); // Pass the new buffer to create_message
                         send_message(req->ssl, &msg);
 
                         return USER_AUTHENTICATION_SUCCESS;
@@ -227,7 +222,6 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                         send_msg[0] = '\0';
                         sprintf(send_msg, "%d", MESSAGE_CODE_TRY_AGAIN);
                         create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-                        usleep(100000); // 100 ms
                         send_message(req->ssl, &msg);
                         attempts++;
                     }
@@ -240,7 +234,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                 {
                     char choice_truncated[4];
                     snprintf(choice_truncated, 4, "%.*s", 3, msg.payload);
-                    log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Request from %s:%d failed authentication - invalid choice: %s", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port), choice_truncated);
+                    log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Request from %s:%d failed authentication - invalid choice: %s", inet_ntoa(req->addr.sin_addr), ntohs(req->addr.sin_port), choice_truncated);
                     goto cleanup;
                 }
             }
@@ -256,10 +250,9 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED);
                     create_message(&msg, MESSAGE_ERROR, "server", CLIENT_DEFAULT_NAME, send_msg);
-                    usleep(100000); // 100 ms
                     send_message(req->ssl, &msg);
 
-                    log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Request from %s:%d failed authentication - out of login attempts", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
+                    log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Request from %s:%d failed authentication - out of login attempts", inet_ntoa(req->addr.sin_addr), ntohs(req->addr.sin_port));
                     goto cleanup;
                 }
                 else
@@ -271,7 +264,6 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_TRY_AGAIN);
                     create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-                    usleep(100000); // 100 ms
                     send_message(req->ssl, &msg);
                 }
             }
@@ -283,7 +275,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
 
             if (hash_map_find(user_map, uid, &cl))
             {
-                log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Request from %s:%d failed authentication - user already online", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
+                log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Request from %s:%d failed authentication - user already online", inet_ntoa(req->addr.sin_addr), ntohs(req->addr.sin_port));
                 send_msg[0] = '\0';
                 sprintf(send_msg, "%d", MESSAGE_CODE_USER_ALREADY_ONLINE);
                 create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
@@ -291,7 +283,6 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                 sqlite3_finalize(stmt);
                 stmt = NULL;
                 attempts++;
-                usleep(2000000); // 2 s
                 continue;
             }
 
@@ -316,8 +307,8 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
             if (get_hash((unsigned char*)password, password_hash) != 0)
             {
                 fprintf(stderr, "Failed to hash password\n");
-                log_message(T_LOG_WARN, REQUESTS_LOG, __FILE__, "Failed to hash password - login request from %s:%d", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
-                log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Failed to hash password - login request from %s:%d", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
+                log_message(T_LOG_WARN, REQUESTS_LOG, __FILE__, "Failed to hash password - login request from %s:%d", inet_ntoa(req->addr.sin_addr), ntohs(req->addr.sin_port));
+                log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Failed to hash password - login request from %s:%d", inet_ntoa(req->addr.sin_addr), ntohs(req->addr.sin_port));
                 goto cleanup;
             }
 
@@ -339,7 +330,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
 
             if (sqlite3_step(stmt) != SQLITE_ROW)
             {
-                log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Request from %s:%d failed authentication - invalid password", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
+                log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Request from %s:%d failed authentication - invalid password", inet_ntoa(req->addr.sin_addr), ntohs(req->addr.sin_port));
                 attempts++;
                 if (attempts == USER_LOGIN_ATTEMPTS)
                 {
@@ -350,7 +341,6 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_USER_AUTHENTICATION_ATTEMPTS_EXCEEDED);
                     create_message(&msg, MESSAGE_ERROR, "server", CLIENT_DEFAULT_NAME, send_msg);
-                    usleep(100000); // 100 ms
                     send_message(req->ssl, &msg);
                 }
                 else
@@ -362,13 +352,12 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                     send_msg[0] = '\0';
                     sprintf(send_msg, "%d", MESSAGE_CODE_TRY_AGAIN);
                     create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
-                    usleep(100000); // 100 ms
                     send_message(req->ssl, &msg);
                 }
 
                 if (attempts >= USER_LOGIN_ATTEMPTS)
                 {
-                    log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Request from %s:%d failed authentication - out of login attempts", inet_ntoa(req->address.sin_addr), ntohs(req->address.sin_port));
+                    log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Request from %s:%d failed authentication - out of login attempts", inet_ntoa(req->addr.sin_addr), ntohs(req->addr.sin_port));
                     goto cleanup;
                 }
             }
@@ -384,7 +373,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                     fprintf(stderr, "Memory allocation failed for cl->uid\n");
                     sqlite3_finalize(stmt);
                     sqlite3_close(db);
-                    close(req->socket);
+                    close(req->sock);
                     return USER_AUTHENTICATION_MEMORY_ALLOCATION_FAILURE;
                 }
                 strcpy(cl->uid, uid);
@@ -410,7 +399,7 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                 sqlite3_finalize(stmt);
                 stmt = NULL;
                 sqlite3_close(db);
-                cl->request = req;
+                cl->req = req;
 
                 log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Authenticated user %s with UID %s", username, cl->uid);
 
@@ -420,10 +409,10 @@ int user_auth(request_t* req, client_connection_t* cl, hash_map* user_map)
                 create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
                 send_message(req->ssl, &msg);
 
-                char send_uid[HASH_HEX_OUTPUT_LENGTH];
-                snprintf(send_uid, HASH_HEX_OUTPUT_LENGTH, "%s", cl->uid);
-                create_message(&msg, MESSAGE_UID, "server", CLIENT_DEFAULT_NAME, send_uid);
-                usleep(100000); // 100 ms
+                // send username + separator + uid
+                char send_data[HASH_MESSAGE_LENGTH + strlen(cl->username) + strlen(MESSAGE_DELIMITER) + 1]; // Buffer to hold username + separator + uid
+                snprintf(send_data, sizeof(send_data), "%s%s%s", cl->username, MESSAGE_DELIMITER, cl->uid); // Concatenate username, separator, and uid
+                create_message(&msg, MESSAGE_UID, "server", CLIENT_DEFAULT_NAME, send_data); // Pass the new buffer to create_message
                 send_message(req->ssl, &msg);
 
                 return USER_AUTHENTICATION_SUCCESS;
@@ -442,6 +431,6 @@ cleanup:
         free(cl->uid);
     if (db)
         sqlite3_close(db);
-    close(req->socket);
+    close(req->sock);
     return USER_AUTHENTICATION_FAILURE;
 }

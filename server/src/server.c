@@ -26,37 +26,30 @@
 volatile sig_atomic_t quit_flag = 0;
 extern _sts_queue const sts_queue;
 extern sts_header* create();
-static struct server_t server = { 0, {0}, 0, 0, 0, PTHREAD_MUTEX_INITIALIZER, {0}, NULL, NULL, NULL, NULL, 0 };
+static struct server srv = { 0, {0}, 0, 0, 0, PTHREAD_MUTEX_INITIALIZER, {0}, NULL, NULL, NULL, NULL, 0 };
+
 void usleep(unsigned int usec);
+char* strdup(const char* str1);
 
 int srv_exit(char** args)
 {
     if (args[0] != NULL)
         log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Arguments provided for exit command ignored");
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Server shutdown requested");
-    if (setsockopt(server.socket, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) == -1)
-        perror("setsockopt failed");
-    if (close(server.socket) == -1)
-        perror("close failed");
-    hash_map_destroy(server.client_map);
-    destroy_ssl(&server);
-    sts_queue.destroy(server.message_queue);
-    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Server shutdown complete");
-    server.socket = -1;
-    quit_flag = 1;
-    exit(0);
-    return 1;
+    exit(EXIT_SUCCESS); // [ ] Implement graceful shutdown
+    // quit_flag = 1;
+    // return 1;
 }
 
 int srv_list(char** args)
 {
     if (args[0] != NULL)
         log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Arguments provided for list command ignored");
-    int user_count = server.client_map->current_elements;
+    int user_count = srv.client_map->current_elements;
     printf("Users online: %d\n", user_count);
     if (user_count > 0)
     {
-        hash_map_iterate(server.client_map, print_client);
+        hash_map_iterate(srv.client_map, print_client);
     }
     return 1;
 }
@@ -87,8 +80,13 @@ int srv_kick(char** args)
     {
         log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Multiple arguments provided for kick command. Only first argument will be used");
     }
-    client_connection_t* cl = (client_connection_t*)malloc(sizeof(client_connection_t));
-    int recipient_found = hash_map_find(server.client_map, args[0], &cl);
+    client_connection* cl = (client_connection*)malloc(sizeof(client_connection));
+    if (!cl)
+    {
+        log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Srv kick: client memory allocation failed");
+        return -1;
+    }
+    int recipient_found = hash_map_find(srv.client_map, args[0], &cl);
     if (recipient_found)
         send_quit_signal(cl);
     else
@@ -100,7 +98,7 @@ int srv_kick_all(char** args)
 {
     if (args[0] != NULL)
         log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Arguments provided for kickall command ignored");
-    hash_map_iterate(server.client_map, send_quit_signal);
+    hash_map_iterate(srv.client_map, send_quit_signal);
     return 1;
 }
 
@@ -131,8 +129,11 @@ int srv_broadcast(char** args)
         total_length += strlen(args[i]) + 1;
 
     char* concatenated_args = (char*)malloc(total_length);
-    if (concatenated_args == NULL)
+    if (!concatenated_args)
+    {
+        log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Srv broadcast: string memory allocation failed");
         return -1;
+    }
 
     concatenated_args[0] = '\0';
     for (int i = 0; args[i] != NULL; ++i)
@@ -142,69 +143,91 @@ int srv_broadcast(char** args)
             strcat(concatenated_args, " ");
     }
 
-    hash_map_iterate2(server.client_map, send_broadcast, concatenated_args);
+    hash_map_iterate2(srv.client_map, send_broadcast, concatenated_args);
 
     free(concatenated_args);
     return 1;
 }
 
-void print_client(client_connection_t* cl)
+void print_client(client_connection* cl)
 {
-    printf("ID: %d, Username: %s, Address: %s:%d, UID: %s\n", cl->id, cl->username, inet_ntoa(cl->request->address.sin_addr), ntohs(cl->request->address.sin_port), cl->uid);
+    printf("ID: %d, Username: %s, Address: %s:%d, UID: %s\n", cl->id, cl->username, inet_ntoa(cl->req->addr.sin_addr), ntohs(cl->req->addr.sin_port), cl->uid);
 }
 
-void send_ping(client_connection_t* cl)
+void send_ping(client_connection* cl)
 {
     if (cl->is_ready)
     {
         log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Sending PING to client %d", cl->id);
-        message_t* msg = (message_t*)malloc(sizeof(message_t));
+        message* msg = (message*)malloc(sizeof(message));
+        if (!msg)
+        {
+            log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Send ping: message memory allocation failed");
+            return;
+        }
         create_message(msg, MESSAGE_PING, "server", cl->uid, "PING");
-        sts_queue.push(server.message_queue, msg);
+        sts_queue.push(srv.message_queue, msg);
     }
 }
 
-void kick_unresponsive(client_connection_t* cl)
+void kick_unresponsive(client_connection* cl)
 {
     if (cl->is_ready && cl->ping_sent)
     {
         log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Kicking unresponsive client %d", cl->id);
         send_quit_signal(cl);
+        sleep(5);
+        hash_map_erase(srv.client_map, cl->uid);
     }
 }
 
-void send_quit_signal(client_connection_t* cl)
+void send_quit_signal(client_connection* cl)
 {
     if (cl->is_ready)
     {
         log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Sending quit signal to client %d", cl->id);
-        message_t* msg = (message_t*)malloc(sizeof(message_t));
+        message* msg = (message*)malloc(sizeof(message));
+        if (!msg)
+        {
+            log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Send quit signal: message memory allocation failed");
+            return;
+        }
         create_message(msg, MESSAGE_SIGNAL, "server", cl->uid, MESSAGE_SIGNAL_QUIT);
-        sts_queue.push(server.message_queue, msg);
+        sts_queue.push(srv.message_queue, msg);
     }
 }
 
-void send_broadcast(client_connection_t* cl, void* arg)
+void send_broadcast(client_connection* cl, void* arg)
 {
-    char* message = (char*)arg;
+    char* msg_payload = (char*)arg;
     if (cl->is_ready)
     {
-        log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Broadcasting message to client %d: %s", cl->id, message);
-        message_t* msg = (message_t*)malloc(sizeof(message_t));
-        create_message(msg, MESSAGE_TEXT, "server", cl->uid, message);
-        sts_queue.push(server.message_queue, msg);
+        log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Broadcasting message to client %d: %s", cl->id, msg_payload);
+        message* msg = (message*)malloc(sizeof(message));
+        if (!msg)
+        {
+            log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Send broadcast: message memory allocation failed");
+            return;
+        }
+        create_message(msg, MESSAGE_TEXT, "server", cl->uid, msg_payload);
+        sts_queue.push(srv.message_queue, msg);
     }
 }
 
-void send_join_message(client_connection_t* cl, void* arg)
+void send_join_message(client_connection* cl, void* arg)
 {
-    client_connection_t* new_cl = (client_connection_t*)arg;
+    client_connection* new_cl = (client_connection*)arg;
     if (cl->is_ready && cl != new_cl)
     {
         log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Sending join message to client %d", cl->id);
-        message_t* msg = (message_t*)malloc(sizeof(message_t));
+        message* msg = (message*)malloc(sizeof(message));
+        if (!msg)
+        {
+            log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Send join message: message memory allocation failed");
+            return;
+        }
         create_message(msg, MESSAGE_USER_JOIN, "server", cl->uid, new_cl->username);
-        sts_queue.push(server.message_queue, msg);
+        sts_queue.push(srv.message_queue, msg);
     }
 }
 
@@ -213,40 +236,39 @@ void* handle_client(void* arg)
     // before authentication log to requests.log
     char buffer[BUFFER_SIZE];
     int nbytes;
-    request_t* req_ptr = ((request_t*)arg);
-    request_t req = *req_ptr;
-    message_t msg;
-    client_connection_t cl;
-    server.requests_handled++;
+    request* req = (request*)arg;
+    message msg;
+    client_connection cl;
+    srv.requests_handled++;
     cl.is_ready = 0;
     cl.is_inserted = 0;
-    log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Handing request %s:%d", inet_ntoa(req.address.sin_addr), ntohs(req.address.sin_port));
+    log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, "Handing request %s:%d", inet_ntoa(req->addr.sin_addr), ntohs(req->addr.sin_port));
 
-    if (user_auth(&req, &cl, server.client_map) != USER_AUTHENTICATION_SUCCESS)
+    if (user_auth(req, &cl, srv.client_map) != USER_AUTHENTICATION_SUCCESS)
     {
-        close(req.socket);
+        close(req->sock);
         pthread_exit(NULL);
     }
 
-    if (!hash_map_insert(server.client_map, &cl))
+    if (!hash_map_insert(srv.client_map, &cl))
     {
         log_message(T_LOG_ERROR, CLIENTS_LOG, __FILE__, "Failed to insert client into client map");
-        close(req.socket);
+        close(req->sock);
         pthread_exit(NULL);
     }
     cl.is_inserted = 1;
-    cl.id = server.client_map->current_elements - 1;
+    cl.id = srv.client_map->current_elements - 1;
     log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "%s added to client array", cl.username);
 
     // from this point log to client_connections.log
-    server.client_logins_handled++;
-    log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Successful auth of client - id: %d - username: %s - address: %s:%d - uid: %s", cl.id, cl.username, inet_ntoa(req.address.sin_addr), ntohs(req.address.sin_port), cl.uid);
+    srv.client_logins_handled++;
+    log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Successful auth of client - id: %d - username: %s - address: %s:%d - uid: %s", cl.id, cl.username, inet_ntoa(req->addr.sin_addr), ntohs(req->addr.sin_port), cl.uid);
 
     // send join message to all clients except the new one
-    hash_map_iterate2(server.client_map, send_join_message, &cl);
+    hash_map_iterate2(srv.client_map, send_join_message, &cl);
 
     cl.is_ready = 1;
-    while ((nbytes = SSL_read(cl.request->ssl, buffer, sizeof(buffer))) > 0)
+    while ((nbytes = SSL_read(cl.req->ssl, buffer, sizeof(buffer))) > 0)
     {
         if (quit_flag)
             break;
@@ -261,7 +283,7 @@ void* handle_client(void* arg)
             if (msg.type == MESSAGE_PING)
             {
                 create_message(&msg, MESSAGE_ACK, "server", msg.sender_uid, "ACK");
-                send_message(cl.request->ssl, &msg);
+                send_message(cl.req->ssl, &msg);
             }
             else if (msg.type == MESSAGE_ACK)
             {
@@ -270,9 +292,14 @@ void* handle_client(void* arg)
             }
             else
             {
-                message_t* new_msg = (message_t*)malloc(sizeof(message_t));
-                memcpy(new_msg, &msg, sizeof(message_t));
-                sts_queue.push(server.message_queue, new_msg);
+                message* new_msg = (message*)malloc(sizeof(message));
+                if (!new_msg)
+                {
+                    log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Failed to allocate memory for message that should be enqueued for handling");
+                    continue;
+                }
+                memcpy(new_msg, &msg, sizeof(message));
+                sts_queue.push(srv.message_queue, new_msg);
             }
         }
         else
@@ -281,8 +308,9 @@ void* handle_client(void* arg)
     // client disconnected
     log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Client %d disconnected", cl.id);
     if (cl.is_inserted)
-        hash_map_erase(server.client_map, cl.uid);
-    close(cl.request->socket);
+        hash_map_erase(srv.client_map, cl.uid);
+    close(cl.req->sock);
+    free(req);
     pthread_exit(NULL);
 }
 
@@ -290,9 +318,9 @@ void* handle_client_ping(void* arg)
 {
     while (!quit_flag)
     {
-        hash_map_iterate(server.client_map, send_ping);
-        sleep(5);
-        hash_map_iterate(server.client_map, kick_unresponsive);
+        hash_map_iterate(srv.client_map, send_ping);
+        sleep(15);
+        hash_map_iterate(srv.client_map, kick_unresponsive);
     }
     if (arg) {}
     pthread_exit(NULL);
@@ -318,6 +346,7 @@ void* handle_cli(void* arg)
         }
     }
     if (arg) {}
+    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Exiting CLI thread");
     pthread_exit(NULL);
 }
 
@@ -327,26 +356,45 @@ void* handle_msg_queue(void* arg)
     // NOTE: use only for authenticated users with UID. router will not handle messages with "client" sender or recipient
     while (!quit_flag)
     {
-        message_t* msg = sts_queue.pop(server.message_queue);
+        message* msg = sts_queue.pop(srv.message_queue);
         if (msg)
         {
-            log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Message from %s to %s: %s", msg->sender_uid, msg->recipient_uid, msg->payload);
-            client_connection_t* cl = (client_connection_t*)malloc(sizeof(client_connection_t));
-            int recipient_found = hash_map_find(server.client_map, msg->recipient_uid, &cl);
+            const char* payload_copy = strdup(msg->payload);
+            if (!payload_copy)
+            {
+                log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Failed to copy message payload");
+                free(msg);
+                continue;
+            }
+            log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Message from %s to %s: %s", msg->sender_uid, msg->recipient_uid, (char*)payload_copy);
+            client_connection* cl = (client_connection*)malloc(sizeof(client_connection));
+            if (!cl)
+            {
+                log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Msg queue: client memory allocation failed");
+                free(msg);
+                free((void*)payload_copy);
+                continue;
+            }
+            int recipient_found = hash_map_find(srv.client_map, msg->recipient_uid, &cl);
             if (recipient_found)
             {
-                send_message(cl->request->ssl, msg);
+                send_message(cl->req->ssl, msg);
                 if (msg->type == MESSAGE_PING && !strcmp(msg->sender_uid, "server"))
                 {
                     log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, "Sent PING to client %d", cl->id);
                     cl->ping_sent = 1;
                 }
             }
+            else
+                log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Recipient not found in the client map: %s (msg type: %d; msg payload: %s)", msg->recipient_uid, msg->type, msg->payload);
+            free(cl);
             free(msg);
+            free((void*)payload_copy);
         }
-        usleep(100000); // 100 ms
+        usleep(50000); // 50 ms
     }
     if (arg) {}
+    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Exiting msg queue thread");
     pthread_exit(NULL);
 }
 
@@ -357,18 +405,18 @@ void* handle_info_update(void* arg)
     char formatted_sys_uptime[9];
     while (!quit_flag)
     {
-        int user_count = server.client_map->current_elements;
+        int user_count = srv.client_map->current_elements;
 
         if (!sysinfo(&sys_info))
         {
             time_t current_time = time(NULL);
-            long uptime_seconds = (long)difftime(current_time, server.start_time);
+            long uptime_seconds = (long)difftime(current_time, srv.start_time);
             format_uptime(uptime_seconds, formatted_srv_uptime, sizeof(formatted_srv_uptime));
             format_uptime(sys_info.uptime, formatted_sys_uptime, sizeof(formatted_sys_uptime));
             log_message(T_LOG_INFO, SYSTEM_LOG, __FILE__, "Online: %d, Req: %d, Auths: %d, Uptime: %s, Sys-uptime: %s, Load avg: %.2f, RAM: %lu/%lu MB",
                 user_count,
-                server.requests_handled,
-                server.client_logins_handled,
+                srv.requests_handled,
+                srv.client_logins_handled,
                 formatted_srv_uptime,
                 formatted_sys_uptime,
                 sys_info.loads[0] / 65536.0,
@@ -380,6 +428,90 @@ void* handle_info_update(void* arg)
         sleep(10);
     }
     if (arg) {}
+    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Exiting info update thread");
+    pthread_exit(NULL);
+}
+
+void* handle_connection_add(void* arg)
+{
+    int cl_sock;
+    struct sockaddr_in cl_addr;
+    socklen_t cl_len = sizeof(cl_addr);
+
+    while (!quit_flag)
+    {
+        if (srv.thread_count >= MAX_CLIENTS || srv.thread_count >= MAX_THREADS)
+        {
+            usleep(200000); // 200 ms
+            continue;
+        }
+
+        cl_sock = accept(srv.sock, (struct sockaddr*)&cl_addr, &cl_len);
+        if (cl_sock < 0)
+        {
+            if (quit_flag)
+            {
+                close(srv.sock);
+                log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Server shutting down");
+                finish_logging();
+                exit(EXIT_SUCCESS);
+            }
+            if (errno == EINTR)
+                continue;
+            perror("Accept failed");
+            continue;
+        }
+
+        SSL* client_ssl = SSL_new(srv.ssl_ctx);
+        if (!client_ssl)
+        {
+            log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Failed to create SSL object for client");
+            close(cl_sock);
+            continue;
+        }
+        SSL_set_fd(client_ssl, cl_sock);
+        if (SSL_accept(client_ssl) <= 0)
+        {
+            log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "SSL handshake failed");
+            SSL_free(client_ssl);
+            close(cl_sock);
+            continue;
+        }
+        request* req = (request*)malloc(sizeof(request));
+        if (!req)
+        {
+            log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Request memory allocation failed");
+            SSL_free(client_ssl);
+            close(cl_sock);
+            continue;
+        }
+        req->sock = cl_sock;
+        req->addr = cl_addr;
+        req->ssl = client_ssl;
+
+        pthread_t tid;
+        if (pthread_create(&tid, NULL, handle_client, (void*)req) != 0)
+        {
+            char error_msg[128];
+            snprintf(error_msg, sizeof(error_msg), "Thread creation failed: %s", strerror(errno));
+            log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Thread creation failed for client %s: %s", inet_ntoa(cl_addr.sin_addr), error_msg);
+            SSL_free(client_ssl);
+            close(cl_sock);
+            free(req);
+            continue;
+        }
+        pthread_mutex_lock(&srv.thread_count_mutex);
+        if (srv.thread_count < MAX_CLIENTS)
+        {
+            srv.threads[srv.thread_count] = tid;
+            srv.thread_count++;
+        }
+        pthread_mutex_unlock(&srv.thread_count_mutex);
+
+        usleep(100000); // 100 ms
+    }
+    if (arg) {}
+    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Exiting connection add thread");
     pthread_exit(NULL);
 }
 
@@ -395,9 +527,6 @@ int run_server()
         return SINGLE_CORE_SYSTEM;
     }
 
-    int client_socket;
-    struct sockaddr_in client_addr;
-    socklen_t client_len = sizeof(client_addr);
     init_logging(SERVER_LOG);
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, LOG_SERVER_STARTED);
 
@@ -409,31 +538,31 @@ int run_server()
     }
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Database setup successful");
 
-    server.socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (server.socket < 0)
+    srv.sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (srv.sock < 0)
     {
         perror("Socket creation failed");
         log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Socket creation failed. Server shutting down");
         finish_logging();
         exit(EXIT_FAILURE);
     }
-    server.address.sin_family = AF_INET;
-    server.address.sin_addr.s_addr = INADDR_ANY;
-    server.address.sin_port = htons(PORT);
-    if (init_ssl(&server) != OPENSSL_INIT_SUCCESS)
+    srv.addr.sin_family = AF_INET;
+    srv.addr.sin_addr.s_addr = INADDR_ANY;
+    srv.addr.sin_port = htons(PORT);
+    if (init_ssl(&srv) != OPENSSL_INIT_SUCCESS)
     {
         log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "SSL initialization failed. Server shutting down");
         finish_logging();
         exit(EXIT_FAILURE);
     }
-    server.message_queue = sts_queue.create();
-    server.client_map = hash_map_create(MAX_CLIENTS);
-    server.start_time = time(NULL);
+    srv.message_queue = sts_queue.create();
+    srv.client_map = hash_map_create(MAX_CLIENTS);
+    srv.start_time = time(NULL);
 
-    if (server.address.sin_family == AF_INET)
-        log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "IPv4 socket created with address %s and port %d", inet_ntoa(server.address.sin_addr), PORT);
-    else if (server.address.sin_family == AF_INET6)
-        log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "IPv6 socket created with address %s and port %d", inet_ntoa(server.address.sin_addr), PORT);
+    if (srv.addr.sin_family == AF_INET)
+        log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "IPv4 socket created with address %s and port %d", inet_ntoa(srv.addr.sin_addr), PORT);
+    else if (srv.addr.sin_family == AF_INET6)
+        log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "IPv6 socket created with address %s and port %d", inet_ntoa(srv.addr.sin_addr), PORT);
     else
         log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Socket created with unknown address family and port %d", PORT);
 
@@ -441,7 +570,7 @@ int run_server()
     int bind_success = 0;
     while (attempts < PORT_BIND_ATTEMPTS)
     {
-        if (bind(server.socket, (struct sockaddr*)&server.address, sizeof(server.address)) < 0)
+        if (bind(srv.sock, (struct sockaddr*)&srv.addr, sizeof(srv.addr)) < 0)
         {
             clear_cli();
             perror("Bind failed");
@@ -452,7 +581,7 @@ int run_server()
             {
                 if (quit_flag)
                 {
-                    close(server.socket);
+                    close(srv.sock);
                     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Server shutting down");
                     finish_logging();
                     exit(EXIT_SUCCESS);
@@ -461,7 +590,7 @@ int run_server()
             }
             else
             {
-                close(server.socket);
+                close(srv.sock);
                 log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Could not bind to the server address. Server shutting down");
                 finish_logging();
                 exit(EXIT_FAILURE);
@@ -475,16 +604,16 @@ int run_server()
     }
     if (!bind_success)
     {
-        close(server.socket);
+        close(srv.sock);
         log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Could not bind to the server address");
         finish_logging();
         exit(EXIT_FAILURE);
     }
 
-    if (listen(server.socket, 10) < 0)
+    if (listen(srv.sock, 10) < 0)
     {
         perror("Listen failed");
-        close(server.socket);
+        close(srv.sock);
         log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Listen failed. Server shutting down");
         finish_logging();
         exit(EXIT_FAILURE);
@@ -495,7 +624,8 @@ int run_server()
     if (pthread_create(&cli_thread, NULL, handle_cli, (void*)NULL) != 0)
         log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "CLI thread creation failed: %s", strerror(errno));
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "CLI thread started");
-    server.thread_count++;
+    srv.threads[srv.thread_count] = cli_thread;
+    srv.thread_count++;
 
     init_logging(SYSTEM_LOG);
     log_message(T_LOG_INFO, SYSTEM_LOG, __FILE__, LOG_SERVER_STARTED);
@@ -503,99 +633,58 @@ int run_server()
     if (pthread_create(&info_update_thread, NULL, handle_info_update, (void*)NULL) != 0)
         log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Info update thread creation failed: %s", strerror(errno));
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Info update thread started");
-    server.thread_count++;
+    srv.threads[srv.thread_count] = info_update_thread;
+    srv.thread_count++;
 
     pthread_t msg_queue_thread;
     if (pthread_create(&msg_queue_thread, NULL, handle_msg_queue, (void*)NULL) != 0)
         log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Message queue handler thread creation failed: %s", strerror(errno));
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Message queue handler thread started");
-    server.thread_count++;
+    srv.threads[srv.thread_count] = msg_queue_thread;
+    srv.thread_count++;
 
     pthread_t client_ping_thread;
     if (pthread_create(&client_ping_thread, NULL, handle_client_ping, (void*)NULL) != 0)
         log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Client ping thread creation failed: %s", strerror(errno));
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Client ping thread started");
-    server.thread_count++;
+    srv.threads[srv.thread_count] = client_ping_thread;
+    srv.thread_count++;
 
     init_logging(REQUESTS_LOG);
     init_logging(CLIENTS_LOG);
     log_message(T_LOG_INFO, REQUESTS_LOG, __FILE__, LOG_SERVER_STARTED);
     log_message(T_LOG_INFO, CLIENTS_LOG, __FILE__, LOG_SERVER_STARTED);
 
-    while (!quit_flag)
+    pthread_t connection_add_thread;
+    if (pthread_create(&connection_add_thread, NULL, handle_connection_add, (void*)NULL) != 0)
     {
-        if (server.thread_count >= MAX_CLIENTS || server.thread_count >= MAX_THREADS)
-        {
-            usleep(200000); // 200 ms
-            continue;
-        }
-
-        client_socket = accept(server.socket, (struct sockaddr*)&client_addr, &client_len);
-        if (client_socket < 0)
-        {
-            if (quit_flag)
-            {
-                close(server.socket);
-                log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Server shutting down");
-                finish_logging();
-                exit(EXIT_SUCCESS);
-            }
-            if (errno == EINTR)
-                continue;
-            perror("Accept failed");
-            continue;
-        }
-
-        SSL* client_ssl = SSL_new(server.ssl_ctx);
-        if (!client_ssl)
-        {
-            log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Failed to create SSL object for client");
-            close(client_socket);
-            continue;
-        }
-        SSL_set_fd(client_ssl, client_socket);
-        if (SSL_accept(client_ssl) <= 0)
-        {
-            log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "SSL handshake failed");
-            SSL_free(client_ssl);
-            close(client_socket);
-            continue;
-        }
-        request_t req;
-        req.socket = client_socket;
-        req.address = client_addr;
-        req.ssl = client_ssl;
-
-        pthread_t tid;
-        if (pthread_create(&tid, NULL, handle_client, (void*)&req) != 0)
-        {
-            char error_msg[128];
-            snprintf(error_msg, sizeof(error_msg), "Thread creation failed: %s", strerror(errno));
-            log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Thread creation failed for client %s: %s", inet_ntoa(client_addr.sin_addr), error_msg);
-            close(client_socket);
-            continue;
-        }
-        pthread_mutex_lock(&server.thread_count_mutex);
-        if (server.thread_count < MAX_CLIENTS)
-        {
-            server.threads[server.thread_count] = tid;
-            server.thread_count++;
-        }
-        pthread_mutex_unlock(&server.thread_count_mutex);
-
-        usleep(200000); // 200 ms
+        log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Connection add thread creation failed: %s", strerror(errno));
+        close(srv.sock);
+        finish_logging();
+        exit(EXIT_FAILURE);
     }
+    log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Connection add thread started");
+    srv.threads[srv.thread_count] = connection_add_thread;
+    srv.thread_count++;
 
-    for (int i = 0; i < server.thread_count; ++i)
-        pthread_join(server.threads[i], NULL);
+    while (!quit_flag)
+        usleep(100000); // 100 ms
 
-    sts_queue.destroy(server.message_queue);
-    hash_map_destroy(server.client_map);
-    destroy_ssl(&server);
-    close(server.socket);
-    pthread_join(cli_thread, NULL);
-    pthread_join(info_update_thread, NULL);
-    pthread_join(msg_queue_thread, NULL);
+    // exit
+    pthread_cancel(cli_thread);
+    pthread_cancel(info_update_thread);
+    pthread_cancel(msg_queue_thread);
+    pthread_cancel(client_ping_thread);
+    pthread_cancel(connection_add_thread);
+
+    for (int i = 0; i < srv.thread_count; ++i)
+        pthread_join(srv.threads[i], NULL);
+
+    sts_queue.destroy(srv.message_queue);
+    hash_map_destroy(srv.client_map);
+    destroy_ssl(&srv);
+    close(srv.sock);
+
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Server shutting down");
     finish_logging();
     exit(EXIT_SUCCESS);
