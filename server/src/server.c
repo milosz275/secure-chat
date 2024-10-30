@@ -36,8 +36,9 @@ int srv_exit(char** args)
     if (args[0] != NULL)
         log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Arguments provided for exit command ignored");
     log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Server shutdown requested");
-    quit_flag = 1;
-    return 1;
+    exit(EXIT_SUCCESS); // [ ] Implement graceful shutdown
+    // quit_flag = 1;
+    // return 1;
 }
 
 int srv_list(char** args)
@@ -386,6 +387,7 @@ void* handle_msg_queue(void* arg)
             }
             else
                 log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Recipient not found in the client map: %s (msg type: %d; msg payload: %s)", msg->recipient_uid, msg->type, msg->payload);
+            free(cl);
             free(msg);
             free((void*)payload_copy);
         }
