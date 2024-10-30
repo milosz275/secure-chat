@@ -142,6 +142,7 @@ int user_auth(request* req, client_connection* cl, hash_map* user_map)
 
                     if (!strcmp(password, password_confirmation))
                     {
+                        // save username and password to database
                         snprintf(cl->username, MAX_USERNAME_LENGTH + 1, "%s", username);
 
                         cl->uid = (char*)malloc(HASH_HEX_OUTPUT_LENGTH);
@@ -204,9 +205,10 @@ int user_auth(request* req, client_connection* cl, hash_map* user_map)
                         create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
                         send_message(req->ssl, &msg);
 
-                        char send_uid[HASH_HEX_OUTPUT_LENGTH];
-                        snprintf(send_uid, HASH_HEX_OUTPUT_LENGTH, "%s", cl->uid);
-                        create_message(&msg, MESSAGE_UID, "server", CLIENT_DEFAULT_NAME, send_uid);
+                        // send username + separator + uid
+                        char send_data[HASH_MESSAGE_LENGTH + strlen(cl->username) + strlen(MESSAGE_DELIMITER) + 1]; // Buffer to hold username + separator + uid
+                        snprintf(send_data, sizeof(send_data), "%s%s%s", cl->username, MESSAGE_DELIMITER, cl->uid); // Concatenate username, separator, and uid
+                        create_message(&msg, MESSAGE_UID, "server", CLIENT_DEFAULT_NAME, send_data); // Pass the new buffer to create_message
                         send_message(req->ssl, &msg);
 
                         return USER_AUTHENTICATION_SUCCESS;
@@ -407,9 +409,10 @@ int user_auth(request* req, client_connection* cl, hash_map* user_map)
                 create_message(&msg, MESSAGE_AUTH, "server", CLIENT_DEFAULT_NAME, send_msg);
                 send_message(req->ssl, &msg);
 
-                char send_uid[HASH_HEX_OUTPUT_LENGTH];
-                snprintf(send_uid, HASH_HEX_OUTPUT_LENGTH, "%s", cl->uid);
-                create_message(&msg, MESSAGE_UID, "server", CLIENT_DEFAULT_NAME, send_uid);
+                // send username + separator + uid
+                char send_data[HASH_MESSAGE_LENGTH + strlen(cl->username) + strlen(MESSAGE_DELIMITER) + 1]; // Buffer to hold username + separator + uid
+                snprintf(send_data, sizeof(send_data), "%s%s%s", cl->username, MESSAGE_DELIMITER, cl->uid); // Concatenate username, separator, and uid
+                create_message(&msg, MESSAGE_UID, "server", CLIENT_DEFAULT_NAME, send_data); // Pass the new buffer to create_message
                 send_message(req->ssl, &msg);
 
                 return USER_AUTHENTICATION_SUCCESS;
