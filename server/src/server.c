@@ -246,7 +246,6 @@ void* handle_client(void* arg)
     if (user_auth(req, &cl, srv.client_map) != USER_AUTHENTICATION_SUCCESS)
     {
         close(req->sock);
-        free(req);
         pthread_exit(NULL);
     }
 
@@ -254,7 +253,6 @@ void* handle_client(void* arg)
     {
         log_message(T_LOG_ERROR, CLIENTS_LOG, __FILE__, "Failed to insert client into client map");
         close(req->sock);
-        free(req);
         pthread_exit(NULL);
     }
     cl.is_inserted = 1;
@@ -361,11 +359,19 @@ void* handle_msg_queue(void* arg)
         if (msg)
         {
             const char* payload_copy = strdup(msg->payload);
+            if (!payload_copy)
+            {
+                log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Failed to copy message payload");
+                free(msg);
+                continue;
+            }
             log_message(T_LOG_INFO, SERVER_LOG, __FILE__, "Message from %s to %s: %s", msg->sender_uid, msg->recipient_uid, (char*)payload_copy);
             client_connection* cl = (client_connection*)malloc(sizeof(client_connection));
             if (!cl)
             {
                 log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Msg queue: client memory allocation failed");
+                free(msg);
+                free((void*)payload_copy);
                 continue;
             }
             int recipient_found = hash_map_find(srv.client_map, msg->recipient_uid, &cl);
@@ -469,7 +475,7 @@ void* handle_connection_add(void* arg)
             close(cl_sock);
             continue;
         }
-        request* req = (request*)malloc(sizeof(request)); // this should be freed in handle_client thread
+        request* req = (request*)malloc(sizeof(request));
         if (!req)
         {
             log_message(T_LOG_ERROR, SERVER_LOG, __FILE__, "Request memory allocation failed");
@@ -487,7 +493,9 @@ void* handle_connection_add(void* arg)
             char error_msg[128];
             snprintf(error_msg, sizeof(error_msg), "Thread creation failed: %s", strerror(errno));
             log_message(T_LOG_WARN, SERVER_LOG, __FILE__, "Thread creation failed for client %s: %s", inet_ntoa(cl_addr.sin_addr), error_msg);
+            SSL_free(client_ssl);
             close(cl_sock);
+            free(req);
             continue;
         }
         pthread_mutex_lock(&srv.thread_count_mutex);
@@ -661,6 +669,12 @@ int run_server()
         usleep(100000); // 100 ms
 
     // exit
+    pthread_cancel(cli_thread);
+    pthread_cancel(info_update_thread);
+    pthread_cancel(msg_queue_thread);
+    pthread_cancel(client_ping_thread);
+    pthread_cancel(connection_add_thread);
+
     for (int i = 0; i < srv.thread_count; ++i)
         pthread_join(srv.threads[i], NULL);
 
