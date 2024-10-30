@@ -126,6 +126,11 @@ void add_message(const char* sender, const char* payload);
 void reset_state(client_state* cl_state);
 
 /**
+ * Enable input. This function is used to enable input from the command line interface.
+ */
+void enable_cli_input();
+
+/**
  * Disable input. This function is used to disable input from the command line interface.
  */
 void disable_cli_input();

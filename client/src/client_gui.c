@@ -143,14 +143,15 @@ void ui_cycle(client* cl, client_state* cl_state, volatile sig_atomic_t* reconne
     }
     else if (IsKeyPressed(KEY_ESCAPE))
     {
-        *reconnect_flag = 0;
-        *quit_flag = 1;
-        cl->input[0] = '\0';
-        for (int i = 0; i < 10; ++i)
-            messages[i][0] = '\0';
-        message_count = 0;
-        CloseWindow();
-        return;
+        exit(EXIT_SUCCESS); // [ ] Tmp resolving of heap-buffer-overflow
+        // *reconnect_flag = 0;
+        // *quit_flag = 1;
+        // cl->input[0] = '\0';
+        // for (int i = 0; i < 10; ++i)
+        //     messages[i][0] = '\0';
+        // message_count = 0;
+        // CloseWindow();
+        // return;
     }
     else
     {
@@ -283,6 +284,14 @@ void reset_state(client_state* cl_state)
     cl_state->is_authenticated = 0;
     cl_state->auth_attempts = 0;
     cl_state->can_register = 0;
+}
+
+void enable_cli_input()
+{
+    struct termios newt;
+    tcgetattr(STDIN_FILENO, &newt);
+    newt.c_lflag |= ICANON | ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
 }
 
 void disable_cli_input()
